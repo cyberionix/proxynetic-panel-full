@@ -1,0 +1,22 @@
+:root, [data-bs-theme=light] {
+    --c-bg-yellow: #ffda51;
+}
+
+[data-bs-theme=dark] {
+    --c-bg-yellow: #15171C;
+}
+
+.c-bg-yellow {
+    background-color: var(--c-bg-yellow);
+}
+
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+.blink_me {
+    animation: blink 3s infinite;
+}
