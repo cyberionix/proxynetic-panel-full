@@ -107,7 +107,9 @@ class SystemController extends Controller
 
         $systemStatus = $this->getSystemStatusData();
 
-        return view('admin.pages.system.settings', compact('urls', 'test_product', 'test_product_price', 'localtonetHttpVerify', 'systemStatus'));
+        $smsMailConfig = $this->getSmsMailConfig();
+
+        return view('admin.pages.system.settings', compact('urls', 'test_product', 'test_product_price', 'localtonetHttpVerify', 'systemStatus', 'smsMailConfig'));
     }
 
     public function systemStatusAjax()
@@ -374,8 +376,75 @@ class SystemController extends Controller
             '<?php return ' . var_export(['http_verify' => $localtonetHttpVerify], true) . ';'
         );
 
+        if ($request->has('sms_mail')) {
+            $smsMail = $request->input('sms_mail');
+            $smsMailData = [
+                'sms_enabled' => (bool) ($smsMail['sms_enabled'] ?? false),
+                'sms_provider' => $smsMail['sms_provider'] ?? 'iletimerkezi',
+                'iletimerkezi_key' => $smsMail['iletimerkezi_key'] ?? '',
+                'iletimerkezi_secret' => $smsMail['iletimerkezi_secret'] ?? '',
+                'iletimerkezi_origin' => $smsMail['iletimerkezi_origin'] ?? '',
+                'iletimerkezi_debug' => (bool) ($smsMail['iletimerkezi_debug'] ?? false),
+                'iletimerkezi_sandbox' => (bool) ($smsMail['iletimerkezi_sandbox'] ?? false),
+                'mutlucell_username' => $smsMail['mutlucell_username'] ?? '',
+                'mutlucell_password' => $smsMail['mutlucell_password'] ?? '',
+                'mutlucell_sender' => $smsMail['mutlucell_sender'] ?? '',
+                'mail_provider' => $smsMail['mail_provider'] ?? 'smtp',
+                'mail_from_address' => $smsMail['mail_from_address'] ?? '',
+                'mail_from_name' => $smsMail['mail_from_name'] ?? '',
+                'smtp_host' => $smsMail['smtp_host'] ?? '',
+                'smtp_port' => (int) ($smsMail['smtp_port'] ?? 587),
+                'smtp_encryption' => $smsMail['smtp_encryption'] ?? 'tls',
+                'smtp_username' => $smsMail['smtp_username'] ?? '',
+                'smtp_password' => $smsMail['smtp_password'] ?? '',
+                'mailjet_apikey' => $smsMail['mailjet_apikey'] ?? '',
+                'mailjet_apisecret' => $smsMail['mailjet_apisecret'] ?? '',
+            ];
+
+            file_put_contents(
+                config_path('sms_mail_settings.php'),
+                '<?php return ' . var_export($smsMailData, true) . ';'
+            );
+        }
+
         Artisan::call('config:clear');
 
         return redirect()->route('admin.settings')->with('form_success', 'Değişiklikler başarıyla kaydedildi.');
+    }
+
+    private function getSmsMailConfig(): array
+    {
+        $defaults = [
+            'sms_enabled' => (bool) config('services.sms.enabled', false),
+            'sms_provider' => 'iletimerkezi',
+            'iletimerkezi_key' => config('services.sms.iletimerkezi.key', ''),
+            'iletimerkezi_secret' => config('services.sms.iletimerkezi.secret', ''),
+            'iletimerkezi_origin' => config('services.sms.iletimerkezi.origin', ''),
+            'iletimerkezi_debug' => (bool) config('services.sms.iletimerkezi.debug', false),
+            'iletimerkezi_sandbox' => (bool) config('services.sms.iletimerkezi.sandboxMode', false),
+            'mutlucell_username' => config('mutlucell.auth.username', ''),
+            'mutlucell_password' => config('mutlucell.auth.password', ''),
+            'mutlucell_sender' => config('mutlucell.default_sender', ''),
+            'mail_provider' => config('mail.default', 'smtp'),
+            'mail_from_address' => config('mail.from.address', ''),
+            'mail_from_name' => config('mail.from.name', ''),
+            'smtp_host' => config('mail.mailers.smtp.host', ''),
+            'smtp_port' => (int) config('mail.mailers.smtp.port', 587),
+            'smtp_encryption' => config('mail.mailers.smtp.encryption', 'tls'),
+            'smtp_username' => config('mail.mailers.smtp.username', ''),
+            'smtp_password' => config('mail.mailers.smtp.password', ''),
+            'mailjet_apikey' => config('services.mailjet.key', ''),
+            'mailjet_apisecret' => config('services.mailjet.secret', ''),
+        ];
+
+        $settingsPath = config_path('sms_mail_settings.php');
+        if (is_file($settingsPath)) {
+            $saved = require $settingsPath;
+            if (is_array($saved)) {
+                $defaults = array_merge($defaults, $saved);
+            }
+        }
+
+        return $defaults;
     }
 }

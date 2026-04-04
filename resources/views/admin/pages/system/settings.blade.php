@@ -57,6 +57,11 @@
                 <li class="nav-item">
                     <a class="nav-link pb-4" data-bs-toggle="tab" href="#system_settings_localtonet_tab">Localtonet</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link pb-4" data-bs-toggle="tab" href="#system_settings_sms_mail_tab">
+                        <i class="fa fa-envelope me-2"></i>SMS ve Mail
+                    </a>
+                </li>
             </ul>
 
             <div class="tab-content" id="systemSettingsTabs">
@@ -324,6 +329,203 @@
                             <button type="submit" class="btn btn-success">Değişiklikleri Kaydet</button>
                         </div>
                     </div>
+
+                    {{-- SMS ve Mail Ayarları Tab --}}
+                    <div class="tab-pane fade" id="system_settings_sms_mail_tab" role="tabpanel">
+                        <div class="w-75 mx-auto">
+                            {{-- SMS Ayarları --}}
+                            <div class="card card-flush border border-dashed mb-8">
+                                <div class="card-header pt-5 pb-3 min-h-auto">
+                                    <div class="card-title d-flex align-items-center gap-3">
+                                        <div class="d-flex align-items-center justify-content-center rounded-circle bg-light-success" style="width:42px;height:42px;">
+                                            <i class="fa fa-sms fs-4 text-success"></i>
+                                        </div>
+                                        <div>
+                                            <span class="fw-bold fs-5 d-block">SMS Ayarları</span>
+                                            <span class="text-muted fs-8">SMS gönderim sağlayıcı yapılandırması</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body pt-2">
+                                    <div class="row">
+                                        <div class="col-12 mb-5">
+                                            <label class="form-label fw-semibold">SMS Durumu</label>
+                                            <div class="form-check form-switch form-check-custom form-check-solid mt-2">
+                                                <input type="hidden" name="sms_mail[sms_enabled]" value="0"/>
+                                                <input class="form-check-input" type="checkbox" name="sms_mail[sms_enabled]" value="1"
+                                                       id="smsEnabledSwitch" {{ $smsMailConfig['sms_enabled'] ? 'checked' : '' }}/>
+                                                <label class="form-check-label" for="smsEnabledSwitch">SMS gönderimini aktif et</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 mb-5">
+                                            <label class="form-label fw-semibold required">SMS Sağlayıcı</label>
+                                            <select name="sms_mail[sms_provider]" id="smsProviderSelect" class="form-select form-select-solid">
+                                                <option value="iletimerkezi" {{ $smsMailConfig['sms_provider'] === 'iletimerkezi' ? 'selected' : '' }}>İleti Merkezi</option>
+                                                <option value="mutlucell" {{ $smsMailConfig['sms_provider'] === 'mutlucell' ? 'selected' : '' }}>Mutlucell</option>
+                                            </select>
+                                        </div>
+
+                                        {{-- İleti Merkezi Ayarları --}}
+                                        <div id="smsIletimerkeziFields" class="{{ $smsMailConfig['sms_provider'] !== 'iletimerkezi' ? 'd-none' : '' }}">
+                                            <div class="separator separator-dashed my-5"></div>
+                                            <h6 class="fw-bold text-gray-700 mb-4"><i class="fa fa-cog me-2"></i>İleti Merkezi Ayarları</h6>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label fw-semibold required">API Key</label>
+                                                    <input type="text" name="sms_mail[iletimerkezi_key]" class="form-control form-control-solid"
+                                                           value="{{ $smsMailConfig['iletimerkezi_key'] }}" placeholder="API Key"/>
+                                                </div>
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label fw-semibold required">API Secret</label>
+                                                    <input type="text" name="sms_mail[iletimerkezi_secret]" class="form-control form-control-solid"
+                                                           value="{{ $smsMailConfig['iletimerkezi_secret'] }}" placeholder="API Secret"/>
+                                                </div>
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label fw-semibold required">Gönderici Adı (Origin)</label>
+                                                    <input type="text" name="sms_mail[iletimerkezi_origin]" class="form-control form-control-solid"
+                                                           value="{{ $smsMailConfig['iletimerkezi_origin'] }}" placeholder="Gönderici adı"/>
+                                                </div>
+                                                <div class="col-md-3 mb-5">
+                                                    <label class="form-label fw-semibold">Debug Modu</label>
+                                                    <div class="form-check form-switch form-check-custom form-check-solid mt-2">
+                                                        <input type="hidden" name="sms_mail[iletimerkezi_debug]" value="0"/>
+                                                        <input class="form-check-input" type="checkbox" name="sms_mail[iletimerkezi_debug]" value="1"
+                                                               {{ $smsMailConfig['iletimerkezi_debug'] ? 'checked' : '' }}/>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-5">
+                                                    <label class="form-label fw-semibold">Sandbox Modu</label>
+                                                    <div class="form-check form-switch form-check-custom form-check-solid mt-2">
+                                                        <input type="hidden" name="sms_mail[iletimerkezi_sandbox]" value="0"/>
+                                                        <input class="form-check-input" type="checkbox" name="sms_mail[iletimerkezi_sandbox]" value="1"
+                                                               {{ $smsMailConfig['iletimerkezi_sandbox'] ? 'checked' : '' }}/>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {{-- Mutlucell Ayarları --}}
+                                        <div id="smsMutlucellFields" class="{{ $smsMailConfig['sms_provider'] !== 'mutlucell' ? 'd-none' : '' }}">
+                                            <div class="separator separator-dashed my-5"></div>
+                                            <h6 class="fw-bold text-gray-700 mb-4"><i class="fa fa-cog me-2"></i>Mutlucell Ayarları</h6>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label fw-semibold required">Kullanıcı Adı</label>
+                                                    <input type="text" name="sms_mail[mutlucell_username]" class="form-control form-control-solid"
+                                                           value="{{ $smsMailConfig['mutlucell_username'] }}" placeholder="Mutlucell kullanıcı adı"/>
+                                                </div>
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label fw-semibold required">Şifre</label>
+                                                    <input type="password" name="sms_mail[mutlucell_password]" class="form-control form-control-solid"
+                                                           value="{{ $smsMailConfig['mutlucell_password'] }}" placeholder="Mutlucell şifre"/>
+                                                </div>
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label fw-semibold required">Varsayılan Gönderici</label>
+                                                    <input type="text" name="sms_mail[mutlucell_sender]" class="form-control form-control-solid"
+                                                           value="{{ $smsMailConfig['mutlucell_sender'] }}" placeholder="Gönderici adı"/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Mail Ayarları --}}
+                            <div class="card card-flush border border-dashed mb-8">
+                                <div class="card-header pt-5 pb-3 min-h-auto">
+                                    <div class="card-title d-flex align-items-center gap-3">
+                                        <div class="d-flex align-items-center justify-content-center rounded-circle bg-light-primary" style="width:42px;height:42px;">
+                                            <i class="fa fa-at fs-4 text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <span class="fw-bold fs-5 d-block">Mail Ayarları</span>
+                                            <span class="text-muted fs-8">E-posta gönderim sağlayıcı yapılandırması</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body pt-2">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-5">
+                                            <label class="form-label fw-semibold required">Mail Sağlayıcı</label>
+                                            <select name="sms_mail[mail_provider]" id="mailProviderSelect" class="form-select form-select-solid">
+                                                <option value="smtp" {{ $smsMailConfig['mail_provider'] === 'smtp' ? 'selected' : '' }}>SMTP</option>
+                                                <option value="mailjet" {{ $smsMailConfig['mail_provider'] === 'mailjet' ? 'selected' : '' }}>Mailjet</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3 mb-5">
+                                            <label class="form-label fw-semibold required">Gönderici E-posta</label>
+                                            <input type="email" name="sms_mail[mail_from_address]" class="form-control form-control-solid"
+                                                   value="{{ $smsMailConfig['mail_from_address'] }}" placeholder="ornek@domain.com"/>
+                                        </div>
+                                        <div class="col-md-3 mb-5">
+                                            <label class="form-label fw-semibold required">Gönderici Adı</label>
+                                            <input type="text" name="sms_mail[mail_from_name]" class="form-control form-control-solid"
+                                                   value="{{ $smsMailConfig['mail_from_name'] }}" placeholder="Şirket adı"/>
+                                        </div>
+
+                                        {{-- SMTP Ayarları --}}
+                                        <div id="mailSmtpFields" class="{{ $smsMailConfig['mail_provider'] !== 'smtp' ? 'd-none' : '' }}">
+                                            <div class="separator separator-dashed my-5"></div>
+                                            <h6 class="fw-bold text-gray-700 mb-4"><i class="fa fa-server me-2"></i>SMTP Ayarları</h6>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label fw-semibold required">SMTP Host</label>
+                                                    <input type="text" name="sms_mail[smtp_host]" class="form-control form-control-solid"
+                                                           value="{{ $smsMailConfig['smtp_host'] }}" placeholder="smtp.example.com"/>
+                                                </div>
+                                                <div class="col-md-3 mb-5">
+                                                    <label class="form-label fw-semibold required">Port</label>
+                                                    <input type="number" name="sms_mail[smtp_port]" class="form-control form-control-solid"
+                                                           value="{{ $smsMailConfig['smtp_port'] }}" placeholder="587"/>
+                                                </div>
+                                                <div class="col-md-3 mb-5">
+                                                    <label class="form-label fw-semibold required">Şifreleme</label>
+                                                    <select name="sms_mail[smtp_encryption]" class="form-select form-select-solid">
+                                                        <option value="tls" {{ $smsMailConfig['smtp_encryption'] === 'tls' ? 'selected' : '' }}>TLS</option>
+                                                        <option value="ssl" {{ $smsMailConfig['smtp_encryption'] === 'ssl' ? 'selected' : '' }}>SSL</option>
+                                                        <option value="" {{ empty($smsMailConfig['smtp_encryption']) ? 'selected' : '' }}>Yok</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label fw-semibold required">SMTP Kullanıcı Adı</label>
+                                                    <input type="text" name="sms_mail[smtp_username]" class="form-control form-control-solid"
+                                                           value="{{ $smsMailConfig['smtp_username'] }}" placeholder="kullanici@domain.com"/>
+                                                </div>
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label fw-semibold required">SMTP Şifre</label>
+                                                    <input type="password" name="sms_mail[smtp_password]" class="form-control form-control-solid"
+                                                           value="{{ $smsMailConfig['smtp_password'] }}" placeholder="SMTP şifresi"/>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {{-- Mailjet Ayarları --}}
+                                        <div id="mailMailjetFields" class="{{ $smsMailConfig['mail_provider'] !== 'mailjet' ? 'd-none' : '' }}">
+                                            <div class="separator separator-dashed my-5"></div>
+                                            <h6 class="fw-bold text-gray-700 mb-4"><i class="fa fa-paper-plane me-2"></i>Mailjet Ayarları</h6>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label fw-semibold required">API Key</label>
+                                                    <input type="text" name="sms_mail[mailjet_apikey]" class="form-control form-control-solid"
+                                                           value="{{ $smsMailConfig['mailjet_apikey'] }}" placeholder="Mailjet API Key"/>
+                                                </div>
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label fw-semibold required">API Secret</label>
+                                                    <input type="text" name="sms_mail[mailjet_apisecret]" class="form-control form-control-solid"
+                                                           value="{{ $smsMailConfig['mailjet_apisecret'] }}" placeholder="Mailjet API Secret"/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fa fa-save me-2"></i>Değişiklikleri Kaydet
+                            </button>
+                        </div>
+                    </div>
                 </form>
             </div>
             <!--end::Tab content-->
@@ -416,6 +618,18 @@
             }
             $ltSwitch.on("change", syncLocaltonetVerifyHidden);
             syncLocaltonetVerifyHidden();
+
+            $('#smsProviderSelect').on('change', function(){
+                var val = $(this).val();
+                $('#smsIletimerkeziFields').toggleClass('d-none', val !== 'iletimerkezi');
+                $('#smsMutlucellFields').toggleClass('d-none', val !== 'mutlucell');
+            });
+
+            $('#mailProviderSelect').on('change', function(){
+                var val = $(this).val();
+                $('#mailSmtpFields').toggleClass('d-none', val !== 'smtp');
+                $('#mailMailjetFields').toggleClass('d-none', val !== 'mailjet');
+            });
 
             $(document).on("select2:select", '.productSelection', function (e) {
                 let additionalServiceArea = $("#additionalTable"),
