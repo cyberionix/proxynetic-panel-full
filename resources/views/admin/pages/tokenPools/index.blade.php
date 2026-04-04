@@ -359,6 +359,7 @@
             </div>
         </div>
     </div>
+        </div>
 
         <div class="tab-pane fade" id="pproxyuPoolTab">
             <div class="card">
@@ -492,7 +493,6 @@
             </div>
         </div>
 
-        </div>
     </div>
 @endsection
 @section("js")

@@ -275,6 +275,11 @@ class OrderController extends Controller
     {
         $order->loadMissing(['product', 'user', 'activeDetail', 'activeDetails']);
         $order->maybeHealLocaltonetV4DeliveryStatus();
+
+        if ($order->isPProxyUDelivery() && in_array($order->delivery_status, ['BEING_DELIVERED', 'QUEUED'])) {
+            $order->approve();
+        }
+
         $order->refresh();
         $order->loadMissing(['product', 'user', 'activeDetail', 'activeDetails']);
 
@@ -384,6 +389,58 @@ class OrderController extends Controller
         $appprove = $order->approve();
         if ($appprove) return $this->successResponse("Teslimat başarıyla tamamlandı.");
         return $this->errorResponse("Teslimat sırasında bir sorun oluştu.");
+    }
+
+    public function pproxyuUpdateInfo(Order $order, Request $request)
+    {
+        if (!$order->isPProxyUDelivery()) {
+            return $this->errorResponse('Bu sipariş PProxyU teslimatı değil.');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'pproxyu_pool_ip'   => 'required|string|max:255',
+            'pproxyu_pool_port' => 'required|integer|min:1|max:65535',
+            'pproxyu_pool_user' => 'required|string|max:255',
+            'pproxyu_pool_pass' => 'required|string|max:255',
+            'pproxyu_username'  => 'nullable|string|max:255',
+            'pproxyu_password'  => 'nullable|string|max:255',
+            'pproxyu_days'      => 'nullable|integer|min:1',
+            'pproxyu_active_until' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first());
+        }
+
+        $pi = $order->product_info ?? [];
+        $pi['pproxyu_pool_ip']   = $request->pproxyu_pool_ip;
+        $pi['pproxyu_pool_port'] = (int) $request->pproxyu_pool_port;
+        $pi['pproxyu_pool_user'] = $request->pproxyu_pool_user;
+        $pi['pproxyu_pool_pass'] = $request->pproxyu_pool_pass;
+
+        if ($request->filled('pproxyu_username')) {
+            $pi['pproxyu_username'] = $request->pproxyu_username;
+        }
+        if ($request->filled('pproxyu_password')) {
+            $pi['pproxyu_password'] = $request->pproxyu_password;
+        }
+        if ($request->filled('pproxyu_days')) {
+            $pi['pproxyu_days'] = (int) $request->pproxyu_days;
+        }
+        if ($request->filled('pproxyu_active_until')) {
+            $pi['pproxyu_active_until'] = \Carbon\Carbon::parse($request->pproxyu_active_until)->toIso8601String();
+        }
+
+        $order->product_info = $pi;
+
+        if ($order->delivery_status !== 'DELIVERED') {
+            $order->status = 'ACTIVE';
+            $order->delivery_status = 'DELIVERED';
+        }
+
+        $order->saveQuietly();
+
+        return $this->successResponse('PProxyU proxy bilgileri başarıyla güncellendi.');
     }
 
     public function removeDelivery(Order $order)

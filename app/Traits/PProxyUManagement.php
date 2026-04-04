@@ -20,14 +20,18 @@ trait PProxyUManagement
         $this->delivery_status = 'QUEUED';
         $this->saveQuietly();
 
-        $orderId = $this->id;
-        $fn = static function () use ($orderId): void {
-            self::dispatchPProxyUDelivery($orderId);
-        };
-        if (DB::transactionLevel() > 0) {
-            DB::afterCommit($fn);
-        } else {
-            $fn();
+        $delivered = $this->deliverPProxyUOrder();
+
+        if (!$delivered) {
+            $orderId = $this->id;
+            $fn = static function () use ($orderId): void {
+                self::dispatchPProxyUDelivery($orderId);
+            };
+            if (DB::transactionLevel() > 0) {
+                DB::afterCommit($fn);
+            } else {
+                $fn();
+            }
         }
 
         return true;

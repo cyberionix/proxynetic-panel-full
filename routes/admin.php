@@ -189,6 +189,7 @@ dd($data->is_proxy || $data->is_vpn);
             Route::post('/three-proxy-reinstall/{order}', [OrderController::class, 'threeProxyReinstall'])->name('threeProxyReinstall');
             Route::post('/three-proxy-change-credentials/{order}', [OrderController::class, 'threeProxyChangeCredentials'])->name('threeProxyChangeCredentials');
             Route::post('/three-proxy-change-port/{order}', [OrderController::class, 'threeProxyChangePort'])->name('threeProxyChangePort');
+            Route::post('/pproxyu-update-info/{order}', [OrderController::class, 'pproxyuUpdateInfo'])->name('pproxyuUpdateInfo');
         });
         Route::group(['prefix' => 'invoices', 'as' => 'invoices.'], function () {
             Route::get('/', [InvoiceController::class, "index"])->name("index");

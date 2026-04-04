@@ -715,8 +715,11 @@
                                     $ppuPoolPort = $ppuPi['pproxyu_pool_port'] ?? '';
                                     $ppuPoolUser = $ppuPi['pproxyu_pool_user'] ?? '';
                                     $ppuPoolPass = $ppuPi['pproxyu_pool_pass'] ?? '';
+                                    $ppuUsername = $ppuPi['pproxyu_username'] ?? '';
+                                    $ppuPassword = $ppuPi['pproxyu_password'] ?? '';
                                     $ppuDays = $ppuPi['pproxyu_days'] ?? 30;
                                     $ppuActiveUntil = $ppuPi['pproxyu_active_until'] ?? '';
+                                    $ppuPoolList = \App\Models\PProxyUPool::where('is_active', true)->get();
                                 @endphp
 
                                 @if($order->delivery_status !== 'DELIVERED')
@@ -727,97 +730,230 @@
                                             <span class="text-muted fs-7">Teslimat durumu: <strong>{{ $order->delivery_status }}</strong></span>
                                         </div>
                                     </div>
-                                @else
-                                    <div class="mb-5">
-                                        <label class="form-label fw-bold fs-5">PProxyU Bağlantı Bilgileri</label>
-                                        <div class="row g-4 mb-4">
-                                            <div class="col-md-3">
-                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
-                                                    <span class="text-muted fw-semibold d-block fs-8 mb-1">
-                                                        <i class="fa fa-server text-primary me-1"></i>Proxy Adresi
-                                                    </span>
-                                                    <code class="fs-6">{{ $ppuPoolIp }}</code>
-                                                </div>
+                                @endif
+
+                                <div class="d-flex align-items-center justify-content-between mb-5">
+                                    <label class="form-label fw-bold fs-5 mb-0">PProxyU Bağlantı Bilgileri</label>
+                                    <button type="button" class="btn btn-sm btn-light-primary" id="ppuEditToggleBtn">
+                                        <i class="fa fa-pen me-1"></i>Düzenle
+                                    </button>
+                                </div>
+
+                                {{-- Display Mode --}}
+                                <div id="ppuDisplayMode">
+                                    <div class="row g-4 mb-4">
+                                        <div class="col-md-3">
+                                            <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                <span class="text-muted fw-semibold d-block fs-8 mb-1">
+                                                    <i class="fa fa-server text-primary me-1"></i>Proxy Adresi
+                                                </span>
+                                                <code class="fs-6">{{ $ppuPoolIp }}</code>
                                             </div>
-                                            <div class="col-md-3">
-                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
-                                                    <span class="text-muted fw-semibold d-block fs-8 mb-1">
-                                                        <i class="fa fa-plug text-info me-1"></i>Port
-                                                    </span>
-                                                    <code class="fs-6">{{ $ppuPoolPort }}</code>
-                                                </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                <span class="text-muted fw-semibold d-block fs-8 mb-1">
+                                                    <i class="fa fa-plug text-info me-1"></i>Port
+                                                </span>
+                                                <code class="fs-6">{{ $ppuPoolPort }}</code>
                                             </div>
-                                            <div class="col-md-3">
-                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
-                                                    <span class="text-muted fw-semibold d-block fs-8 mb-1">
-                                                        <i class="fa fa-user text-success me-1"></i>Kullanıcı Adı
-                                                    </span>
-                                                    <code class="fs-6">{{ $ppuPoolUser }}</code>
-                                                </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                <span class="text-muted fw-semibold d-block fs-8 mb-1">
+                                                    <i class="fa fa-user text-success me-1"></i>Kullanıcı Adı
+                                                </span>
+                                                <code class="fs-6">{{ $ppuPoolUser }}</code>
                                             </div>
-                                            <div class="col-md-3">
-                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
-                                                    <span class="text-muted fw-semibold d-block fs-8 mb-1">
-                                                        <i class="fa fa-key text-warning me-1"></i>Şifre
-                                                    </span>
-                                                    <code class="fs-6">{{ $ppuPoolPass }}</code>
-                                                </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                <span class="text-muted fw-semibold d-block fs-8 mb-1">
+                                                    <i class="fa fa-key text-warning me-1"></i>Şifre
+                                                </span>
+                                                <code class="fs-6">{{ $ppuPoolPass }}</code>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div class="separator my-5"></div>
 
-                                    <div class="mb-5">
-                                        <label class="form-label fw-bold fs-5">Abonelik Bilgileri</label>
-                                        <div class="row g-4">
-                                            <div class="col-md-4">
-                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
-                                                    <span class="text-muted fw-semibold d-block fs-8 mb-2">
-                                                        <i class="fa fa-calendar-alt text-danger me-1"></i>Bitiş Tarihi
-                                                    </span>
-                                                    <span class="fw-bold fs-6">
-                                                        @if($ppuActiveUntil)
-                                                            {{ \Carbon\Carbon::parse($ppuActiveUntil)->format('d.m.Y H:i') }}
-                                                        @else
-                                                            -
-                                                        @endif
-                                                    </span>
-                                                </div>
+                                    <label class="form-label fw-bold fs-5">Müşteri Kimlik Bilgileri</label>
+                                    <div class="row g-4 mb-4">
+                                        <div class="col-md-6">
+                                            <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                <span class="text-muted fw-semibold d-block fs-8 mb-1">
+                                                    <i class="fa fa-id-badge text-info me-1"></i>Müşteri Kullanıcı Adı
+                                                </span>
+                                                <code class="fs-6">{{ $ppuUsername }}</code>
                                             </div>
-                                            <div class="col-md-4">
-                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
-                                                    <span class="text-muted fw-semibold d-block fs-8 mb-2">
-                                                        <i class="fa fa-clock text-warning me-1"></i>Süre (Gün)
-                                                    </span>
-                                                    <span class="fw-bold fs-6">{{ $ppuDays }} gün</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
-                                                    <span class="text-muted fw-semibold d-block fs-8 mb-2">
-                                                        <i class="fa fa-database text-primary me-1"></i>Kota
-                                                    </span>
-                                                    <span class="fw-bold fs-6 text-success">Sınırsız</span>
-                                                </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                <span class="text-muted fw-semibold d-block fs-8 mb-1">
+                                                    <i class="fa fa-lock text-danger me-1"></i>Müşteri Şifresi
+                                                </span>
+                                                <code class="fs-6">{{ $ppuPassword }}</code>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div class="separator my-5"></div>
 
-                                    <div class="mb-5">
-                                        <label class="form-label fw-bold fs-5 mb-3">Proxy Bağlantı Formatı</label>
-                                        <div class="input-group mb-3">
-                                            <input type="text" class="form-control form-control-solid" id="ppuProxyString" readonly
-                                                   value="{{ $ppuPoolIp }}:{{ $ppuPoolPort }}:{{ $ppuPoolUser }}:{{ $ppuPoolPass }}">
-                                            <button class="btn btn-light-primary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('ppuProxyString').value).then(()=>toastr.success('Kopyalandı!'))">
-                                                <i class="fa fa-copy"></i>
+                                    <label class="form-label fw-bold fs-5">Abonelik Bilgileri</label>
+                                    <div class="row g-4 mb-4">
+                                        <div class="col-md-4">
+                                            <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                <span class="text-muted fw-semibold d-block fs-8 mb-2">
+                                                    <i class="fa fa-calendar-alt text-danger me-1"></i>Bitiş Tarihi
+                                                </span>
+                                                <span class="fw-bold fs-6">
+                                                    @if($ppuActiveUntil)
+                                                        {{ \Carbon\Carbon::parse($ppuActiveUntil)->format('d.m.Y H:i') }}
+                                                    @else
+                                                        -
+                                                    @endif
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                <span class="text-muted fw-semibold d-block fs-8 mb-2">
+                                                    <i class="fa fa-clock text-warning me-1"></i>Süre (Gün)
+                                                </span>
+                                                <span class="fw-bold fs-6">{{ $ppuDays }} gün</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                <span class="text-muted fw-semibold d-block fs-8 mb-2">
+                                                    <i class="fa fa-database text-primary me-1"></i>Kota
+                                                </span>
+                                                <span class="fw-bold fs-6 text-success">Sınırsız</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="separator my-5"></div>
+
+                                    <label class="form-label fw-bold fs-5 mb-3">Proxy Bağlantı Formatı</label>
+                                    <div class="input-group mb-3">
+                                        <input type="text" class="form-control form-control-solid" id="ppuProxyString" readonly
+                                               value="{{ $ppuPoolIp }}:{{ $ppuPoolPort }}:{{ $ppuPoolUser }}:{{ $ppuPoolPass }}">
+                                        <button class="btn btn-light-primary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('ppuProxyString').value).then(()=>toastr.success('Kopyalandı!'))">
+                                            <i class="fa fa-copy"></i>
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">Format: ADRES:PORT:USER:PASS</small>
+                                </div>
+
+                                {{-- Edit Mode --}}
+                                <div id="ppuEditMode" style="display:none;">
+                                    <form id="ppuEditForm">
+                                        @csrf
+                                        <div class="notice d-flex bg-light-primary rounded border-primary border border-dashed p-4 mb-5">
+                                            <i class="fa fa-info-circle fs-3 text-primary me-3 mt-1"></i>
+                                            <div class="fs-7">
+                                                <strong>Havuzdan Proxy Seç:</strong> Mevcut havuzdan bir proxy seçerek bağlantı bilgilerini otomatik doldurun.
+                                                <div class="mt-2">
+                                                    <select id="ppuPoolSelect" class="form-select form-select-sm form-select-solid" style="max-width:500px;">
+                                                        <option value="">-- Manuel giriş yapacağım --</option>
+                                                        @foreach($ppuPoolList as $pool)
+                                                            <option value="{{ $pool->id }}"
+                                                                    data-ip="{{ $pool->ip }}"
+                                                                    data-port="{{ $pool->port }}"
+                                                                    data-user="{{ $pool->username }}"
+                                                                    data-pass="{{ $pool->password }}"
+                                                                    {{ ($ppuPi['pproxyu_pool_id'] ?? '') == $pool->id ? 'selected' : '' }}>
+                                                                {{ $pool->ip }}:{{ $pool->port }} ({{ $pool->label ?? $pool->username }})
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <label class="form-label fw-bold fs-5 mb-3">Havuz Proxy Bilgileri</label>
+                                        <div class="row g-4 mb-5">
+                                            <div class="col-md-3">
+                                                <label class="form-label fs-7 fw-semibold">
+                                                    <i class="fa fa-server text-primary me-1"></i>Proxy Adresi
+                                                </label>
+                                                <input type="text" name="pproxyu_pool_ip" class="form-control form-control-solid" value="{{ $ppuPoolIp }}" required>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label fs-7 fw-semibold">
+                                                    <i class="fa fa-plug text-info me-1"></i>Port
+                                                </label>
+                                                <input type="number" name="pproxyu_pool_port" class="form-control form-control-solid" value="{{ $ppuPoolPort }}" required min="1" max="65535">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label fs-7 fw-semibold">
+                                                    <i class="fa fa-user text-success me-1"></i>Kullanıcı Adı
+                                                </label>
+                                                <input type="text" name="pproxyu_pool_user" class="form-control form-control-solid" value="{{ $ppuPoolUser }}" required>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label fs-7 fw-semibold">
+                                                    <i class="fa fa-key text-warning me-1"></i>Şifre
+                                                </label>
+                                                <input type="text" name="pproxyu_pool_pass" class="form-control form-control-solid" value="{{ $ppuPoolPass }}" required>
+                                            </div>
+                                        </div>
+
+                                        <div class="separator my-5"></div>
+
+                                        <label class="form-label fw-bold fs-5 mb-3">Müşteri Kimlik Bilgileri</label>
+                                        <div class="row g-4 mb-5">
+                                            <div class="col-md-6">
+                                                <label class="form-label fs-7 fw-semibold">
+                                                    <i class="fa fa-id-badge text-info me-1"></i>Müşteri Kullanıcı Adı
+                                                </label>
+                                                <input type="text" name="pproxyu_username" class="form-control form-control-solid" value="{{ $ppuUsername }}">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fs-7 fw-semibold">
+                                                    <i class="fa fa-lock text-danger me-1"></i>Müşteri Şifresi
+                                                </label>
+                                                <input type="text" name="pproxyu_password" class="form-control form-control-solid" value="{{ $ppuPassword }}">
+                                            </div>
+                                        </div>
+
+                                        <div class="separator my-5"></div>
+
+                                        <label class="form-label fw-bold fs-5 mb-3">Abonelik Bilgileri</label>
+                                        <div class="row g-4 mb-5">
+                                            <div class="col-md-4">
+                                                <label class="form-label fs-7 fw-semibold">
+                                                    <i class="fa fa-clock text-warning me-1"></i>Süre (Gün)
+                                                </label>
+                                                <input type="number" name="pproxyu_days" class="form-control form-control-solid" value="{{ $ppuDays }}" min="1">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fs-7 fw-semibold">
+                                                    <i class="fa fa-calendar-alt text-danger me-1"></i>Bitiş Tarihi
+                                                </label>
+                                                <input type="datetime-local" name="pproxyu_active_until" class="form-control form-control-solid"
+                                                       value="{{ $ppuActiveUntil ? \Carbon\Carbon::parse($ppuActiveUntil)->format('Y-m-d\TH:i') : '' }}">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fs-7 fw-semibold">
+                                                    <i class="fa fa-database text-primary me-1"></i>Kota
+                                                </label>
+                                                <input type="text" class="form-control form-control-solid" value="Sınırsız" disabled>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex justify-content-end gap-3 mt-5">
+                                            <button type="button" class="btn btn-light" id="ppuEditCancelBtn">
+                                                <i class="fa fa-times me-1"></i>İptal
+                                            </button>
+                                            <button type="submit" class="btn btn-primary" id="ppuEditSaveBtn">
+                                                <i class="fa fa-check me-1"></i>Kaydet
                                             </button>
                                         </div>
-                                        <small class="text-muted">Format: ADRES:PORT:USER:PASS</small>
-                                    </div>
-                                @endif
+                                    </form>
+                                </div>
                             @endif
                         </div>
                         <!--end::Card header-->
@@ -1288,6 +1424,57 @@
                     }
                 })
             })
+
+            @if($order->isPProxyUDelivery())
+            $('#ppuEditToggleBtn').on('click', function(){
+                $('#ppuDisplayMode').hide();
+                $('#ppuEditMode').show();
+                $(this).hide();
+            });
+            $('#ppuEditCancelBtn').on('click', function(){
+                $('#ppuEditMode').hide();
+                $('#ppuDisplayMode').show();
+                $('#ppuEditToggleBtn').show();
+            });
+            $('#ppuPoolSelect').on('change', function(){
+                var opt = $(this).find(':selected');
+                if(opt.val()){
+                    $('[name="pproxyu_pool_ip"]').val(opt.data('ip'));
+                    $('[name="pproxyu_pool_port"]').val(opt.data('port'));
+                    $('[name="pproxyu_pool_user"]').val(opt.data('user'));
+                    $('[name="pproxyu_pool_pass"]').val(opt.data('pass'));
+                }
+            });
+            $('#ppuEditForm').on('submit', function(e){
+                e.preventDefault();
+                var btn = $('#ppuEditSaveBtn');
+                $.ajax({
+                    type: 'POST',
+                    url: '{{ route("admin.orders.pproxyuUpdateInfo", ["order" => $order->id]) }}',
+                    dataType: 'json',
+                    data: $(this).serialize(),
+                    beforeSend: function(){
+                        propSubmitButton(btn, 1);
+                        alerts.wait.fire();
+                    },
+                    complete: function(data){
+                        propSubmitButton(btn, 0);
+                        var res = data.responseJSON;
+                        if(res && res.success === true){
+                            alerts.success.fire({
+                                title: '{{ __("success") }}',
+                                text: res?.message ?? ''
+                            }).then(function(){ window.location.reload(); });
+                        } else {
+                            alerts.error.fire({
+                                title: '{{ __("error") }}',
+                                text: res?.message ?? ''
+                            });
+                        }
+                    }
+                });
+            });
+            @endif
         })
     </script>
 @endsection

@@ -104,6 +104,11 @@ class OrderController extends Controller
 
         $order->load(['activeDetails', 'activeDetail', 'product', 'user']);
         $order->maybeHealLocaltonetV4DeliveryStatus();
+
+        if ($order->isPProxyUDelivery() && in_array($order->delivery_status, ['BEING_DELIVERED', 'QUEUED'])) {
+            $order->approve();
+        }
+
         $order->refresh();
         $order->loadMissing(['activeDetails', 'activeDetail', 'product', 'user']);
 

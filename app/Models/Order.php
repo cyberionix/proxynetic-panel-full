@@ -153,20 +153,34 @@ class Order extends Model
 
     public function approve()
     {
-        $product = $this->product;
-        if ($product->delivery_type == 'STACK') {
-            return $this->stackApprove();
-        } else if (in_array($product->delivery_type, ['LOCALTONET', 'LOCALTONETV4'], true)) {
-            return $this->localtonetApprove();
-        } else if ($product->delivery_type === 'LOCALTONET_ROTATING') {
-            return $this->localtonetRotatingApprove();
-        } else if ($product->delivery_type === 'THREEPROXY') {
-            return $this->threeProxyApprove();
-        } else if ($product->delivery_type === 'PPROXY') {
-            return $this->pproxyApprove();
-        } else if ($product->delivery_type === 'PPROXYU') {
+        if ($this->isPProxyUDelivery()) {
+            Logger::info('APPROVE_PPROXYU_MATCHED', ['order_id' => $this->id]);
             return $this->pproxyuApprove();
         }
+
+        $product = $this->product;
+        $deliveryType = $product ? $product->delivery_type : ($this->product_data['delivery_type'] ?? null);
+
+        if ($deliveryType == 'STACK') {
+            return $this->stackApprove();
+        } else if (in_array($deliveryType, ['LOCALTONET', 'LOCALTONETV4'], true)) {
+            return $this->localtonetApprove();
+        } else if ($deliveryType === 'LOCALTONET_ROTATING') {
+            return $this->localtonetRotatingApprove();
+        } else if ($deliveryType === 'THREEPROXY') {
+            return $this->threeProxyApprove();
+        } else if ($deliveryType === 'PPROXY') {
+            return $this->pproxyApprove();
+        } else if ($deliveryType === 'PPROXYU') {
+            return $this->pproxyuApprove();
+        }
+
+        Logger::info('APPROVE_FALLBACK', [
+            'order_id' => $this->id,
+            'delivery_type' => $deliveryType,
+            'product_data_type' => $this->product_data['delivery_type'] ?? 'NULL',
+        ]);
+
         $this->status = "PENDING";
         $this->delivery_status = "BEING_DELIVERED";
         $this->save();
@@ -175,20 +189,21 @@ class Order extends Model
 
     public function revokeApproval()
     {
-
         $product = $this->product;
-        if (!$product) return true;
-        if ($product->delivery_type == 'STACK') {
+        $deliveryType = $product->delivery_type ?? ($this->product_data['delivery_type'] ?? null);
+        if (!$product && !$deliveryType) return true;
+
+        if ($deliveryType == 'STACK') {
             return $this->stackRevokeApproval();
-        } else if (in_array($product->delivery_type, ['LOCALTONET', 'LOCALTONETV4'], true)) {
+        } else if (in_array($deliveryType, ['LOCALTONET', 'LOCALTONETV4'], true)) {
             return $this->localtonetRevokeApproval();
-        } else if ($product->delivery_type === 'LOCALTONET_ROTATING') {
+        } else if ($deliveryType === 'LOCALTONET_ROTATING') {
             return $this->localtonetRotatingRevokeApproval();
-        } else if ($product->delivery_type === 'THREEPROXY') {
+        } else if ($deliveryType === 'THREEPROXY') {
             return $this->threeProxyRevokeApproval();
-        } else if ($product->delivery_type === 'PPROXY') {
+        } else if ($deliveryType === 'PPROXY') {
             return $this->pproxyRevokeApproval();
-        } else if ($product->delivery_type === 'PPROXYU') {
+        } else if ($deliveryType === 'PPROXYU') {
             return $this->pproxyuRevokeApproval();
         }
     }

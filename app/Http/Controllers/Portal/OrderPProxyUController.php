@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Portal;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\PProxyUPool;
+use App\Services\PlainProxiesApiService;
 use App\Traits\AjaxResponses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class OrderPProxyUController extends Controller
@@ -91,27 +93,48 @@ class OrderPProxyUController extends Controller
             return response()->json(['success' => false, 'message' => 'Sipariş bulunamadı']);
         }
 
-        $pi = $order->product_info ?? [];
-        $poolIp   = $pi['pproxyu_pool_ip'] ?? '';
-        $poolPort = $pi['pproxyu_pool_port'] ?? '';
-        $poolUser = $pi['pproxyu_pool_user'] ?? '';
-        $poolPass = $pi['pproxyu_pool_pass'] ?? '';
-
-        if (!$poolIp || !$poolUser) {
-            return response()->json(['success' => true, 'data' => []]);
-        }
-
-        $cacheKey = 'PPROXYU_COUNTRIES_' . md5($poolIp . $poolPort . $poolUser);
-        $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 3600, function () use ($poolIp, $poolPort, $poolUser, $poolPass) {
+        $cacheKey = 'PPROXY_RESI_COUNTRIES_SLIM';
+        $data = Cache::remember($cacheKey, 3600, function () {
             try {
-                $proxyUrl = "http://{$poolUser}:{$poolPass}@{$poolIp}:{$poolPort}";
+                $service = new PlainProxiesApiService();
+                $res = $service->getResidentialCountries();
+                if (!$res || !($res['success'] ?? false)) {
+                    return [];
+                }
 
-                $testUrls = [
-                    'https://lumtest.com/myip.json',
-                    'http://ip-api.com/json/?fields=country,countryCode',
-                ];
+                $countries = $res['data'] ?? [];
+                $slim = [];
+                foreach ($countries as $c) {
+                    $states = [];
+                    if (!empty($c['states']) && is_array($c['states'])) {
+                        foreach ($c['states'] as $sk => $sv) {
+                            $states[$sk] = [
+                                'name'   => $sv['name'] ?? $sk,
+                                'cities' => $sv['cities'] ?? [],
+                            ];
+                        }
+                    }
 
-                return [];
+                    $cities = [];
+                    if (!empty($c['cities']) && is_array($c['cities'])) {
+                        foreach ($c['cities'] as $city) {
+                            $cities[] = [
+                                'code'       => $city['code'] ?? $city['ascii'] ?? '',
+                                'name'       => $city['name'] ?? '',
+                                'state'      => (string) ($city['state'] ?? ''),
+                                'state_name' => $city['state_name'] ?? '',
+                            ];
+                        }
+                    }
+
+                    $slim[] = [
+                        'name'   => $c['name'] ?? '',
+                        'iso2'   => $c['iso2'] ?? '',
+                        'states' => $states,
+                        'cities' => $cities,
+                    ];
+                }
+                return $slim;
             } catch (\Throwable $e) {
                 return [];
             }

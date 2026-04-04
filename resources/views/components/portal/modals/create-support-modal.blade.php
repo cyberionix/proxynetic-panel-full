@@ -83,7 +83,7 @@
                                     class="required form-label">{{__("please_write_your_message_in_detail")}}</label>
                                 <!--end::Label-->
                                 <!--begin::Textarea-->
-                                <textarea name="message" rows="5" class="form-control" maxlength="1000"
+                                <textarea name="message" rows="10" class="form-control" maxlength="1000"
                                           required></textarea>
                                 <!--end::Textarea-->
                             </div>
