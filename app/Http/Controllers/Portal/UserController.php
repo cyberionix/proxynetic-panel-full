@@ -70,9 +70,13 @@ class UserController extends Controller
 
 
         if (!$isNotTcCitizen){
-            $validateTc = $this->validateTcNo($request->identity_number, $request->first_name, $request->last_name, Carbon::createFromFormat(defaultDateFormat(), $request->birth_date)->format("Y"));
-            if (!$validateTc) {
-                return $this->errorResponse(__("enter_a_valid_tc_id_number"));
+            try {
+                $validateTc = $this->validateTcNo($request->identity_number, $request->first_name, $request->last_name, Carbon::createFromFormat(defaultDateFormat(), $request->birth_date)->format("Y"));
+                if (!$validateTc) {
+                    return $this->errorResponse(__("enter_a_valid_tc_id_number"));
+                }
+            } catch (\RuntimeException $e) {
+                return $this->errorResponse($e->getMessage());
             }
             $data["identity_number_verified_at"] = Carbon::now();
         }else{
@@ -128,18 +132,28 @@ class UserController extends Controller
 
     public function validateTcNo($tcNo, $name, $lastName, $birthYear)
     {
+        try {
+            $client = new \SoapClient("https://tckimlik.nvi.gov.tr/Service/KPSPublic.asmx?WSDL", [
+                'connection_timeout' => 15,
+                'exceptions' => true,
+            ]);
 
-        $client = new \SoapClient("https://tckimlik.nvi.gov.tr/Service/KPSPublic.asmx?WSDL");
-
-        $name = convertToTurkishUppercase($name);
-        $lastName = convertToTurkishUppercase($lastName);
-        $result = $client->TCKimlikNoDogrula([
-            'TCKimlikNo' => $tcNo,
-            'Ad' => $name,
-            'Soyad' => $lastName,
-            'DogumYili' => $birthYear
-        ]);
-        return $result->TCKimlikNoDogrulaResult;
+            $name = convertToTurkishUppercase($name);
+            $lastName = convertToTurkishUppercase($lastName);
+            $result = $client->TCKimlikNoDogrula([
+                'TCKimlikNo' => $tcNo,
+                'Ad' => $name,
+                'Soyad' => $lastName,
+                'DogumYili' => $birthYear
+            ]);
+            return $result->TCKimlikNoDogrulaResult;
+        } catch (\Throwable $e) {
+            Log::error('TC Kimlik doğrulama servisi hatası', [
+                'error' => $e->getMessage(),
+                'tc' => substr($tcNo, 0, 3) . '****',
+            ]);
+            throw new \RuntimeException('TC Kimlik doğrulama servisi şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyiniz.');
+        }
     }
 
     public function savePhoneAndSendVerificationOTP(Request $request)

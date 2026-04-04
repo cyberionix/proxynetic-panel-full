@@ -48,7 +48,7 @@
                                         <div class="d-flex flex-stack flex-grow-1 ">
                                             <!--begin::Content-->
                                             <div class=" fw-semibold">
-                                                @if(auth()->user()->address->country_id == 1)
+                                                @if(auth()->user()->address?->country_id == 1)
                                                     <div class="fs-6 text-gray-700 ">
                                                         Devam edebilmek için kimlik doğrulaması yapmalısınız.
                                                     </div>
