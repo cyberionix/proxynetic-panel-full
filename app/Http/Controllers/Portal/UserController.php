@@ -148,10 +148,14 @@ class UserController extends Controller
             ]);
             return $result->TCKimlikNoDogrulaResult;
         } catch (\Throwable $e) {
-            Log::error('TC Kimlik doğrulama servisi hatası', [
-                'error' => $e->getMessage(),
-                'tc' => substr($tcNo, 0, 3) . '****',
-            ]);
+            try {
+                Log::error('TC Kimlik doğrulama servisi hatası', [
+                    'error' => $e->getMessage(),
+                    'tc' => substr($tcNo, 0, 3) . '****',
+                ]);
+            } catch (\Throwable $logEx) {
+                // Log yazılamazsa sessizce geç
+            }
             throw new \RuntimeException('TC Kimlik doğrulama servisi şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyiniz.');
         }
     }
