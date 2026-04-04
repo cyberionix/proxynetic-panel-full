@@ -2466,6 +2466,306 @@
     </script>
     @endpush
     @endif
+@elseif($order->isPProxyUDelivery())
+    @php
+        $ppuPi = $order->product_info ?? [];
+        $ppuPoolIp = $ppuPi['pproxyu_pool_ip'] ?? '';
+        $ppuPoolPort = $ppuPi['pproxyu_pool_port'] ?? '';
+        $ppuPoolUser = $ppuPi['pproxyu_pool_user'] ?? '';
+        $ppuPoolPass = $ppuPi['pproxyu_pool_pass'] ?? '';
+        $ppuDays = $ppuPi['pproxyu_days'] ?? 30;
+        $ppuActiveUntil = $ppuPi['pproxyu_active_until'] ?? '';
+        $ppuCreatedAt = $ppuPi['pproxyu_created_at'] ?? '';
+        $ppuActive = $order->status === 'ACTIVE' && $order->delivery_status === 'DELIVERED';
+    @endphp
+    @if(!$ppuActive && !$isAdminContext)
+        <div class="alert alert-primary d-flex flex-column flex-sm-row p-5 mb-10">
+            <div class="d-flex align-items-center">
+                <i class="ki-duotone ki-notification-bing fs-3x me-4 mb-5 mb-sm-0 text-primary"><span class="path1"></span><span class="path2"></span><span class="path3"></span></i>
+            </div>
+            <div class="d-flex align-items-center">
+                <h6 class="mb-0 text-primary">Hizmet durumunuz aktif olmadığı için proxy bilgileri görüntülenemez.
+                    (Hizmet Durumu: {{__(mb_strtolower($order->status))}})</h6>
+            </div>
+        </div>
+    @else
+        @push('css')
+        <style>
+            .ppu-dashboard { display: grid; grid-template-columns: 320px 1fr 320px; gap: 20px; align-items: stretch; }
+            .ppu-gen-card { grid-column: 1; grid-row: 1; }
+            .ppu-proxies-card { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; }
+            .ppu-proxies-card .ppu-textarea { flex: 1; min-height: 200px; }
+            .ppu-info-card { grid-column: 3; grid-row: 1 / 3; }
+            .ppu-test-card { grid-column: 1 / 3; grid-row: 2; }
+            .ppu-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.1); border: 1px solid #e2e8f0; }
+            .ppu-card h2 { color: #1a202c; font-size: 18px; margin: 0 0 4px; font-weight: 700; }
+            .ppu-card-sub { color: #718096; font-size: 13px; margin: 0 0 18px; }
+            .ppu-form { display: flex; flex-direction: column; gap: 14px; }
+            .ppu-form label { font-size: 11px; font-weight: 600; color: #4a5568; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+            .ppu-form input, .ppu-form select { padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; background: #fff; }
+            .ppu-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+            .ppu-gen-btn { padding: 12px 20px; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; transition: all .2s; }
+            .ppu-gen-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,.4); }
+            .ppu-gen-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
+            .ppu-textarea { min-height: 420px; width: 100%; padding: 16px; border: 2px solid #4299e1; border-radius: 8px; font-family: 'Courier New',monospace; font-size: 13px; line-height: 1.8; resize: none; background: #fff; margin-bottom: 14px; box-sizing: border-box; }
+            .ppu-copy-btn { padding: 10px 18px; background: #667eea; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: .5px; width: 100%; transition: all .2s; }
+            .ppu-copy-btn:hover { background: #5a6fd6; }
+            .ppu-info-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+            .ppu-info-item:last-child { border-bottom: none; padding-bottom: 0; }
+            .ppu-info-icon { font-size: 20px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: #f7fafc; border-radius: 8px; flex-shrink: 0; }
+            .ppu-info-content { flex: 1; min-width: 0; }
+            .ppu-info-label { font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 4px; font-weight: 600; }
+            .ppu-info-value { font-size: 14px; color: #1a202c; font-weight: 700; word-break: break-all; }
+            .ppu-info-value.ppu-code { font-family: 'Courier New',monospace; font-size: 13px; background: #f7fafc; padding: 4px 8px; border-radius: 4px; display: inline-block; }
+            .ppu-test-btn { padding: 12px 24px; background: linear-gradient(135deg,#38b2ac 0%,#319795 100%); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: .5px; transition: all .2s; }
+            .ppu-test-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(56,178,172,.4); }
+            .ppu-test-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
+            .ppu-test-result { margin-top: 16px; }
+            .ppu-test-status { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+            .ppu-test-status.ppu-online { background: #c6f6d5; color: #22543d; }
+            .ppu-test-status.ppu-offline { background: #fed7d7; color: #742a2a; }
+            .ppu-test-details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+            .ppu-test-detail-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f7fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+            .ppu-test-detail-label { font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: .8px; font-weight: 600; }
+            .ppu-test-detail-value { font-size: 13px; color: #1a202c; font-weight: 700; word-break: break-all; }
+            @media (max-width: 1200px) {
+                .ppu-dashboard { grid-template-columns: 1fr; }
+                .ppu-gen-card, .ppu-proxies-card, .ppu-info-card, .ppu-test-card { grid-column: 1; grid-row: auto; }
+                .ppu-test-details { grid-template-columns: 1fr; }
+            }
+        </style>
+        @endpush
+
+        <div class="ppu-dashboard">
+            <div class="ppu-card ppu-gen-card">
+                <h2>Proxy Oluşturucu</h2>
+                <p class="ppu-card-sub">İhtiyacınıza göre proxy oluşturun.</p>
+                <form id="ppuGenerateForm" class="ppu-form">
+                    <div>
+                        <label>Ülke</label>
+                        <select id="ppuCountry">
+                            <option value="">Tüm Dünya</option>
+                        </select>
+                    </div>
+                    <div class="ppu-form-row">
+                        <div>
+                            <label>Proxy Protokolü</label>
+                            <select id="ppuProtocol">
+                                <option value="http">HTTP/S</option>
+                                <option value="socks5">SOCKS5</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Proxy Tipi</label>
+                            <select id="ppuProxyType">
+                                <option value="rotating">Rotating</option>
+                                <option value="sticky">Sticky</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="ppu-form-row" id="ppuStickyFields" style="display:none">
+                        <div>
+                            <label>Oturum Süresi</label>
+                            <input type="number" id="ppuSessionLifetime" value="1" min="1">
+                        </div>
+                        <div></div>
+                    </div>
+                    <div class="ppu-form-row">
+                        <div>
+                            <label>Adet</label>
+                            <input type="number" id="ppuAmount" value="10" min="1" max="1000">
+                        </div>
+                        <div>
+                            <label>Format</label>
+                            <select id="ppuFormat">
+                                <option value="{ip}:{port}:{user}:{pass}">ip:port:user:pass</option>
+                                <option value="{user}:{pass}@{ip}:{port}">user:pass@ip:port</option>
+                                <option value="{ip}:{port}">ip:port</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="ppu-gen-btn" id="ppuGenBtn">Proxy Oluştur</button>
+                </form>
+            </div>
+
+            <div class="ppu-card ppu-proxies-card">
+                <h2>Oluşturulan Proxyler</h2>
+                <p class="ppu-card-sub">Oluşturduğunuz proxyler aşağıda görünür.</p>
+                <textarea id="ppuGeneratedProxies" class="ppu-textarea" readonly placeholder="Oluşturulan proxyler burada görünecek..."></textarea>
+                <button class="ppu-copy-btn" id="ppuCopyBtn">Kopyala</button>
+            </div>
+
+            <div class="ppu-card ppu-info-card">
+                <h2>Proxy Bilgileri</h2>
+                <p class="ppu-card-sub">Temel proxy detaylarınız.</p>
+                <div class="ppu-info-item">
+                    <div class="ppu-info-icon">☁️</div>
+                    <div class="ppu-info-content">
+                        <div class="ppu-info-label">PROXY ADRESİ</div>
+                        <div class="ppu-info-value" id="ppuDispIp">{{ $ppuPoolIp }}</div>
+                    </div>
+                </div>
+                <div class="ppu-info-item">
+                    <div class="ppu-info-icon">🗄️</div>
+                    <div class="ppu-info-content">
+                        <div class="ppu-info-label">PROXY PORTU</div>
+                        <div class="ppu-info-value" id="ppuDispPort">{{ $ppuPoolPort }}</div>
+                    </div>
+                </div>
+                <div class="ppu-info-item">
+                    <div class="ppu-info-icon">👤</div>
+                    <div class="ppu-info-content">
+                        <div class="ppu-info-label">KULLANICI ADI</div>
+                        <div class="ppu-info-value ppu-code">{{ $ppuPoolUser }}</div>
+                    </div>
+                </div>
+                <div class="ppu-info-item">
+                    <div class="ppu-info-icon">🔑</div>
+                    <div class="ppu-info-content">
+                        <div class="ppu-info-label">ŞİFRE</div>
+                        <div class="ppu-info-value ppu-code">{{ $ppuPoolPass }}</div>
+                    </div>
+                </div>
+                <div class="ppu-info-item">
+                    <div class="ppu-info-icon">📦</div>
+                    <div class="ppu-info-content">
+                        <div class="ppu-info-label">ÜRÜN TİPİ</div>
+                        <div class="ppu-info-value">Residential Proxy</div>
+                    </div>
+                </div>
+                <div class="ppu-info-item">
+                    <div class="ppu-info-icon">📅</div>
+                    <div class="ppu-info-content">
+                        <div class="ppu-info-label">SÜRE</div>
+                        <div class="ppu-info-value">{{ $ppuDays }} Gün</div>
+                    </div>
+                </div>
+                <div class="ppu-info-item">
+                    <div class="ppu-info-icon">⏳</div>
+                    <div class="ppu-info-content">
+                        <div class="ppu-info-label">BİTİŞ TARİHİ</div>
+                        <div class="ppu-info-value">
+                            @if($ppuActiveUntil)
+                                {{ \Carbon\Carbon::parse($ppuActiveUntil)->format('d.m.Y H:i') }}
+                            @else
+                                -
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                <div class="ppu-info-item">
+                    <div class="ppu-info-icon">📊</div>
+                    <div class="ppu-info-content">
+                        <div class="ppu-info-label">BANT GENİŞLİĞİ LİMİTİ</div>
+                        <div class="ppu-info-value">∞ Limitsiz</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ppu-card ppu-test-card">
+                <h2>Proxy Test Et</h2>
+                <p class="ppu-card-sub">Test Et butonuna basarak proxy durumunu kontrol edebilirsin.</p>
+                <button type="button" class="ppu-test-btn" id="ppuTestBtn">Test Et</button>
+                <div class="ppu-test-result" id="ppuTestResult" style="display:none;">
+                    <div id="ppuTestStatusBadge"></div>
+                    <div class="ppu-test-details" id="ppuTestDetails"></div>
+                </div>
+            </div>
+        </div>
+
+    @push('js')
+    <script>
+        $(document).ready(function(){
+            $('#ppuProxyType').on('change', function(){
+                $('#ppuStickyFields').toggle(this.value === 'sticky');
+            });
+
+            $('#ppuProtocol').on('change', function(){
+                $('#ppuDispPort').text(this.value === 'socks5' ? '1080' : '{{ $ppuPoolPort }}');
+            });
+
+            $('#ppuGenerateForm').on('submit', function(e){
+                e.preventDefault();
+                var btn = $('#ppuGenBtn');
+                btn.prop('disabled', true).text('Oluşturuluyor...');
+
+                $.ajax({
+                    url: '{{ route("portal.orders.pproxyu.generateProxies", ["order" => $order->id]) }}',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        proxy_amount: $('#ppuAmount').val(),
+                        country: $('#ppuCountry').val(),
+                        rotation: $('#ppuProxyType').val(),
+                        format: $('#ppuFormat').val(),
+                        lifetime: $('#ppuSessionLifetime').val(),
+                        protocol: $('#ppuProtocol').val()
+                    },
+                    success: function(res){
+                        btn.prop('disabled', false).text('Proxy Oluştur');
+                        if(res.success && res.data){
+                            var list = Array.isArray(res.data) ? res.data : [res.data];
+                            $('#ppuGeneratedProxies').val(list.join('\n'));
+                        } else {
+                            toastr.error(res.message || 'Proxy oluşturulamadı');
+                        }
+                    },
+                    error: function(){
+                        btn.prop('disabled', false).text('Proxy Oluştur');
+                        toastr.error('Bir hata oluştu');
+                    }
+                });
+            });
+
+            $('#ppuCopyBtn').on('click', function(){
+                var txt = $('#ppuGeneratedProxies').val();
+                if(!txt){ toastr.warning('Kopyalanacak proxy yok'); return; }
+                navigator.clipboard.writeText(txt).then(function(){ toastr.success('Kopyalandı!'); });
+            });
+
+            $('#ppuTestBtn').on('click', function(){
+                var btn = $(this);
+                btn.prop('disabled', true).text('Test ediliyor...');
+                var proxyLine = $('#ppuGeneratedProxies').val().split('\n')[0] || '';
+
+                $.ajax({
+                    url: '{{ route("portal.orders.pproxyu.testProxy", ["order" => $order->id]) }}',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        protocol: $('#ppuProtocol').val(),
+                        proxy_line: proxyLine
+                    },
+                    success: function(res){
+                        btn.prop('disabled', false).text('Test Et');
+                        if(res.success){
+                            $('#ppuTestResult').show();
+                            if(res.online){
+                                $('#ppuTestStatusBadge').html('<span class="ppu-test-status ppu-online"><span style="width:8px;height:8px;border-radius:50%;background:#22543d;display:inline-block"></span> ONLINE</span>');
+                                $('#ppuTestDetails').html(
+                                    '<div class="ppu-test-detail-item"><div class="ppu-test-detail-content"><div class="ppu-test-detail-label">IP ADRESİ</div><div class="ppu-test-detail-value">'+(res.ip||'-')+'</div></div></div>'+
+                                    '<div class="ppu-test-detail-item"><div class="ppu-test-detail-content"><div class="ppu-test-detail-label">KONUM</div><div class="ppu-test-detail-value">'+(res.location||'-')+'</div></div></div>'+
+                                    '<div class="ppu-test-detail-item"><div class="ppu-test-detail-content"><div class="ppu-test-detail-label">ISP</div><div class="ppu-test-detail-value">'+(res.isp||'-')+'</div></div></div>'+
+                                    '<div class="ppu-test-detail-item"><div class="ppu-test-detail-content"><div class="ppu-test-detail-label">GECİKME</div><div class="ppu-test-detail-value">'+(res.latency||0)+' ms</div></div></div>'
+                                );
+                            } else {
+                                $('#ppuTestStatusBadge').html('<span class="ppu-test-status ppu-offline"><span style="width:8px;height:8px;border-radius:50%;background:#742a2a;display:inline-block"></span> OFFLINE</span>');
+                                $('#ppuTestDetails').html('<div class="ppu-test-detail-item"><div class="ppu-test-detail-content"><div class="ppu-test-detail-value">'+(res.message||'Bağlantı kurulamadı')+'</div></div></div>');
+                            }
+                        }
+                    },
+                    error: function(){
+                        btn.prop('disabled', false).text('Test Et');
+                        toastr.error('Bir hata oluştu');
+                    }
+                });
+            });
+        });
+    </script>
+    @endpush
+    @endif
 @endif
 
 @if($order->isLocaltonetLikeDelivery() && !$order->isCanDeliveryType('LOCALTONETV4'))

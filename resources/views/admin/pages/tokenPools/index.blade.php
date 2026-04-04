@@ -20,6 +20,9 @@
         <li class="nav-item">
             <a class="nav-link" data-bs-toggle="tab" href="#localtonetRotatingPoolTab">Localtonet Rotating</a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#pproxyuPoolTab">PProxyU</a>
+        </li>
     </ul>
 
     <div class="tab-content">
@@ -356,6 +359,139 @@
             </div>
         </div>
     </div>
+
+        <div class="tab-pane fade" id="pproxyuPoolTab">
+            <div class="card">
+                <div class="card-header border-0 pt-6">
+                    <div class="card-title">
+                        <div class="d-flex align-items-center position-relative my-1">
+                            <i class="ki-duotone ki-magnifier fs-3 position-absolute ms-5">
+                                <span class="path1"></span>
+                                <span class="path2"></span>
+                            </i>
+                            <input type="text" data-pproxyu-table-action="search"
+                                   class="form-control w-250px ps-13"
+                                   placeholder="Ara..."/>
+                        </div>
+                    </div>
+                    <div class="card-toolbar gap-3">
+                        <button type="button" class="btn btn-light-primary pproxyuBulkImportBtn">
+                            <i class="fa fa-file-import me-1"></i> Toplu İçe Aktar
+                        </button>
+                        <button type="button" class="btn btn-primary pproxyuAddBtn">
+                            <i class="fa fa-plus me-1"></i> Yeni Ekle
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body pt-0">
+                    <table id="pproxyuPoolTable" class="table align-middle table-row-dashed fs-6 gy-5">
+                        <thead>
+                        <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+                            <th class="min-w-50px">#</th>
+                            <th class="min-w-125px">IP:Port</th>
+                            <th class="min-w-100px">Kullanıcı</th>
+                            <th class="min-w-100px">Şifre</th>
+                            <th class="min-w-100px">Etiket</th>
+                            <th class="min-w-80px">Durum</th>
+                            <th class="min-w-100px">Tarih</th>
+                            <th class="min-w-100px">İşlem</th>
+                        </tr>
+                        </thead>
+                        <tbody class="fw-semibold text-gray-600">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal fade" id="pproxyuPoolModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2 id="pproxyuModalTitle">Yeni Proxy Ekle</h2>
+                            <div class="btn btn-sm btn-icon btn-active-color-primary" data-bs-dismiss="modal">
+                                <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                            </div>
+                        </div>
+                        <div class="modal-body py-lg-10 px-lg-15">
+                            <form id="pproxyuPoolForm">
+                                @csrf
+                                <input type="hidden" name="url">
+                                <input type="hidden" name="id">
+                                <div class="row g-5 mb-5">
+                                    <div class="col-md-8">
+                                        <label class="required form-label">IP Adresi</label>
+                                        <input type="text" class="form-control" name="ip" placeholder="192.168.1.1" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="required form-label">Port</label>
+                                        <input type="number" class="form-control" name="port" placeholder="8080" min="1" max="65535" required>
+                                    </div>
+                                </div>
+                                <div class="row g-5 mb-5">
+                                    <div class="col-md-6">
+                                        <label class="required form-label">Kullanıcı Adı</label>
+                                        <input type="text" class="form-control" name="username" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="required form-label">Şifre</label>
+                                        <input type="text" class="form-control" name="password" required>
+                                    </div>
+                                </div>
+                                <div class="fv-row mb-5">
+                                    <label class="form-label">Etiket</label>
+                                    <input type="text" class="form-control" name="label" placeholder="Opsiyonel etiket">
+                                </div>
+                                <div class="fv-row mb-7">
+                                    <label class="form-label">Durum</label>
+                                    <select class="form-select" name="is_active">
+                                        <option value="1">Aktif</option>
+                                        <option value="0">Pasif</option>
+                                    </select>
+                                </div>
+                                <div class="d-flex flex-center flex-row-fluid pt-4">
+                                    <button type="reset" class="btn btn-light me-3" data-bs-dismiss="modal">Vazgeç</button>
+                                    <button type="submit" class="btn btn-primary" id="pproxyu_pool_submit_btn">
+                                        <span class="indicator-label">Kaydet</span>
+                                        <span class="indicator-progress">Bekleyin... <span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="pproxyuBulkImportModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2>Toplu Proxy İçe Aktar</h2>
+                            <div class="btn btn-sm btn-icon btn-active-color-primary" data-bs-dismiss="modal">
+                                <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                            </div>
+                        </div>
+                        <div class="modal-body py-lg-10 px-lg-15">
+                            <form id="pproxyuBulkImportForm">
+                                @csrf
+                                <div class="fv-row mb-5">
+                                    <label class="required form-label">Proxy Listesi</label>
+                                    <textarea class="form-control" name="proxies" rows="10" placeholder="Her satırda bir proxy&#10;Format: ip:port:kullanıcı:şifre&#10;&#10;Örnek:&#10;1.2.3.4:8080:user1:pass1&#10;5.6.7.8:8080:user2:pass2" required></textarea>
+                                    <div class="form-text">Her satırda <code>ip:port:kullanıcı:şifre</code> formatında girin.</div>
+                                </div>
+                                <div class="d-flex flex-center flex-row-fluid pt-4">
+                                    <button type="reset" class="btn btn-light me-3" data-bs-dismiss="modal">Vazgeç</button>
+                                    <button type="submit" class="btn btn-primary" id="pproxyu_bulk_submit_btn">
+                                        <span class="indicator-label">İçe Aktar</span>
+                                        <span class="indicator-progress">Bekleyin... <span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         </div>
     </div>
 @endsection
@@ -926,6 +1062,133 @@
                     }
                 })
             })
+
+            /* ===== PPROXYU POOL ===== */
+            var ppuT = $("#pproxyuPoolTable").DataTable({
+                order: [[0, 'desc']],
+                columnDefs: [
+                    { orderable: true, targets: [0, 1, 2, 5, 6] },
+                    { orderable: false, targets: [3, 4, 7] }
+                ],
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: "{{ route('admin.pproxyuPool.ajax') }}",
+                    type: "POST",
+                    data: function (d) { d._token = "{{ csrf_token() }}"; }
+                }
+            }).on("draw", function () { KTMenu.createInstances(); });
+
+            document.querySelector('[data-pproxyu-table-action="search"]').addEventListener("keyup", function (e) {
+                ppuT.search(e.target.value).draw();
+            });
+
+            $(document).on("click", ".pproxyuAddBtn", function () {
+                $("#pproxyuPoolForm [name='url']").val("{{ route('admin.pproxyuPool.store') }}");
+                $("#pproxyuPoolForm [name='id']").val("");
+                $("#pproxyuPoolForm [name='ip']").val("");
+                $("#pproxyuPoolForm [name='port']").val("");
+                $("#pproxyuPoolForm [name='username']").val("");
+                $("#pproxyuPoolForm [name='password']").val("");
+                $("#pproxyuPoolForm [name='label']").val("");
+                $("#pproxyuPoolForm [name='is_active']").val("1");
+                $("#pproxyuModalTitle").text("Yeni Proxy Ekle");
+                $("#pproxyuPoolModal").modal("show");
+            });
+
+            $(document).on("click", ".pproxyu-edit-btn", function (e) {
+                e.preventDefault();
+                var btn = $(this);
+                var id = btn.data("id");
+                var url = "{{ route('admin.pproxyuPool.update', ['id' => '__ID__']) }}".replace('__ID__', id);
+                $("#pproxyuPoolForm [name='url']").val(url);
+                $("#pproxyuPoolForm [name='id']").val(id);
+                $("#pproxyuPoolForm [name='ip']").val(btn.data("ip"));
+                $("#pproxyuPoolForm [name='port']").val(btn.data("port"));
+                $("#pproxyuPoolForm [name='username']").val(btn.data("username"));
+                $("#pproxyuPoolForm [name='password']").val(btn.data("password"));
+                $("#pproxyuPoolForm [name='label']").val(btn.data("label"));
+                $("#pproxyuPoolForm [name='is_active']").val(btn.data("is-active"));
+                $("#pproxyuModalTitle").text("Proxy Düzenle");
+                $("#pproxyuPoolModal").modal("show");
+            });
+
+            $(document).on("click", ".pproxyu-delete-btn", function (e) {
+                e.preventDefault();
+                var id = $(this).data("id");
+                var url = "{{ route('admin.pproxyuPool.destroy', ['id' => '__ID__']) }}".replace('__ID__', id);
+                Swal.fire({
+                    icon: 'warning', title: 'Uyarı', text: 'Bu proxyyi silmek istediğinize emin misiniz?',
+                    showConfirmButton: true, showCancelButton: true,
+                    cancelButtonText: 'Vazgeç', confirmButtonText: 'Evet, Sil'
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            type: "POST", url: url, dataType: "json",
+                            data: { _token: "{{ csrf_token() }}" },
+                            complete: function (data) {
+                                var res = data.responseJSON;
+                                if (res && res.success) {
+                                    Swal.fire({ title: 'Başarılı', text: res.message, icon: 'success', showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Kapat' });
+                                    ppuT.draw();
+                                } else {
+                                    Swal.fire({ title: 'Hata', text: res?.message || 'Bir hata oluştu', icon: 'error' });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
+            $(document).on("submit", "#pproxyuPoolForm", function (e) {
+                e.preventDefault();
+                var formData = new FormData(this);
+                var url = formData.get('url');
+                formData.delete('url');
+                $.ajax({
+                    type: 'POST', url: url, data: formData, dataType: 'json',
+                    contentType: false, processData: false, cache: false,
+                    beforeSend: function () { propSubmitButton($("#pproxyu_pool_submit_btn"), 1); },
+                    complete: function (data) {
+                        propSubmitButton($("#pproxyu_pool_submit_btn"), 0);
+                        var res = data.responseJSON;
+                        if (res && res.success) {
+                            Swal.fire({ title: 'Başarılı', text: res.message, icon: 'success', showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Kapat' });
+                            ppuT.draw();
+                            $("#pproxyuPoolModal").modal("hide");
+                        } else {
+                            Swal.fire({ title: 'Hata', text: res?.message || 'Bir hata oluştu', icon: 'error' });
+                        }
+                    }
+                });
+            });
+
+            $(document).on("click", ".pproxyuBulkImportBtn", function () {
+                $("#pproxyuBulkImportForm [name='proxies']").val("");
+                $("#pproxyuBulkImportModal").modal("show");
+            });
+
+            $(document).on("submit", "#pproxyuBulkImportForm", function (e) {
+                e.preventDefault();
+                var formData = new FormData(this);
+                $.ajax({
+                    type: 'POST', url: "{{ route('admin.pproxyuPool.bulkImport') }}",
+                    data: formData, dataType: 'json',
+                    contentType: false, processData: false, cache: false,
+                    beforeSend: function () { propSubmitButton($("#pproxyu_bulk_submit_btn"), 1); },
+                    complete: function (data) {
+                        propSubmitButton($("#pproxyu_bulk_submit_btn"), 0);
+                        var res = data.responseJSON;
+                        if (res && res.success) {
+                            Swal.fire({ title: 'Başarılı', text: res.message, icon: 'success', showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Kapat' });
+                            ppuT.draw();
+                            $("#pproxyuBulkImportModal").modal("hide");
+                        } else {
+                            Swal.fire({ title: 'Hata', text: res?.message || 'Bir hata oluştu', icon: 'error' });
+                        }
+                    }
+                });
+            });
         })
     </script>
 @endsection

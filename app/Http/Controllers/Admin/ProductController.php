@@ -161,6 +161,12 @@ class ProductController extends Controller
                     return $this->errorResponse($pp['error']);
                 }
                 $productData["product"]["delivery_items"] = $pp['items'];
+            } else if ($productData["product"]["delivery_type"] == "PPROXYU") {
+                $pp = $this->buildPProxyUDeliveryItems($request);
+                if (isset($pp['error'])) {
+                    return $this->errorResponse($pp['error']);
+                }
+                $productData["product"]["delivery_items"] = $pp['items'];
             }
 
             $productData["product"]["vat_percent"] = 20;
@@ -401,6 +407,12 @@ class ProductController extends Controller
                     return $this->errorResponse($pp['error']);
                 }
                 $productData["product"]["delivery_items"] = $pp['items'];
+            } else if ($productData["product"]["delivery_type"] == "PPROXYU") {
+                $pp = $this->buildPProxyUDeliveryItems($request);
+                if (isset($pp['error'])) {
+                    return $this->errorResponse($pp['error']);
+                }
+                $productData["product"]["delivery_items"] = $pp['items'];
             }
 
             $product->update($productData['product']);
@@ -617,7 +629,7 @@ class ProductController extends Controller
                 if ($order?->activeDetail?->checkout?->status != "COMPLETED") continue;
 
                 $localtonetFamily = ['LOCALTONET', 'LOCALTONETV4'];
-                $allSpecialTypes = ['LOCALTONET', 'LOCALTONETV4', 'THREEPROXY', 'LOCALTONET_ROTATING', 'PPROXY'];
+                $allSpecialTypes = ['LOCALTONET', 'LOCALTONETV4', 'THREEPROXY', 'LOCALTONET_ROTATING', 'PPROXY', 'PPROXYU'];
                 if ($productData["product"]["delivery_type"] == "STACK" && in_array($order->product->delivery_type, $allSpecialTypes, true)) {
                     continue;
                 }
@@ -809,6 +821,18 @@ class ProductController extends Controller
                 'pproxy_days'             => $days,
                 'pproxy_speed_limit'      => $speedLimit,
                 'pproxy_server_domain'    => $serverDomain,
+            ],
+        ];
+    }
+
+    private function buildPProxyUDeliveryItems(Request $request): array
+    {
+        $days = (int) $request->input('pproxyu_days', 30);
+        if ($days < 1) $days = 1;
+
+        return [
+            'items' => [
+                'pproxyu_days' => $days,
             ],
         ];
     }

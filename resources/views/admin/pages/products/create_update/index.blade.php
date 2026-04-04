@@ -1075,6 +1075,15 @@
                                                     PProxy
                                                 </label>
                                                 <!--end::Radio-->
+                                                <!--begin::Radio-->
+                                                <label
+                                                    class="btn btn-outline btn-color-muted btn-active-success {{@$product->delivery_type == 'PPROXYU' ? 'active' : ''}}"
+                                                    data-kt-button="true">
+                                                    <input class="btn-check" type="radio" name="product[delivery_type]"
+                                                           {{@$product->delivery_type == 'PPROXYU' ? 'checked="checked"' : ''}} value="PPROXYU"/>
+                                                    PProxyU
+                                                </label>
+                                                <!--end::Radio-->
                                             </div>
                                             <!--end::Radio group-->
                                             <!--end::Input group-->
@@ -1335,6 +1344,25 @@
                                                 </div>
                                             </div>
                                             <!--end::PProxy Input group-->
+                                            <!--begin::PProxyU Input group-->
+                                            <div class="show-on-pproxyu">
+                                                <div class="row mb-5">
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold required">Süre (Gün)</label>
+                                                        <input type="number" min="1" class="form-control" name="pproxyu_days"
+                                                               value="{{ isset($product) && $product->delivery_type == 'PPROXYU' ? ($product->delivery_items['pproxyu_days'] ?? 30) : 30 }}"
+                                                               placeholder="Örn: 30">
+                                                    </div>
+                                                </div>
+                                                <div class="alert alert-info d-flex align-items-center p-4">
+                                                    <i class="fa fa-info-circle fs-3 text-info me-3"></i>
+                                                    <div>
+                                                        <strong>PProxyU</strong> havuzdan proxy atar. Kota sınırsızdır. Proxy havuzunu
+                                                        <a href="{{ route('admin.tokenPools.index') }}" target="_blank">Havuz Yönetimi > PProxyU</a> sekmesinden yönetebilirsiniz.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!--end::PProxyU Input group-->
                                         </div>
                                         <!--end::Card header-->
                                     </div>
@@ -1389,6 +1417,7 @@
                 $('.show-on-threeproxy').hide(500);
                 $('.show-on-localtonet-rotating').hide(500);
                 $('.show-on-pproxy').hide(500);
+                $('.show-on-pproxyu').hide(500);
                 if (v === 'STACK') {
                     $('.show-on-stack').show(500);
                 } else if (v === 'LOCALTONETV4') {
@@ -1401,6 +1430,8 @@
                     $('.show-on-localtonet-rotating').show(500);
                 } else if (v === 'PPROXY') {
                     $('.show-on-pproxy').show(500);
+                } else if (v === 'PPROXYU') {
+                    $('.show-on-pproxyu').show(500);
                 } else {
                     $('.show-on-localtonet-family').show(500);
                     $('.show-on-localtonet-only').show();

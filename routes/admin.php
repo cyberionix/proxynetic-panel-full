@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\ThreeProxyPoolController;
 use App\Http\Controllers\Admin\ThreeProxyLogController;
 use App\Http\Controllers\Admin\LocaltonetV4SettingsController;
 use App\Http\Controllers\Admin\PProxyController;
+use App\Http\Controllers\Admin\PProxyUPoolController;
 use App\Http\Controllers\Admin\LocaltonetRotatingPoolController;
 use App\Http\Controllers\Admin\TokenPoolController;
 use App\Http\Controllers\Admin\IpPoolController;
@@ -382,6 +383,14 @@ dd($data->is_proxy || $data->is_vpn);
             Route::get('/settings', [PProxyController::class, 'settings'])->name('settings');
             Route::post('/settings', [PProxyController::class, 'saveSettings'])->name('saveSettings');
             Route::post('/test-connection', [PProxyController::class, 'testConnection'])->name('testConnection');
+        });
+
+        Route::group(['prefix' => 'pproxyu-pool', 'as' => 'pproxyuPool.'], function () {
+            Route::post('/ajax', [PProxyUPoolController::class, 'ajax'])->name('ajax');
+            Route::post('/', [PProxyUPoolController::class, 'store'])->name('store');
+            Route::post('/update/{id}', [PProxyUPoolController::class, 'update'])->name('update');
+            Route::post('/delete/{id}', [PProxyUPoolController::class, 'destroy'])->name('destroy');
+            Route::post('/bulk-import', [PProxyUPoolController::class, 'bulkImport'])->name('bulkImport');
         });
 
         Route::get('/three-proxy-logs', [ThreeProxyLogController::class, 'index'])->name('threeProxyLogs.index');

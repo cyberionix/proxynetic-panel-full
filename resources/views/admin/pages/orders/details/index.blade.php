@@ -708,6 +708,116 @@
                                         <small class="text-muted">Format: ADRES:PORT:USER:PASS</small>
                                     </div>
                                 @endif
+                            @elseif($order->isPProxyUDelivery())
+                                @php
+                                    $ppuPi = $order->product_info ?? [];
+                                    $ppuPoolIp = $ppuPi['pproxyu_pool_ip'] ?? '';
+                                    $ppuPoolPort = $ppuPi['pproxyu_pool_port'] ?? '';
+                                    $ppuPoolUser = $ppuPi['pproxyu_pool_user'] ?? '';
+                                    $ppuPoolPass = $ppuPi['pproxyu_pool_pass'] ?? '';
+                                    $ppuDays = $ppuPi['pproxyu_days'] ?? 30;
+                                    $ppuActiveUntil = $ppuPi['pproxyu_active_until'] ?? '';
+                                @endphp
+
+                                @if($order->delivery_status !== 'DELIVERED')
+                                    <div class="alert alert-warning d-flex align-items-center p-5 mb-5">
+                                        <i class="fa fa-exclamation-triangle fs-2 me-4 text-warning"></i>
+                                        <div>
+                                            <h6 class="mb-0">PProxyU henüz teslim edilmemiş.</h6>
+                                            <span class="text-muted fs-7">Teslimat durumu: <strong>{{ $order->delivery_status }}</strong></span>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="mb-5">
+                                        <label class="form-label fw-bold fs-5">PProxyU Bağlantı Bilgileri</label>
+                                        <div class="row g-4 mb-4">
+                                            <div class="col-md-3">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-1">
+                                                        <i class="fa fa-server text-primary me-1"></i>Proxy Adresi
+                                                    </span>
+                                                    <code class="fs-6">{{ $ppuPoolIp }}</code>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-1">
+                                                        <i class="fa fa-plug text-info me-1"></i>Port
+                                                    </span>
+                                                    <code class="fs-6">{{ $ppuPoolPort }}</code>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-1">
+                                                        <i class="fa fa-user text-success me-1"></i>Kullanıcı Adı
+                                                    </span>
+                                                    <code class="fs-6">{{ $ppuPoolUser }}</code>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-1">
+                                                        <i class="fa fa-key text-warning me-1"></i>Şifre
+                                                    </span>
+                                                    <code class="fs-6">{{ $ppuPoolPass }}</code>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="separator my-5"></div>
+
+                                    <div class="mb-5">
+                                        <label class="form-label fw-bold fs-5">Abonelik Bilgileri</label>
+                                        <div class="row g-4">
+                                            <div class="col-md-4">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-2">
+                                                        <i class="fa fa-calendar-alt text-danger me-1"></i>Bitiş Tarihi
+                                                    </span>
+                                                    <span class="fw-bold fs-6">
+                                                        @if($ppuActiveUntil)
+                                                            {{ \Carbon\Carbon::parse($ppuActiveUntil)->format('d.m.Y H:i') }}
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-2">
+                                                        <i class="fa fa-clock text-warning me-1"></i>Süre (Gün)
+                                                    </span>
+                                                    <span class="fw-bold fs-6">{{ $ppuDays }} gün</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-2">
+                                                        <i class="fa fa-database text-primary me-1"></i>Kota
+                                                    </span>
+                                                    <span class="fw-bold fs-6 text-success">Sınırsız</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="separator my-5"></div>
+
+                                    <div class="mb-5">
+                                        <label class="form-label fw-bold fs-5 mb-3">Proxy Bağlantı Formatı</label>
+                                        <div class="input-group mb-3">
+                                            <input type="text" class="form-control form-control-solid" id="ppuProxyString" readonly
+                                                   value="{{ $ppuPoolIp }}:{{ $ppuPoolPort }}:{{ $ppuPoolUser }}:{{ $ppuPoolPass }}">
+                                            <button class="btn btn-light-primary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('ppuProxyString').value).then(()=>toastr.success('Kopyalandı!'))">
+                                                <i class="fa fa-copy"></i>
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">Format: ADRES:PORT:USER:PASS</small>
+                                    </div>
+                                @endif
                             @endif
                         </div>
                         <!--end::Card header-->

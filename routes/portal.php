@@ -14,6 +14,7 @@ use App\Http\Controllers\Portal\CheckoutController;
 use App\Http\Controllers\Portal\OrderLocaltonetController;
 use App\Http\Controllers\Portal\BalanceController;
 use App\Http\Controllers\Portal\OrderPProxyController;
+use App\Http\Controllers\Portal\OrderPProxyUController;
 use App\Http\Controllers\Portal\UserNotificationController;
 
 Route::get('/test', function () {
@@ -138,6 +139,14 @@ Route::middleware(["logRequest", "updateLastSeen"])->group(function () {
                 Route::get('/server-domain/{order}', [OrderPProxyController::class, 'getServerDomain'])->name('getServerDomain');
                 Route::post('/change-password/{order}', [OrderPProxyController::class, 'changePassword'])->name('changePassword');
                 Route::post('/test-proxy/{order}', [OrderPProxyController::class, 'testProxy'])->name('testProxy');
+            });
+
+            Route::group(['prefix' => 'pproxyu', 'as' => 'pproxyu.'], function () {
+                Route::post('/generate-proxies/{order}', [OrderPProxyUController::class, 'generateProxies'])->name('generateProxies');
+                Route::get('/countries/{order}', [OrderPProxyUController::class, 'getCountries'])->name('getCountries');
+                Route::get('/server-domain/{order}', [OrderPProxyUController::class, 'getServerDomain'])->name('getServerDomain');
+                Route::post('/change-password/{order}', [OrderPProxyUController::class, 'changePassword'])->name('changePassword');
+                Route::post('/test-proxy/{order}', [OrderPProxyUController::class, 'testProxy'])->name('testProxy');
             });
         });
         Route::group(['prefix' => 'invoices', 'as' => 'invoices.'], function () {
