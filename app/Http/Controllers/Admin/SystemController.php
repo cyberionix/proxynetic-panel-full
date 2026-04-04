@@ -481,18 +481,19 @@ class SystemController extends Controller
                 if (empty($username) || empty($password)) {
                     return $this->errorResponse('Kullanıcı adı ve şifre alanları boş olamaz.');
                 }
+                $xml = '<?xml version="1.0" encoding="UTF-8"?><smskredi ka="' . htmlspecialchars($username) . '" pwd="' . htmlspecialchars($password) . '"/>';
                 $response = \Illuminate\Support\Facades\Http::timeout(10)
-                    ->get('https://smsgw.mutlucell.com/smsgw-ws/sndinfosms', [
-                        'ka' => $username,
-                        'pwd' => $password,
-                        'org' => $cfg['mutlucell_sender'] ?? '',
-                        'cmd' => 'KREDI',
-                    ]);
+                    ->withBody($xml, 'text/xml; charset=UTF-8')
+                    ->post('https://smsgw.mutlucell.com/smsgw-ws/gtcrdtex');
                 $body = trim($response->body());
-                if (is_numeric($body) && (float) $body >= 0) {
-                    return $this->successResponse('Bağlantı başarılı!', ['details' => "Kalan SMS kredisi: {$body}"]);
+                if (str_starts_with($body, '$')) {
+                    $balance = substr($body, 1);
+                    return $this->successResponse('Bağlantı başarılı!', ['details' => "Kalan SMS kredisi: {$balance}"]);
                 }
-                return $this->errorResponse('Bağlantı başarısız: ' . $body);
+                if (is_numeric($body)) {
+                    return $this->errorResponse('Mutlucell hata kodu: ' . $body);
+                }
+                return $this->errorResponse('Bağlantı başarısız: ' . mb_substr($body, 0, 200));
             }
 
             return $this->errorResponse('Geçersiz sağlayıcı.');
@@ -552,19 +553,28 @@ class SystemController extends Controller
                 if (empty($username) || empty($password)) {
                     return $this->errorResponse('Kullanıcı adı ve şifre alanları boş olamaz.');
                 }
+                $xmlEl = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><smspack/>');
+                $xmlEl->addAttribute('ka', $username);
+                $xmlEl->addAttribute('pwd', $password);
+                $xmlEl->addAttribute('org', $sender);
+                $xmlEl->addAttribute('charset', 'turkish');
+                $mesaj = $xmlEl->addChild('mesaj');
+                $mesaj->addChild('metin', $message);
+                $mesaj->addChild('nums', $number);
+                $xml = $xmlEl->asXML();
+
                 $response = \Illuminate\Support\Facades\Http::timeout(15)
-                    ->get('https://smsgw.mutlucell.com/smsgw-ws/sndinfosms', [
-                        'ka' => $username,
-                        'pwd' => $password,
-                        'org' => $sender,
-                        'msg' => $message,
-                        'no' => $number,
-                    ]);
+                    ->withBody($xml, 'text/xml; charset=UTF-8')
+                    ->post('https://smsgw.mutlucell.com/smsgw-ws/sndblkex');
                 $body = trim($response->body());
-                if (is_numeric($body) && (int) $body > 0) {
+                if (str_starts_with($body, '$')) {
+                    $msgId = substr($body, 1);
+                    return $this->successResponse('SMS başarıyla gönderildi!', ['details' => "Mesaj ID: {$msgId}"]);
+                }
+                if (is_numeric($body) && (int) $body > 1000) {
                     return $this->successResponse('SMS başarıyla gönderildi!', ['details' => "Mesaj ID: {$body}"]);
                 }
-                return $this->errorResponse('SMS gönderilemedi: ' . $body);
+                return $this->errorResponse('SMS gönderilemedi. Hata kodu: ' . mb_substr($body, 0, 200));
             }
 
             return $this->errorResponse('Geçersiz sağlayıcı.');
