@@ -408,6 +408,14 @@
                                                                {{ $smsMailConfig['iletimerkezi_sandbox'] ? 'checked' : '' }}/>
                                                     </div>
                                                 </div>
+                                                <div class="col-12 mb-3">
+                                                    <div id="iletimerkeziBalanceCard" class="border border-dashed rounded p-3 bg-light-success text-center">
+                                                        <div id="iletimerkeziBalanceContent">
+                                                            <i class="fa fa-spinner fa-spin text-muted"></i>
+                                                            <span class="text-muted ms-2 fs-7">Bakiye sorgulanıyor...</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -430,6 +438,14 @@
                                                     <label class="form-label fw-semibold required">Varsayılan Gönderici</label>
                                                     <input type="text" name="sms_mail[mutlucell_sender]" class="form-control form-control-solid"
                                                            value="{{ $smsMailConfig['mutlucell_sender'] }}" placeholder="Gönderici adı"/>
+                                                </div>
+                                                <div class="col-md-6 mb-5 d-flex align-items-end">
+                                                    <div id="mutlucellBalanceCard" class="w-100 border border-dashed rounded p-3 bg-light-success text-center">
+                                                        <div id="mutlucellBalanceContent">
+                                                            <i class="fa fa-spinner fa-spin text-muted"></i>
+                                                            <span class="text-muted ms-2 fs-7">Bakiye sorgulanıyor...</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -688,6 +704,7 @@
                 var val = $(this).val();
                 $('#smsIletimerkeziFields').toggleClass('d-none', val !== 'iletimerkezi');
                 $('#smsMutlucellFields').toggleClass('d-none', val !== 'mutlucell');
+                fetchSmsBalance();
             });
 
             $('#mailProviderSelect').on('change', function(){
@@ -725,6 +742,92 @@
                 return data;
             }
 
+            function renderBalanceCard(container, card, success, balance, errorMsg) {
+                if (success) {
+                    $(card).removeClass('bg-light-danger').addClass('bg-light-success');
+                    $(container).html(
+                        '<div class="d-flex align-items-center justify-content-center gap-3">'
+                        + '<div><i class="fa fa-wallet fs-3 text-success"></i></div>'
+                        + '<div class="text-start">'
+                        + '<span class="text-muted fs-8 d-block">Bakiye Bilgisi</span>'
+                        + '<span class="fw-bold fs-6">Hesabınızda <span class="text-success">' + balance + '</span> kredi bulunmaktadır.</span>'
+                        + '</div>'
+                        + '</div>'
+                    );
+                } else {
+                    $(card).removeClass('bg-light-success').addClass('bg-light-danger');
+                    $(container).html(
+                        '<div class="d-flex align-items-center justify-content-center gap-2">'
+                        + '<i class="fa fa-exclamation-circle text-danger"></i>'
+                        + '<span class="text-danger fs-7">' + (errorMsg || 'Bakiye sorgulanamadı') + '</span>'
+                        + '</div>'
+                    );
+                }
+            }
+
+            function fetchSmsBalance() {
+                var provider = $('#smsProviderSelect').val();
+                var formData = collectSmsFormData();
+
+                if (provider === 'mutlucell') {
+                    var username = formData.mutlucell_username || '';
+                    var password = formData.mutlucell_password || '';
+                    if (!username || !password) {
+                        renderBalanceCard('#mutlucellBalanceContent', '#mutlucellBalanceCard', false, 0, 'Kullanıcı adı ve şifre giriniz');
+                        return;
+                    }
+                    $('#mutlucellBalanceContent').html('<i class="fa fa-spinner fa-spin text-muted"></i><span class="text-muted ms-2 fs-7">Bakiye sorgulanıyor...</span>');
+                    $.ajax({
+                        url: '{{ route("admin.testSmsConnection") }}',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: { _token: '{{ csrf_token() }}', config: formData },
+                        success: function(res) {
+                            if (res.success && res.details) {
+                                var match = res.details.match(/([\d.]+)/);
+                                var bal = match ? match[1] : res.details;
+                                renderBalanceCard('#mutlucellBalanceContent', '#mutlucellBalanceCard', true, bal, '');
+                            } else {
+                                renderBalanceCard('#mutlucellBalanceContent', '#mutlucellBalanceCard', false, 0, res.message || 'Bakiye sorgulanamadı');
+                            }
+                        },
+                        error: function() {
+                            renderBalanceCard('#mutlucellBalanceContent', '#mutlucellBalanceCard', false, 0, 'Bağlantı hatası');
+                        }
+                    });
+                }
+
+                if (provider === 'iletimerkezi') {
+                    var key = formData.iletimerkezi_key || '';
+                    var secret = formData.iletimerkezi_secret || '';
+                    if (!key || !secret) {
+                        renderBalanceCard('#iletimerkeziBalanceContent', '#iletimerkeziBalanceCard', false, 0, 'API Key ve Secret giriniz');
+                        return;
+                    }
+                    $('#iletimerkeziBalanceContent').html('<i class="fa fa-spinner fa-spin text-muted"></i><span class="text-muted ms-2 fs-7">Bakiye sorgulanıyor...</span>');
+                    $.ajax({
+                        url: '{{ route("admin.testSmsConnection") }}',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: { _token: '{{ csrf_token() }}', config: formData },
+                        success: function(res) {
+                            if (res.success && res.details) {
+                                var match = res.details.match(/([\d.]+)/);
+                                var bal = match ? match[1] : res.details;
+                                renderBalanceCard('#iletimerkeziBalanceContent', '#iletimerkeziBalanceCard', true, bal, '');
+                            } else {
+                                renderBalanceCard('#iletimerkeziBalanceContent', '#iletimerkeziBalanceCard', false, 0, res.message || 'Bakiye sorgulanamadı');
+                            }
+                        },
+                        error: function() {
+                            renderBalanceCard('#iletimerkeziBalanceContent', '#iletimerkeziBalanceCard', false, 0, 'Bağlantı hatası');
+                        }
+                    });
+                }
+            }
+
+            setTimeout(fetchSmsBalance, 500);
+
             $('#smsTestConnectionBtn').on('click', function(){
                 var btn = $(this);
                 btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i>Test...');
@@ -736,6 +839,7 @@
                     data: { _token: '{{ csrf_token() }}', config: formData },
                     success: function(res){
                         showTestResult('#smsTestResult', res.success, res.message, res.details || '');
+                        fetchSmsBalance();
                     },
                     error: function(xhr){
                         var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Bağlantı hatası';
