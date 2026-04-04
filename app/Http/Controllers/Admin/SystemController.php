@@ -98,9 +98,9 @@ class SystemController extends Controller
 
         $test_product = [];
         $test_product_price = [];
-        if ($test_product_config && $test_product_config['product_id']) {
+        if ($test_product_config && !empty($test_product_config['product_id'])) {
             $test_product = Product::find($test_product_config['product_id']);
-            $test_product_price = Price::find($test_product_config['price_id']);
+            $test_product_price = Price::find($test_product_config['price_id'] ?? null);
         }
 
         $localtonetHttpVerify = (bool) config('services.localtonet.http_verify');
