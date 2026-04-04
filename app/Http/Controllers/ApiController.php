@@ -432,6 +432,22 @@ class ApiController extends Controller
                     'message' => 'İşlem tamamlanırken bir hata oluştu. '.(@$result['errors'] ? @$result['errors'][0] : '')
                 ];
                 break;
+
+            case 'delete_proxy':
+                $result = $this->localtonetService->deleteTunnel($pp_id);
+                if ($result && @$result['hasError'] === false) {
+                    Cache::forget('LOCALTONET_PR_DATA_' . $pp_id);
+                    return [
+                        'success' => true,
+                        'message' => 'Proxy başarıyla silindi.'
+                    ];
+                }
+                return [
+                    'success' => false,
+                    'message' => 'Proxy silinirken hata oluştu. ' . (@$result['errors'] ? @$result['errors'][0] : '')
+                ];
+                break;
+
             default:
 
                 return $request->all();
