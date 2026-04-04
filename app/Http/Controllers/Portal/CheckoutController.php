@@ -267,6 +267,11 @@ class CheckoutController extends Controller
                     'invoice_id' => $invoice->id,
                     'user_id' => Auth::id()
                 ]);
+                \App\Services\NotificationTemplateService::send('invoice_pending_approval', $user, [
+                    'fatura_no' => $invoice->invoice_number ?? $invoice->id,
+                    'tutar' => number_format($invoice->total_price_with_vat ?? 0, 2, ',', '.'),
+                    'fatura_url' => url('/invoices/' . $invoice->id),
+                ]);
             } else {
                 $basket = $user->basket;
                 if (!$basket || count($basket->items) <= 0) {
@@ -600,6 +605,11 @@ class CheckoutController extends Controller
                         $notification = new InvoiceCheckoutConfirmedNotification($invoice);
                         $notification->onConnection($deferredQueue);
                         $checkout->user->notify($notification);
+                        \App\Services\NotificationTemplateService::send('invoice_paid', $checkout->user, [
+                            'fatura_no' => $invoice->invoice_number ?? $invoice->id,
+                            'tutar' => number_format($invoice->total ?? 0, 2, ',', '.'),
+                            'fatura_url' => url('/invoices/' . $invoice->id),
+                        ]);
                     }
                 } catch (\Throwable $e) {
                     Logger::error('CHECKOUT_CONFIRMED_AFTER_RESPONSE', [

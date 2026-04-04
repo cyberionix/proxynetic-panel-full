@@ -103,6 +103,7 @@ class AuthController extends Controller
             $save = $user->save();
             if ($save) {
                 Auth::login($user);
+                \App\Services\NotificationTemplateService::send('welcome', $user);
                 return $this->successResponse(__('your_account_has_been_successfully_created'),['redirectUrl' => route('portal.dashboard')]);
             }
         } catch (\Exception $exception) {

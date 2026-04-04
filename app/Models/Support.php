@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\AdminNotificationService;
+use App\Services\NotificationTemplateService;
 use App\Services\SupportAutoReplyService;
 use App\Traits\SupportAttributes;
 use App\Traits\SupportEventHandlers;
@@ -34,11 +35,28 @@ class Support extends Model
         static::created(function ($model) {
             AdminNotificationService::supportCreated($model);
             SupportAutoReplyService::handleEvent('TICKET_CREATED', $model);
+            if ($model->user) {
+                NotificationTemplateService::send('support_created', $model->user, [
+                    'talep_no' => $model->id,
+                    'konu' => $model->subject ?? '',
+                    'talep_url' => url('/supports/show/' . $model->id),
+                ]);
+            }
         });
 
         static::updated(function ($model) {
-            if ($model->isDirty('status') && $model->status === 'RESOLVED') {
-                SupportAutoReplyService::handleEvent('TICKET_RESOLVED', $model);
+            if ($model->isDirty('status') && $model->user) {
+                $vars = [
+                    'talep_no' => $model->id,
+                    'konu' => $model->subject ?? '',
+                    'talep_url' => url('/supports/show/' . $model->id),
+                ];
+                if ($model->status === 'RESOLVED') {
+                    SupportAutoReplyService::handleEvent('TICKET_RESOLVED', $model);
+                    NotificationTemplateService::send('support_resolved', $model->user, $vars);
+                } elseif ($model->status === 'IN_PROGRESS' || $model->status === 'WAITING_FOR_AN_ANSWER') {
+                    NotificationTemplateService::send('support_in_progress', $model->user, $vars);
+                }
             }
         });
     }

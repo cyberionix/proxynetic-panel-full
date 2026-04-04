@@ -37,6 +37,12 @@ class InvoicesWithUpcomingDueDates extends Command
         $count = 0;
         foreach ($invoices as $invoice) {
             $invoice->user->notify(new UpcomingInvoicePaymentNotification($invoice));
+            \App\Services\NotificationTemplateService::send('invoice_reminder', $invoice->user, [
+                'fatura_no' => $invoice->invoice_number ?? $invoice->id,
+                'tutar' => number_format($invoice->total ?? 0, 2, ',', '.'),
+                'son_odeme_tarihi' => $invoice->due_date?->format('d/m/Y') ?? '',
+                'fatura_url' => url('/invoices/' . $invoice->id),
+            ]);
             $count++;
         }
         Log::info('END_INVOICE_WITH_UPCOMING_DUE_DATES', ['invoice_count' => $count]);

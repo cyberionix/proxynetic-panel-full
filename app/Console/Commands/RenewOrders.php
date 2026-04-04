@@ -72,6 +72,14 @@ class RenewOrders extends Command
             ]);
 
             $invoice->user->notify(new RenewOrderNotification($invoice, $order));
+            \App\Services\NotificationTemplateService::send('order_renewed', $invoice->user, [
+                'siparis_no' => $order->id,
+                'urun_adi' => $order->product?->name ?? '',
+                'fatura_no' => $invoice->invoice_number ?? $invoice->id,
+                'tutar' => number_format($invoice->total_price_with_vat ?? 0, 2, ',', '.'),
+                'son_odeme_tarihi' => $invoice->due_date?->format('d/m/Y') ?? '',
+                'fatura_url' => url('/invoices/' . $invoice->id),
+            ]);
             DB::commit();
             Log::info('CRON_RENEW_ORDERS', ["invoice_id" => $invoice->id, "order_id" => $order->id, "order_item_id" => $orderDetail->id]);
         } catch (\Exception $e) {

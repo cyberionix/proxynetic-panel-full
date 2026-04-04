@@ -34,6 +34,11 @@ class SupportMessage extends Model
 
                 if ($model->admin_id) {
                     $model->support->user->notify(new \App\Notifications\SupportAnsweredNotification($model->support));
+                    \App\Services\NotificationTemplateService::send('support_replied', $model->support->user, [
+                        'talep_no' => $model->support->id,
+                        'konu' => $model->support->subject ?? '',
+                        'talep_url' => url('/supports/show/' . $model->support_id),
+                    ]);
                 } else {
                     $isFirstMessage = SupportMessage::whereSupportId($model->support_id)
                         ->where('is_auto_reply', false)

@@ -192,6 +192,11 @@ Route::post('/callback-paytr/64a3e520cf', function (Illuminate\Http\Request $req
             $paytrNotify = new InvoiceCheckoutConfirmedNotification($invoice);
             $paytrNotify->onConnection($deferred);
             $checkout->user->notify($paytrNotify);
+            \App\Services\NotificationTemplateService::send('invoice_paid', $checkout->user, [
+                'fatura_no' => $invoice->invoice_number ?? $invoice->id,
+                'tutar' => number_format($invoice->total ?? 0, 2, ',', '.'),
+                'fatura_url' => url('/invoices/' . $invoice->id),
+            ]);
         } else {
             Log::error("CALLBACK_PAYTR_PAYMENT_FAILED", ["user_id" => $checkout->user_id, "checkout_id" => $checkout->id, "post_request" => $request->all()]);
             $checkout->update([

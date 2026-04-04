@@ -72,6 +72,12 @@ class StopServiceOnUnpaidRenewInvoices extends Command
                 }
 
                 $invoice->user->notify(new StopServiceOnUnpaidRenewInvoice($invoiceItem));
+                \App\Services\NotificationTemplateService::send('invoice_overdue', $invoice->user, [
+                    'fatura_no' => $invoice->invoice_number ?? $invoice->id,
+                    'tutar' => number_format($invoice->total_price_with_vat ?? 0, 2, ',', '.'),
+                    'fatura_url' => url('/invoices/' . $invoice->id),
+                    'urun_adi' => $invoiceItem->name ?? '',
+                ]);
 
                 $cancelledInvoiceItems[] = $invoiceItem;
                 $stopOrderCount++;

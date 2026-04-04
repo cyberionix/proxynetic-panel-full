@@ -560,6 +560,14 @@ class InvoiceController extends Controller
     {
         $formalize = $EInvoiceManager->formalizeInvoice($invoice);
 
+        if ($invoice->user) {
+            \App\Services\NotificationTemplateService::send('invoice_formalized', $invoice->user, [
+                'fatura_no' => $invoice->invoice_number ?? $invoice->id,
+                'tutar' => number_format($invoice->total ?? 0, 2, ',', '.'),
+                'fatura_url' => url('/invoices/' . $invoice->id),
+            ]);
+        }
+
         return $formalize;
         return $this->errorResponse('Fatura resmileştirilirken bir sorun oluştu.');
     }
@@ -573,6 +581,19 @@ class InvoiceController extends Controller
         }
 
         $invoice->update(['status' => $newStatus]);
+
+        if ($invoice->user) {
+            $vars = [
+                'fatura_no' => $invoice->invoice_number ?? $invoice->id,
+                'tutar' => number_format($invoice->total ?? 0, 2, ',', '.'),
+                'fatura_url' => url('/invoices/' . $invoice->id),
+            ];
+            if ($newStatus === 'CANCELLED') {
+                \App\Services\NotificationTemplateService::send('invoice_cancelled', $invoice->user, $vars);
+            } elseif ($newStatus === 'PAID') {
+                \App\Services\NotificationTemplateService::send('invoice_paid', $invoice->user, $vars);
+            }
+        }
 
         $statusLabels = [
             'PAID' => 'Ödendi',
