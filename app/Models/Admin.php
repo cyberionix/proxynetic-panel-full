@@ -13,6 +13,7 @@ class Admin extends Authenticatable
 {
     use HasFactory, HasRoles, SoftDeletes, Notifiable;
 
+    protected $guarded = [];
     protected $appends = ["full_name"];
     public function routeNotificationForSms()
     {

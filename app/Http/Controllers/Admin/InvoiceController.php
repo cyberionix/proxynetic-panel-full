@@ -564,6 +564,25 @@ class InvoiceController extends Controller
         return $this->errorResponse('Fatura resmileştirilirken bir sorun oluştu.');
     }
 
+    public function togglePaymentStatus(Request $request, Invoice $invoice)
+    {
+        $newStatus = $request->input('status');
+
+        if (!in_array($newStatus, ['PAID', 'PENDING', 'CANCELLED'])) {
+            return $this->errorResponse('Geçersiz durum.');
+        }
+
+        $invoice->update(['status' => $newStatus]);
+
+        $statusLabels = [
+            'PAID' => 'Ödendi',
+            'PENDING' => 'Ödenmedi',
+            'CANCELLED' => 'İptal Edildi',
+        ];
+
+        return $this->successResponse('Fatura durumu "' . ($statusLabels[$newStatus] ?? $newStatus) . '" olarak güncellendi.');
+    }
+
     public function showPdf(Invoice $invoice)
     {
         if (Storage::exists($invoice->invoice_pdf))

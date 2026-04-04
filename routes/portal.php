@@ -13,6 +13,7 @@ use App\Http\Controllers\Portal\ProductController;
 use App\Http\Controllers\Portal\CheckoutController;
 use App\Http\Controllers\Portal\OrderLocaltonetController;
 use App\Http\Controllers\Portal\BalanceController;
+use App\Http\Controllers\Portal\OrderPProxyController;
 use App\Http\Controllers\Portal\UserNotificationController;
 
 Route::get('/test', function () {
@@ -101,6 +102,7 @@ Route::middleware(["logRequest", "updateLastSeen"])->group(function () {
             Route::get('/{order}', [OrderController::class, "show"])->whereNumber('order')->name("show");
             Route::post('upgrade/{order}', [OrderController::class, "upgrade"])->name("upgrade")->middleware("check.order_status");
             Route::post('add-quota/{order}', [OrderController::class, "addQuotaPost"])->name("addQuotaPost")->middleware("check.order_status");
+            Route::post('add-pproxy-quota/{order}', [OrderController::class, "addPProxyQuotaPost"])->name("addPProxyQuotaPost")->middleware("check.order_status");
             Route::post('add-quota-duration/{order}', [OrderController::class, "addQuotaDurationPost"])->name("addQuotaDurationPost")->middleware("check.order_status");
             Route::post('tp-extra-duration/{order}', [OrderController::class, "tpExtraDurationPost"])->name("tpExtraDurationPost")->middleware("check.order_status");
             Route::post('tp-service-action/{order}', [OrderController::class, "tpServiceActionPost"])->name("tpServiceActionPost")->middleware("check.order_status");
@@ -127,6 +129,16 @@ Route::middleware(["logRequest", "updateLastSeen"])->group(function () {
                 Route::post('/lr-get-clients/{order}', [OrderLocaltonetController::class, 'lrGetClients'])->name('lrGetClients');
                 Route::post('/three-proxy-change-credentials/{order}', [OrderLocaltonetController::class, 'threeProxyChangeCredentials'])->name('threeProxyChangeCredentials');
             });
+
+            Route::group(['prefix' => 'pproxy', 'as' => 'pproxy.'], function () {
+                Route::get('/subuser-info/{order}', [OrderPProxyController::class, 'getSubUserInfo'])->name('getSubUserInfo');
+                Route::post('/generate-proxies/{order}', [OrderPProxyController::class, 'generateProxies'])->name('generateProxies');
+                Route::get('/traffic-info/{order}', [OrderPProxyController::class, 'getTrafficInfo'])->name('getTrafficInfo');
+                Route::get('/countries', [OrderPProxyController::class, 'getCountries'])->name('getCountries');
+                Route::get('/server-domain/{order}', [OrderPProxyController::class, 'getServerDomain'])->name('getServerDomain');
+                Route::post('/change-password/{order}', [OrderPProxyController::class, 'changePassword'])->name('changePassword');
+                Route::post('/test-proxy/{order}', [OrderPProxyController::class, 'testProxy'])->name('testProxy');
+            });
         });
         Route::group(['prefix' => 'invoices', 'as' => 'invoices.'], function () {
             Route::get('/', [InvoiceController::class, "index"])->name("index");
@@ -140,7 +152,8 @@ Route::middleware(["logRequest", "updateLastSeen"])->group(function () {
             Route::get('/show/{support}', [SupportController::class, 'show'])->name("show");
             Route::get('/find/{support}', [SupportController::class, 'find'])->name("find");
             Route::post('/save-message/{support}', [SupportController::class, 'saveMessage'])->name("saveMessage")->middleware("check.locked_support");
-
+            Route::post('/typing/{support}', [SupportController::class, 'typing'])->name('typing');
+            Route::get('/poll/{support}', [SupportController::class, 'pollMessages'])->name('poll');
         });
         Route::group(['prefix' => 'products', 'as' => 'products.'], function () {
             Route::get('/category/{productCategory}', [ProductController::class, 'index'])->name("index");

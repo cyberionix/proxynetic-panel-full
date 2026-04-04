@@ -7,6 +7,7 @@ use App\Models\ThreeProxyLog;
 use App\Services\LocaltonetService;
 use App\Traits\LocaltonetManagement;
 use App\Traits\OrderEventHandlers;
+use App\Traits\PProxyManagement;
 use App\Traits\StackManagement;
 use App\Traits\ThreeProxyManagement;
 use Carbon\Carbon;
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Order extends Model
 {
-    use HasFactory, SoftDeletes, StackManagement, LocaltonetManagement, ThreeProxyManagement, OrderEventHandlers;
+    use HasFactory, SoftDeletes, StackManagement, LocaltonetManagement, ThreeProxyManagement, PProxyManagement, OrderEventHandlers;
 
     protected $casts = [
         'product_info' => 'json',
@@ -36,7 +37,7 @@ class Order extends Model
         parent::boot();
         static::updated(function($order){
             if ($order->status != 'ACTIVE' && $order->delivery_status != 'NOT_DELIVERED'){
-                if ($order->isThreeProxyDelivery() && $order->status === 'PASSIVE') {
+                if (($order->isThreeProxyDelivery() || $order->isPProxyDelivery()) && $order->status === 'PASSIVE') {
                     return;
                 }
                 $order->revokeApproval();
@@ -160,6 +161,8 @@ class Order extends Model
             return $this->localtonetRotatingApprove();
         } else if ($product->delivery_type === 'THREEPROXY') {
             return $this->threeProxyApprove();
+        } else if ($product->delivery_type === 'PPROXY') {
+            return $this->pproxyApprove();
         }
         $this->status = "PENDING";
         $this->delivery_status = "BEING_DELIVERED";
@@ -180,6 +183,8 @@ class Order extends Model
             return $this->localtonetRotatingRevokeApproval();
         } else if ($product->delivery_type === 'THREEPROXY') {
             return $this->threeProxyRevokeApproval();
+        } else if ($product->delivery_type === 'PPROXY') {
+            return $this->pproxyRevokeApproval();
         }
     }
 
@@ -214,6 +219,13 @@ class Order extends Model
                 $lines[] = ($p['ip'] ?? '') . ':' . ($p['http_port'] ?? '') . ':' . ($p['username'] ?? '') . ':' . ($p['password'] ?? '');
             }
             return $lines;
+        } else if ($this->isPProxyDelivery()) {
+            $pi = $this->product_info ?? [];
+            $ip = $pi['pproxy_server_ip'] ?? '';
+            $port = $pi['pproxy_server_port'] ?? '';
+            $user = $pi['pproxy_username'] ?? '';
+            $pass = $pi['pproxy_password'] ?? '';
+            return "IP: {$ip}<br>PORT: {$port}<br>User: {$user}<br>Pass: {$pass}";
         } else {
             return $this->product_info['proxy_list'] ?? [];
         }
@@ -305,6 +317,8 @@ class Order extends Model
             }
         } else if ($this->isThreeProxyDelivery()) {
             $this->threeProxyStopService();
+        } else if ($this->isPProxyDelivery()) {
+            $this->pproxyStopService();
         }
     }
 
@@ -314,6 +328,8 @@ class Order extends Model
             $this->bulkStartLocaltonetTunnels();
         } else if ($this->isThreeProxyDelivery()) {
             $this->threeProxyStartService();
+        } else if ($this->isPProxyDelivery()) {
+            $this->pproxyStartService();
         }
         $this->update([
             'status' => 'ACTIVE',
@@ -415,6 +431,8 @@ class Order extends Model
                 $this->update(['status' => 'CANCELLED', 'delivery_status' => 'NOT_DELIVERED']);
             }
         } else if ($this->isThreeProxyDelivery()) {
+            $this->revokeApproval();
+        } else if ($this->isPProxyDelivery()) {
             $this->revokeApproval();
         }
     }

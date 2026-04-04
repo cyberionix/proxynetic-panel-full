@@ -54,6 +54,37 @@
                             <!--begin::Input group-->
                             <div
                                 class="d-flex align-items-center justify-content-end flex-equal order-3 fw-row gap-2">
+                                @if($invoice->status == 'PAID')
+                                    <button type="button" class="btn btn-sm btn-success pe-none">
+                                        <i class="fa fa-check-circle text-white me-1"></i>Ödendi
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-sm btn-light-warning togglePaymentStatusBtn"
+                                            data-url="{{route("admin.invoices.togglePaymentStatus", ["invoice" => $invoice->id])}}"
+                                            data-status="PENDING">
+                                        <i class="fa fa-times-circle"></i> Ödenmedi Yap
+                                    </button>
+                                @elseif($invoice->status == 'CANCELLED')
+                                    <button type="button" class="btn btn-sm btn-secondary pe-none">
+                                        <i class="fa fa-ban text-white me-1"></i>İptal Edildi
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-sm btn-light-success togglePaymentStatusBtn"
+                                            data-url="{{route("admin.invoices.togglePaymentStatus", ["invoice" => $invoice->id])}}"
+                                            data-status="PAID">
+                                        <i class="fa fa-check-circle"></i> Ödendi Yap
+                                    </button>
+                                @else
+                                    <button type="button" class="btn btn-sm btn-danger pe-none">
+                                        <i class="fa fa-clock text-white me-1"></i>Ödenmedi
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-sm btn-light-success togglePaymentStatusBtn"
+                                            data-url="{{route("admin.invoices.togglePaymentStatus", ["invoice" => $invoice->id])}}"
+                                            data-status="PAID">
+                                        <i class="fa fa-check-circle"></i> Ödendi Yap
+                                    </button>
+                                @endif
                                 <button type="button"
                                         class="btn btn-sm btn-light-danger invoiceDeleteBtn"
                                         data-url="{{route("admin.invoices.delete", ["invoice" => $invoice->id])}}">
@@ -705,6 +736,55 @@
                                         showCancelButton: 1,
                                         cancelButtonText: "{{__('close')}}"
                                     }).then((r) => window.location.href = res.redirectUrl);
+                                } else {
+                                    Swal.fire({
+                                        title: "{{__('error')}}",
+                                        text: res.message ? res.message : "{{__('form_has_errors')}}",
+                                        icon: "error",
+                                        showConfirmButton: 0,
+                                        showCancelButton: 1,
+                                        cancelButtonText: "{{__('close')}}",
+                                    })
+                                }
+                            }
+                        })
+                    }
+                });
+            })
+            $(document).on("click", ".togglePaymentStatusBtn", function () {
+                let url = $(this).data("url"),
+                    status = $(this).data("status"),
+                    statusText = status === 'PAID' ? 'Ödendi' : 'Ödenmedi';
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: "{{__('warning')}}",
+                    text: 'Fatura durumunu "' + statusText + '" olarak değiştirmek istediğinize emin misiniz?',
+                    showConfirmButton: 1,
+                    showCancelButton: 1,
+                    cancelButtonText: "{{__('close')}}",
+                    confirmButtonText: "{{__('yes')}}",
+                }).then((result) => {
+                    if (result.isConfirmed === true) {
+                        $.ajax({
+                            type: "POST",
+                            url: url,
+                            dataType: "json",
+                            data: {
+                                _token: "{{csrf_token()}}",
+                                status: status
+                            },
+                            complete: function (data, status) {
+                                res = data.responseJSON;
+                                if (res && res.success === true) {
+                                    Swal.fire({
+                                        title: "{{__('success')}}",
+                                        text: res.message,
+                                        icon: "success",
+                                        showConfirmButton: 0,
+                                        showCancelButton: 1,
+                                        cancelButtonText: "{{__('close')}}"
+                                    }).then((r) => window.location.reload());
                                 } else {
                                     Swal.fire({
                                         title: "{{__('error')}}",

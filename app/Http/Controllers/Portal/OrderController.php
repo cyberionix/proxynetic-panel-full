@@ -80,9 +80,10 @@ class OrderController extends Controller
 
             $data[] = [
                 "<span data-id='" . $item->id . "' class='badge badge-sm badge-light-primary'>#" . $item->id . "</span>",
-                $item->product_data["name"].' '.$note_html,
+                '<div class="text-gray-800 fw-bold">' . ($item->product_data["name"] ?? '-') . ' ' . $note_html . '</div>' . (!empty($item->product_data["category"]["name"]) ? '<span class="text-muted fw-semibold d-block fs-7">' . $item->product_data["category"]["name"] . '</span>' : ''),
                 showBalance($item->getTotalAmount(), true),
                 $item->end_date?->format(defaultDateFormat()),
+                $item->drawDeliveryStatus(),
                 $item->drawStatus(),
                 "<a href='" . route("portal.orders.show", ["order" => $item->id]) . "' class='btn btn-light-primary btn-sm'>" . __("view") . "</a>"
             ];
@@ -237,6 +238,75 @@ class OrderController extends Controller
         } catch (\Exception $e) {
             DB::rollback();
             return $this->errorResponse(__("error_response"), ["error" => $e->getMessage()]);
+        }
+    }
+
+    public function addPProxyQuotaPost(Request $request, Order $order)
+    {
+        if ($order->user_id !== Auth::id())
+            return redirect(route('portal.dashboard'));
+        DB::beginTransaction();
+        try {
+            $productAttrs = $order->product->findAttrsByServiceType("pproxy_quota");
+            $selectedQuota = collect($productAttrs["options"])->where("value", $request->quota)->first();
+            if (!$selectedQuota || !isset($selectedQuota["label"]) || !isset($selectedQuota["value"]) || !isset($selectedQuota["price"])) return $this->errorResponse(__("quota_not_found") . " " . __("refresh_the_page_and_try_again"));
+
+            $totalPriceWithVat = $selectedQuota["price"];
+            $totalVat = 0;
+            if ($order->product->vat_percent > 0) {
+                $totalPrice = $totalPriceWithVat / (1 + ($order->product->vat_percent / 100));
+                $totalVat = $totalPriceWithVat - $totalPrice;
+            } else {
+                $totalPrice = $totalPriceWithVat;
+            }
+
+            $invoice = Invoice::create([
+                "invoice_number" => Invoice::generateInvoiceNumber(),
+                "invoice_date" => Carbon::now(),
+                "due_date" => Carbon::now()->addWeek(),
+                "status" => "PENDING",
+                "total_price" => $totalPrice,
+                "total_vat" => $totalVat,
+                "total_price_with_vat" => $totalPriceWithVat,
+                "user_id" => Auth::id(),
+            ]);
+
+            $additionalServices = [
+                [
+                    "label" => $selectedQuota["label"],
+                    "value" => $selectedQuota["value"],
+                    "price" => $totalPriceWithVat,
+                    "price_without_vat" => $totalPrice
+                ]
+            ];
+            $orderDetail = OrderDetail::create([
+                "order_id" => $order->id,
+                "is_active" => 0,
+                "additional_services" => $additionalServices,
+            ]);
+
+            InvoiceItem::create([
+                "type" => "PPROXY_ADDITIONAL_QUOTA",
+                "name" => $selectedQuota["label"],
+                "total_price" => $totalPrice,
+                "vat_percent" => $order->product->vat_percent,
+                "total_price_with_vat" => $totalPriceWithVat,
+                "order_id" => $order->id,
+                "order_detail_id" => $orderDetail->id,
+                "invoice_id" => $invoice->id
+            ]);
+
+            DB::commit();
+            return $this->successResponse(__("created_response", ["name" => __("invoice")]) . " " . __("redirecting"), ["redirectUrl" => route("portal.invoices.show", ["invoice" => $invoice->id])]);
+        } catch (\Exception $e) {
+            DB::rollback();
+            \App\Library\Logger::error('PPROXY_ADD_QUOTA_FAIL', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            return $this->errorResponse($e->getMessage());
         }
     }
 

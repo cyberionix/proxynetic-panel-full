@@ -20,8 +20,9 @@ class DashboardController extends Controller
     public function index()
     {
 
-        $orders = Order::whereUserId(Auth::id())->whereStatus("ACTIVE")->orderByDesc("id")->limit(4)->get();
-        return view('portal.pages.dashboard.index', compact("orders"));
+        $orders = Order::with('product')->whereUserId(Auth::id())->orderByDesc("id")->limit(5)->get();
+        $invoices = Invoice::whereUserId(Auth::id())->orderByDesc("id")->limit(5)->get();
+        return view('portal.pages.dashboard.index', compact("orders", "invoices"));
     }
 
     public function getData()

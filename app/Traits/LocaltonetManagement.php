@@ -358,8 +358,21 @@ trait LocaltonetManagement
             }
             $proxy['result']['airplaneMode'] = @$airplaneMode['result'];
 
-            return ! isset($proxy['result']) || @$proxy['result']['id'] == 0 ? [] : $proxy;
+            if (! isset($proxy['result']) || @$proxy['result']['id'] == 0) {
+                return [];
+            }
+
+            if (empty($proxy['result']['serverPort'])) {
+                return null;
+            }
+
+            return $proxy;
         });
+
+        if ($localtonet_proxy_data === null) {
+            Cache::forget('LOCALTONET_PR_DATA_'.$tunnelId);
+            return false;
+        }
 
         return $localtonet_proxy_data;
     }
@@ -826,6 +839,10 @@ trait LocaltonetManagement
         $this->delivery_status = "DELIVERED";
         $this->status = "ACTIVE";
         $this->save();
+
+        if ($proxyId) {
+            Cache::forget('LOCALTONET_PR_DATA_' . $proxyId);
+        }
 
         event(new LocaltonetProxyCreated(
             $this,
@@ -1346,7 +1363,7 @@ trait LocaltonetManagement
     {
         $this->status = 'ACTIVE';
         $this->delivery_status = 'QUEUED';
-        $this->save();
+        $this->saveQuietly();
 
         $orderId = $this->id;
         $dispatchBg = static function () use ($orderId): void {

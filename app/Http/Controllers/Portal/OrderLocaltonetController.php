@@ -158,6 +158,38 @@ class OrderLocaltonetController extends Controller
                     "traffic" => $traffic,
                     "viewUrl" => route("portal.orders.show", ["order" => $order->id])
                 ];
+            } elseif ($order->isPProxyDelivery()) {
+                $pi = $order->product_info ?? [];
+                $ppUser = $pi['pproxy_username'] ?? '';
+                $ppPass = $pi['pproxy_password'] ?? '';
+                $ppQuota = $pi['pproxy_quota_gb'] ?? null;
+
+                $productDomain = $order->product?->delivery_items['pproxy_server_domain'] ?? null;
+                if ($productDomain && trim($productDomain) !== '') {
+                    $ppDomain = trim($productDomain);
+                } else {
+                    $ppSettings = \App\Models\PProxySettings::first();
+                    $ppDomain = ($ppSettings && $ppSettings->server_domain) ? $ppSettings->server_domain : 'tr.saglamproxy.com';
+                }
+
+                $ipPortStr = $ppDomain . ':8080:' . $ppUser . ':' . $ppPass;
+                $traffic = '-';
+                if ($ppQuota && $ppQuota > 0) {
+                    $traffic = '0 / ' . number_format((float)$ppQuota, 1) . ' GB';
+                } else {
+                    $traffic = __('unlimited');
+                }
+
+                $data = [
+                    "deliveryType" => "PPROXY",
+                    "orderId" => $order->id,
+                    "ipPort" => $ipPortStr,
+                    "isp_image" => $order?->product?->isp_image ? asset($order->product->isp_image) : null,
+                    "ip" => "-",
+                    "drawStatus" => $order->status == "ACTIVE" ? "<span class='badge badge-success'>" . __("active") . "</span>" : "<span class='badge badge-danger'>" . __("passive") . "</span>",
+                    "traffic" => $traffic,
+                    "viewUrl" => route("portal.orders.show", ["order" => $order->id])
+                ];
             } elseif ($order->isThreeProxyDelivery()) {
                 $tpList = $order->getThreeProxyDisplayList();
                 $lines = [];

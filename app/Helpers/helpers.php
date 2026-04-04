@@ -231,6 +231,25 @@ if (!function_exists('getQuotaForAttrs')) {
     }
 }
 
+if (!function_exists('getPProxyQuotaForAttrs')) {
+    function getPProxyQuotaForAttrs()
+    {
+        return [
+            "type" => "select",
+            "service_type" => "pproxy_quota",
+            "name" => "pproxy_quota",
+            "attrs" => "data-hide-search=true",
+            "options" => [
+                [
+                    "label" => "1 GB",
+                    "value" => "1",
+                    "price" => 0.00
+                ]
+            ],
+        ];
+    }
+}
+
 if (!function_exists('getQuotaDurationForAttrs')) {
     function getQuotaDurationForAttrs()
     {

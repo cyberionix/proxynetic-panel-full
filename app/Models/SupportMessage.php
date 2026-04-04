@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\AdminNotificationService;
+use App\Services\SupportAutoReplyService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,9 @@ class SupportMessage extends Model
     use HasFactory;
 
     protected $guarded = [];
+    protected $casts = [
+        'is_auto_reply' => 'boolean',
+    ];
     protected static function boot()
     {
         parent::boot();
@@ -24,12 +28,19 @@ class SupportMessage extends Model
 
         static::created(function ($model) {
             try {
+                if ($model->is_auto_reply) {
+                    return;
+                }
+
                 if ($model->admin_id) {
                     $model->support->user->notify(new \App\Notifications\SupportAnsweredNotification($model->support));
                 } else {
-                    $isFirstMessage = SupportMessage::whereSupportId($model->support_id)->count() == 1;
+                    $isFirstMessage = SupportMessage::whereSupportId($model->support_id)
+                        ->where('is_auto_reply', false)
+                        ->count() == 1;
                     if (!$isFirstMessage) {
                         AdminNotificationService::supportMessageCreated($model->support);
+                        SupportAutoReplyService::handleEvent('CUSTOMER_REPLIED', $model->support);
                     }
                 }
             } catch (\Throwable $e) {

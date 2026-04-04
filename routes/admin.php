@@ -15,15 +15,19 @@ use App\Http\Controllers\Admin\EmailLogController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ProductCategoryController;
+use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SmsLogController;
 use App\Http\Controllers\Admin\SupportController;
+use App\Http\Controllers\Admin\SupportAutoReplyController;
+use App\Http\Controllers\Admin\SupportTemplateController;
 use App\Http\Controllers\Admin\SystemController;
 use App\Http\Controllers\Admin\ThreeProxyServerController;
 use App\Http\Controllers\Admin\ThreeProxyPoolController;
 use App\Http\Controllers\Admin\ThreeProxyLogController;
 use App\Http\Controllers\Admin\LocaltonetV4SettingsController;
+use App\Http\Controllers\Admin\PProxyController;
 use App\Http\Controllers\Admin\LocaltonetRotatingPoolController;
 use App\Http\Controllers\Admin\TokenPoolController;
 use App\Http\Controllers\Admin\IpPoolController;
@@ -74,6 +78,13 @@ dd($data->is_proxy || $data->is_vpn);
 
         Route::post('/log-out', [AuthController::class, 'logOutPost'])->name('auth.logOutPost');
         Route::post('/user-account-login/{user}', [AuthController::class, 'userAccountLogin'])->name('auth.userAccountLogin');
+
+        Route::group(['prefix' => 'profile', 'as' => 'profile.'], function () {
+            Route::get('/', [ProfileController::class, 'index'])->name('index');
+            Route::post('/update-profile', [ProfileController::class, 'updateProfile'])->name('updateProfile');
+            Route::post('/update-password', [ProfileController::class, 'updatePassword'])->name('updatePassword');
+            Route::post('/update-signature', [ProfileController::class, 'updateSignature'])->name('updateSignature');
+        });
 
         Route::get('/', [DashboardController::class, "index"])->name("dashboard_");
         Route::get('/dashboard', [DashboardController::class, "index"])->name("dashboard");
@@ -189,6 +200,7 @@ dd($data->is_proxy || $data->is_vpn);
             Route::post('/update/{invoice}', [InvoiceController::class, "update"])->name("update");
             Route::post('/delete/{invoice}', [InvoiceController::class, "delete"])->name("delete");
             Route::post('/formalize/{invoice}', [InvoiceController::class, "formalize"])->name("formalize");
+            Route::post('/toggle-payment-status/{invoice}', [InvoiceController::class, "togglePaymentStatus"])->name("togglePaymentStatus");
             Route::get('/pdf/{invoice}', [InvoiceController::class, 'showPdf'])->name('showPdf');
         });
         Route::group(['prefix' => 'coupons', 'as' => 'couponCodes.'], function () {
@@ -290,9 +302,29 @@ dd($data->is_proxy || $data->is_vpn);
         Route::group(['prefix' => 'supports', 'as' => 'supports.'], function () {
             Route::get('/', [SupportController::class, 'index'])->name('index');
             Route::post('/ajax', [SupportController::class, 'ajax'])->name('ajax');
+            Route::post('/bulk-action', [SupportController::class, 'bulkAction'])->name('bulkAction');
+
+            Route::group(['prefix' => 'templates', 'as' => 'templates.'], function () {
+                Route::get('/', [SupportTemplateController::class, 'index'])->name('index');
+                Route::post('/store', [SupportTemplateController::class, 'store'])->name('store');
+                Route::post('/update/{template}', [SupportTemplateController::class, 'update'])->name('update');
+                Route::post('/delete/{template}', [SupportTemplateController::class, 'delete'])->name('delete');
+                Route::get('/get-active', [SupportTemplateController::class, 'getActive'])->name('getActive');
+            });
+
+            Route::group(['prefix' => 'auto-replies', 'as' => 'autoReplies.'], function () {
+                Route::get('/', [SupportAutoReplyController::class, 'index'])->name('index');
+                Route::post('/store', [SupportAutoReplyController::class, 'store'])->name('store');
+                Route::post('/update/{autoReply}', [SupportAutoReplyController::class, 'update'])->name('update');
+                Route::post('/delete/{autoReply}', [SupportAutoReplyController::class, 'delete'])->name('delete');
+                Route::post('/toggle-status/{autoReply}', [SupportAutoReplyController::class, 'toggleStatus'])->name('toggleStatus');
+            });
+
             Route::get('/{support}', [SupportController::class, 'show'])->name('show');
             Route::get('/find/{support}', [SupportController::class, 'find'])->name('find');
             Route::post('/save-message/{support}', [SupportController::class, 'saveMessage'])->name("saveMessage");
+            Route::post('/typing/{support}', [SupportController::class, 'typing'])->name('typing');
+            Route::get('/poll/{support}', [SupportController::class, 'pollMessages'])->name('poll');
             Route::post('/update/status/{support}', [SupportController::class, 'updateStatus'])->name("updateStatus");
             Route::post('/update/department/{support}', [SupportController::class, 'updateDepartment'])->name("updateDepartment");
             Route::post('/lock/{support}', [SupportController::class, 'lock'])->name("lock");
@@ -345,6 +377,12 @@ dd($data->is_proxy || $data->is_vpn);
 
         Route::get('/localtonet-v4/settings', [LocaltonetV4SettingsController::class, 'edit'])->name('localtonetV4.settings');
         Route::post('/localtonet-v4/settings', [LocaltonetV4SettingsController::class, 'update'])->name('localtonetV4.updateSettings');
+
+        Route::group(['prefix' => 'pproxy', 'as' => 'pproxy.'], function () {
+            Route::get('/settings', [PProxyController::class, 'settings'])->name('settings');
+            Route::post('/settings', [PProxyController::class, 'saveSettings'])->name('saveSettings');
+            Route::post('/test-connection', [PProxyController::class, 'testConnection'])->name('testConnection');
+        });
 
         Route::get('/three-proxy-logs', [ThreeProxyLogController::class, 'index'])->name('threeProxyLogs.index');
         Route::get('/three-proxy-logs/export', [ThreeProxyLogController::class, 'export'])->name('threeProxyLogs.export');

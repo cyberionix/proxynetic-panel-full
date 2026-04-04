@@ -42,27 +42,43 @@
 @section("js")
     <script>
         $(document).ready(function () {
+            var lastUpdatedAt = 0;
+            var isFirstLoad = true;
+
+            function playNotificationSound() {
+                try {
+                    var ac = new (window.AudioContext || window.webkitAudioContext)();
+                    var notes = [
+                        { freq: 1175, start: 0, dur: 0.08 },
+                        { freq: 1397, start: 0.1, dur: 0.08 },
+                        { freq: 1568, start: 0.2, dur: 0.12 }
+                    ];
+                    var t = ac.currentTime;
+                    notes.forEach(function(n) {
+                        var osc = ac.createOscillator();
+                        var gain = ac.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.value = n.freq;
+                        gain.gain.setValueAtTime(0, t + n.start);
+                        gain.gain.linearRampToValueAtTime(0.3, t + n.start + 0.01);
+                        gain.gain.exponentialRampToValueAtTime(0.001, t + n.start + n.dur + 0.05);
+                        osc.connect(gain);
+                        gain.connect(ac.destination);
+                        osc.start(t + n.start);
+                        osc.stop(t + n.start + n.dur + 0.05);
+                    });
+                } catch(e) {}
+            }
+
             var t = $("#dataTable").DataTable({
                 order: [],
                 columnDefs: [
-                    {
-                        orderable: !0, targets: 0
-                    },
-                    {
-                        orderable: !0, targets: 1
-                    },
-                    {
-                        orderable: !0, targets: 2
-                    },
-                    {
-                        orderable: !0, targets: 3
-                    },
-                    {
-                        orderable: !0, targets: 4
-                    },
-                    {
-                        orderable: !1, targets: 5
-                    },
+                    { orderable: !0, targets: 0 },
+                    { orderable: !0, targets: 1 },
+                    { orderable: !0, targets: 2 },
+                    { orderable: !0, targets: 3 },
+                    { orderable: !0, targets: 4 },
+                    { orderable: !1, targets: 5 },
                 ],
                 "processing": true,
                 "serverSide": true,
@@ -72,10 +88,27 @@
                     "data": function (d) {
                         d._token = "{{ csrf_token() }}"
                     },
+                    "dataSrc": function (json) {
+                        var newUpdatedAt = json.latestUpdatedAt || 0;
+
+                        if (!isFirstLoad && newUpdatedAt > lastUpdatedAt) {
+                            playNotificationSound();
+                            toastr.info("Destek talebiniz güncellendi!", "Bildirim");
+                        }
+
+                        lastUpdatedAt = newUpdatedAt;
+                        isFirstLoad = false;
+
+                        return json.data;
+                    }
                 },
             }).on("draw", function () {
                 KTMenu.createInstances();
             });
+
+            setInterval(function () {
+                t.ajax.reload(null, false);
+            }, 10000);
 
             $(document).on("submit", "#primarySupportForm", function (e) {
                 e.preventDefault()

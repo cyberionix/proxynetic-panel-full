@@ -1,6 +1,28 @@
 @extends("admin.template")
 @section("title", __("support_ticket"))
-@section("css") @endsection
+@section("css")
+    <style>
+        .typing-dots {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .typing-dots span {
+            width: 7px;
+            height: 7px;
+            background: #ffc700;
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite ease-in-out both;
+        }
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0s; }
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+@endsection
 @section("breadcrumb")
     <x-admin.bread-crumb :data="[__('support_tickets') => route('admin.supports.index'), $support->subject]"/>
 @endsection
@@ -33,12 +55,10 @@
                     </div>
                     <div class="separator mb-4"></div>
                     <div class="mb-5">
-                        <!--begin::Label-->
                         <label class="form-label text-gray-800 fw-bold fs-6">Hazır Mesaj Şablonu</label>
-                        <!--end::Label-->
-                        <!--begin::Select-->
-                        <x-portal.form-elements.select/>
-                        <!--end::Select-->
+                        <select class="form-select" id="templateSelect">
+                            <option value="">-- Şablon Seçin --</option>
+                        </select>
                     </div>
                     <form id="sendMessageForm"
                           action="{{route("admin.supports.saveMessage", ["support" => $support->id])}}" class="mb-5">
@@ -58,6 +78,14 @@
             </div>
             <div class="card">
                 <div class="card-body">
+                    <div id="typingIndicator" class="d-none mb-4">
+                        <div class="d-flex align-items-center bg-light-warning rounded p-3">
+                            <div class="typing-dots me-3">
+                                <span></span><span></span><span></span>
+                            </div>
+                            <span class="text-warning fw-semibold fs-7" id="typingText">Müşteri yazıyor...</span>
+                        </div>
+                    </div>
                     <!--begin::Messages-->
                     <div>
                         <div data-np-message="items"></div>
@@ -116,20 +144,66 @@
             <div class="card">
                 <div class="card-body">
                     <div>
-                        <!--begin::Label-->
-                        <label class="form-label text-gray-800 fw-bold fs-6">{{__("related_service")}}</label>
-                        <!--end::Label-->
-                        <!--begin::Select-->
+                        <label class="form-label text-gray-800 fw-bold fs-6 mb-3">{{__("related_service")}}</label>
                         @if($support->order)
-                            <div>
-                                <a class="text-primary fw-bold fs-4"
-                                   target="_blank"
-                                   href="{{route("admin.orders.show", ["order" => $support->order->id])}}">#{{$support->order->id}}</a>
+                            <div class="border border-dashed border-gray-300 rounded p-4">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="symbol symbol-40px me-3">
+                                        <div class="symbol-label bg-light-primary">
+                                            <i class="fa fa-box text-primary fs-5"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <span class="text-gray-800 fw-bold fs-6 d-block">{{ $support->order->product_data['name'] ?? '-' }}</span>
+                                        @if(!empty($support->order->product_data['category']['name']))
+                                            <span class="text-muted fw-semibold fs-7">{{ $support->order->product_data['category']['name'] }}</span>
+                                        @endif
+                                    </div>
+                                    <a class="btn btn-icon btn-light-primary btn-sm"
+                                       target="_blank"
+                                       href="{{route("admin.orders.show", ["order" => $support->order->id])}}"
+                                       title="Siparişi Görüntüle">
+                                        <i class="fa fa-external-link-alt fs-7"></i>
+                                    </a>
+                                </div>
+                                <div class="separator separator-dashed mb-3"></div>
+                                <table class="table table-sm table-borderless mb-0">
+                                    <tbody>
+                                        <tr>
+                                            <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0" style="width:90px">Sipariş No</td>
+                                            <td class="text-gray-800 fw-bold fs-7 py-1"><span class="badge badge-light-primary badge-sm">#{{ $support->order->id }}</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0">Durum</td>
+                                            <td class="py-1">{!! $support->order->drawStatus('badge-sm') !!}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0">Teslimat</td>
+                                            <td class="py-1">{!! $support->order->drawDeliveryStatus('badge-sm') !!}</td>
+                                        </tr>
+                                        @if($support->order->end_date)
+                                        <tr>
+                                            <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0">Bitiş</td>
+                                            <td class="text-gray-800 fs-7 py-1">
+                                                <i class="fa fa-calendar-alt text-muted fs-8 me-1"></i>{{ $support->order->end_date->format('d.m.Y') }}
+                                            </td>
+                                        </tr>
+                                        @endif
+                                        @if($support->order->getTotalAmount())
+                                        <tr>
+                                            <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0">Tutar</td>
+                                            <td class="text-gray-800 fw-bold fs-7 py-1">{{ number_format($support->order->getTotalAmount(), 2, ',', '.') }} ₺</td>
+                                        </tr>
+                                        @endif
+                                    </tbody>
+                                </table>
                             </div>
                         @else
-                            -
+                            <div class="border border-dashed border-gray-300 rounded p-4 text-center">
+                                <i class="fa fa-inbox text-gray-300 fs-2x d-block mb-2"></i>
+                                <span class="text-gray-400 fw-semibold fs-7">İlişkili sipariş yok</span>
+                            </div>
                         @endif
-                        <!--end::Select-->
                     </div>
                     <div class="separator separator-dashed my-3"></div>
                     <div>
@@ -174,65 +248,200 @@
     <script src="{{assetAdmin("plugins/custom/tinymce/tinymce.bundle.js")}}"></script>
     <script>
         $(document).ready(function () {
+            @php
+                $adminSignature = auth()->guard('admin')->user()->signature ?? '';
+                if ($adminSignature) {
+                    $adminSignature = str_replace('{admin_name}', auth()->guard('admin')->user()->full_name, $adminSignature);
+                    $adminSignature = str_replace('{admin_email}', auth()->guard('admin')->user()->email, $adminSignature);
+                    $adminSignature = str_replace('{admin_phone}', auth()->guard('admin')->user()->phone ?? '', $adminSignature);
+                } else {
+                    $adminSignature = '<p>Saygılarımla<br />Sağlam Proxy Hizmetleri<br />Firma Yetkilisi<br />Whatsapp Destek Hattı : 0530 132 02 95</p>';
+                }
+                $greeting = '<p>Merhaba ' . e($support->user->full_name) . ',</p>';
+                $editorContent = $greeting . '<p><br></p>' . $adminSignature;
+            @endphp
+
             tinymce.init({
                 selector: ".editorInput",
                 height: "300",
                 plugins: [
                     "advlist autolink lists link charmap print preview anchor",
                     "searchreplace visualblocks code fullscreen",
-                    "insertdatetime media table contextmenu paste imagetools wordcount textcolor colorpicker textpattern"
+                    "insertdatetime media table paste wordcount textpattern"
                 ],
-                toolbar: "styleselect fontselect fontsizeselect | bold italic underline forecolor backcolor colorpicker | link | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat code",
+                toolbar: "styleselect fontselect fontsizeselect | bold italic underline forecolor backcolor | link | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat code",
+                init_instance_callback: function (editor) {
+                    editor.setContent({!! json_encode($editorContent) !!});
+                    var body = editor.getBody();
+                    var secondP = body.children[1];
+                    if (secondP) {
+                        editor.selection.setCursorLocation(secondP, 0);
+                    }
+                    editor.focus();
+
+                    let adminTypingTimer = null;
+                    editor.on('keyup', function () {
+                        clearTimeout(adminTypingTimer);
+                        $.ajax({
+                            type: 'POST',
+                            url: "{{ route("admin.supports.typing", ["support" => $support->id]) }}",
+                            data: { _token: '{{csrf_token()}}' },
+                        });
+                        adminTypingTimer = setTimeout(() => {}, 3000);
+                    });
+                }
             });
-            $(".editorInput[name='message']").html("<p>Saygılarımla<br />Sağlam Proxy Hizmetleri<br />Firma Yetkilisi<br />Whatsapp Destek Hattı : 0530 132 02 95</p>")
+
+            let templateData = [];
+            $.ajax({
+                type: 'GET',
+                url: '{{ route("admin.supports.templates.getActive") }}',
+                dataType: 'json',
+                complete: function (data) {
+                    let res = data.responseJSON;
+                    if (res && res.success === true && res.templates) {
+                        templateData = res.templates;
+                        res.templates.forEach(function (t) {
+                            $("#templateSelect").append('<option value="' + t.id + '">' + t.title + '</option>');
+                        });
+                    }
+                }
+            });
+
+            $(document).on("change", "#templateSelect", function () {
+                let selectedId = $(this).val();
+                if (!selectedId) return;
+                let template = templateData.find(t => t.id == selectedId);
+                if (template) {
+                    let content = template.content;
+                    content = content.replace(/\{user_name\}/g, "{{ $support->user->full_name }}");
+                    content = content.replace(/\{ticket_id\}/g, "{{ $support->id }}");
+                    content = content.replace(/\{ticket_subject\}/g, "{{ $support->subject }}");
+
+                    if (tinymce.activeEditor) {
+                        let signature = {!! json_encode($adminSignature) !!};
+                        let greeting = {!! json_encode('<p>Merhaba ' . e($support->user->full_name) . ',</p>') !!};
+                        tinymce.activeEditor.setContent(greeting + "<p><br></p>" + content + "<p><br></p>" + signature);
+                        var body = tinymce.activeEditor.getBody();
+                        var secondP = body.children[1];
+                        if (secondP) {
+                            tinymce.activeEditor.selection.setCursorLocation(secondP, 0);
+                        }
+                        tinymce.activeEditor.focus();
+                    } else {
+                        $(".editorInput[name='message']").val(content);
+                    }
+                }
+            });
         })
     </script>
 
     <script>
         $(document).ready(function () {
             let userFullName = "{{$support->user->full_name}}",
-                itemTemplate = $("[data-np-message='item-template']");
+                itemTemplate = $("[data-np-message='item-template']"),
+                lastKnownMessageId = 0;
+
+            function playNotificationSound() {
+                try {
+                    let ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    let t = ctx.currentTime;
+                    let notes = [
+                        { freq: 1175, start: 0, dur: 0.1 },
+                        { freq: 1568, start: 0.15, dur: 0.1 },
+                        { freq: 1397, start: 0.3, dur: 0.15 },
+                    ];
+                    notes.forEach(n => {
+                        let osc = ctx.createOscillator();
+                        let gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(n.freq, t + n.start);
+                        gain.gain.setValueAtTime(0, t + n.start);
+                        gain.gain.linearRampToValueAtTime(0.25, t + n.start + 0.01);
+                        gain.gain.exponentialRampToValueAtTime(0.001, t + n.start + n.dur);
+                        osc.start(t + n.start);
+                        osc.stop(t + n.start + n.dur + 0.05);
+                    });
+                } catch(e) {}
+            }
+
+            const renderMessages = (messages) => {
+                $("[data-np-message='items']").html("");
+                messages.map((item) => {
+                    let isAdmin = !!item.admin_id,
+                        isAutoReply = !!item.is_auto_reply,
+                        createdAt = moment(item.created_at).format(defaultDateTimeFormat());
+                    if (isAutoReply) {
+                        itemTemplate.find("[data-np-message='name']").text("Otomatik Mesaj");
+                        itemTemplate.find("[data-np-message='badge']").removeClass("badge-primary badge-success").addClass("badge-warning").text("Otomatik");
+                        itemTemplate.find("[data-np-message='date']").removeClass("badge-primary badge-success").addClass("badge-warning").text(createdAt);
+                        itemTemplate.find("[data-np-message='user-ip']").addClass("d-none");
+                    } else if (isAdmin) {
+                        itemTemplate.find("[data-np-message='name']").text(item.admin.full_name);
+                        itemTemplate.find("[data-np-message='badge']").removeClass("badge-primary badge-warning").addClass("badge-success").text("{{__("staff")}}");
+                        itemTemplate.find("[data-np-message='date']").removeClass("badge-primary badge-warning").addClass("badge-success").text(createdAt);
+                        itemTemplate.find("[data-np-message='user-ip']").addClass("d-none");
+                    } else {
+                        itemTemplate.find("[data-np-message='name']").text(userFullName);
+                        itemTemplate.find("[data-np-message='badge']").removeClass("badge-success badge-warning").addClass("badge-primary").text("Müşteri");
+                        itemTemplate.find("[data-np-message='date']").removeClass("badge-success badge-warning").addClass("badge-primary").text(createdAt);
+                        itemTemplate.find("[data-np-message='user-ip']").text("IP:  " + item?.user_ip);
+                        itemTemplate.find("[data-np-message='user-ip']").removeClass("d-none");
+                    }
+                    let msgHtml = item.message;
+                    if (item.file) {
+                        msgHtml += '<div class="mt-3"><a href="/' + item.file + '" target="_blank"><img src="/' + item.file + '" class="rounded border" style="max-width:300px;max-height:200px;cursor:pointer" /></a></div>';
+                    }
+                    itemTemplate.find("[data-np-message='message']").html(msgHtml)
+                    $("[data-np-message='items']").append($("[data-np-message='item-template']").html());
+                });
+            };
 
             const getSupport = () => {
                 $.ajax({
                     type: 'GET',
                     url: "{{ route("admin.supports.find", ["support" => $support->id]) }}",
-                    data: {
-                        _token: '{{csrf_token()}}'
-                    },
-                    beforeSend: function () {
-                        //
-                    },
-                    complete: function (data, status) {
-                        res = data.responseJSON;
-                        if (res.success === true) {
-                            $("[data-np-message='items']").html("");
-                            res.data.messages.map((item) => {
-                                let isAdmin = !!item.admin_id,
-                                    createdAt = moment(item.created_at).format(defaultDateTimeFormat());
-                                itemTemplate.find("[data-np-message='name']").text(isAdmin ? item.admin.full_name : userFullName)
-                                if (isAdmin) {
-                                    itemTemplate.find("[data-np-message='badge']").removeClass("badge-primary").addClass("badge-success").text("{{__("staff")}}");
-                                    itemTemplate.find("[data-np-message='date']").removeClass("badge-primary").addClass("badge-success").text(createdAt);
-                                    itemTemplate.find("[data-np-message='user-ip']").addClass("d-none")
-
-                                } else {
-                                    itemTemplate.find("[data-np-message='badge']").removeClass("badge-success").addClass("badge-primary").text("Müşteri");
-                                    itemTemplate.find("[data-np-message='date']").removeClass("badge-success").addClass("badge-primary").text(createdAt);
-                                    itemTemplate.find("[data-np-message='user-ip']").text("IP:  "  + item?.user_ip);
-                                    itemTemplate.find("[data-np-message='user-ip']").removeClass("d-none")
-                                }
-                                itemTemplate.find("[data-np-message='message']").html(item.message)
-
-                                $("[data-np-message='items']").append($("[data-np-message='item-template']").html());
-                            })
-                        } else {
-                            console.log("Mesajlar çekilirken bir sorun oluştu.")
+                    data: { _token: '{{csrf_token()}}' },
+                    complete: function (data) {
+                        let res = data.responseJSON;
+                        if (res && res.success === true) {
+                            renderMessages(res.data.messages);
+                            if (res.data.messages.length > 0) {
+                                lastKnownMessageId = res.data.messages[0].id;
+                            }
                         }
                     }
                 })
             }
             getSupport();
+
+            const pollSupport = () => {
+                $.ajax({
+                    type: 'GET',
+                    url: "{{ route("admin.supports.poll", ["support" => $support->id]) }}",
+                    dataType: 'json',
+                    complete: function (data) {
+                        let res = data.responseJSON;
+                        if (res && res.success === true) {
+                            if (res.last_message_id > lastKnownMessageId) {
+                                lastKnownMessageId = res.last_message_id;
+                                renderMessages(res.data.messages);
+                                playNotificationSound();
+                                toastr.info("Yeni mesaj alındı!", "Bildirim");
+                            }
+                            if (res.is_user_typing) {
+                                $("#typingIndicator").removeClass("d-none");
+                                $("#typingText").text(res.typing_user_name + " yazıyor...");
+                            } else {
+                                $("#typingIndicator").addClass("d-none");
+                            }
+                        }
+                    }
+                });
+            };
+            setInterval(pollSupport, 3000);
 
             $(document).on("submit", "#sendMessageForm", function (e) {
                 e.preventDefault()
@@ -250,12 +459,11 @@
                     beforeSend: function () {
                         propSubmitButton(btn, 1)
                     },
-                    complete: function (data, status) {
-                        res = data.responseJSON;
+                    complete: function (data) {
+                        let res = data.responseJSON;
                         if (res && res.success === true) {
                             getSupport()
                             form.find("textarea").val("")
-
                             toastr.success(res?.message ?? "", "{{__('success')}}");
                         } else {
                             Swal.fire({

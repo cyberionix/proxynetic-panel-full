@@ -25,9 +25,14 @@ class DeliverLocaltonetSingleOrder extends Command
             return 1;
         }
 
-        if (! in_array($order->delivery_status, ['QUEUED', 'BEING_DELIVERED'], true)) {
+        if (! in_array($order->delivery_status, ['QUEUED', 'BEING_DELIVERED', 'NOT_DELIVERED'], true)) {
             $this->info("Sipariş kuyrukta değil (status: {$order->delivery_status}), atlanıyor.");
             return 0;
+        }
+
+        if ($order->delivery_status === 'NOT_DELIVERED') {
+            $order->forceFill(['status' => 'ACTIVE', 'delivery_status' => 'QUEUED', 'delivery_error' => null])->saveQuietly();
+            Logger::info('DELIVER_SINGLE_ORDER_AUTO_RECOVER', ['order_id' => $orderId]);
         }
 
         Logger::info('ADMIN_DELIVER_SINGLE_ORDER_START', ['order_id' => $orderId]);

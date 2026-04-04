@@ -196,7 +196,12 @@ class UserController extends Controller
         $relations = $request->relations;
 
         $result = [];
-        $data = User::where(DB::raw('CONCAT(first_name, " ", last_name)'), 'LIKE', '%' . $term . '%')->orWhere('id', 'LIKE', '%' . $term . '%');
+        $data = User::where(function ($q) use ($term) {
+            $q->where('first_name', 'LIKE', '%' . $term . '%')
+              ->orWhere('last_name', 'LIKE', '%' . $term . '%')
+              ->orWhere('id', 'LIKE', '%' . $term . '%')
+              ->orWhereRaw("(first_name || ' ' || last_name) LIKE ?", ['%' . $term . '%']);
+        });
         if ($relations) {
             if (!is_array($relations)) $relations = [$relations];
             foreach ($relations as $relation) {

@@ -256,6 +256,14 @@
                                     <span class="menu-title">Localtonetv4</span>
                                 </a>
                             </div>
+                            <div class="menu-item">
+                                <a class="menu-link {{Route::is("admin.pproxy.settings") ? "active" : ""}}" href="{{route("admin.pproxy.settings")}}">
+                                    <span class="menu-bullet">
+                                        <span class="bullet bullet-dot"></span>
+                                    </span>
+                                    <span class="menu-title">PProxy</span>
+                                </a>
+                            </div>
                             <div data-kt-menu-trigger="click" class="menu-item menu-accordion {{Route::is(["admin.products.3proxy.*", "admin.products.3proxyPools.*"]) ? "here show" : ""}}">
                                 <!--begin:Menu link-->
                                 <span class="menu-link">

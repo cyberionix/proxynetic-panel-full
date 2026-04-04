@@ -155,7 +155,7 @@
                         <!--end::Menu separator-->
                         <!--begin::Menu item-->
                         <div class="menu-item px-5">
-                            <a href="#" class="menu-link px-5">{{__("my_profile")}}</a>
+                            <a href="{{ route('admin.profile.index') }}" class="menu-link px-5">{{__("my_profile")}}</a>
                         </div>
                         <!--end::Menu item-->
                         <!--begin::Menu separator-->

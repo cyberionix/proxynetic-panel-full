@@ -33,6 +33,7 @@
                     <th class="min-w-125px">{{__("product")}} / {{__("service")}}</th>
                     <th class="min-w-125px">{{__("amount")}}</th>
                     <th class="min-w-125px">{{__("payment_due_date")}}</th>
+                    <th class="min-w-125px">Teslimat Durumu</th>
                     <th class="min-w-125px">{{__("status")}}</th>
                     <th class="min-w-125px">{{__("action")}}</th>
                 </tr>
@@ -126,6 +127,9 @@
                     },
                     {
                         orderable: !1, targets: 5
+                    },
+                    {
+                        orderable: !1, targets: 6
                     }
                 ],
                 "processing": true,

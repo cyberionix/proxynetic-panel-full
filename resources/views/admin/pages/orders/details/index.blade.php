@@ -514,6 +514,200 @@
                                 @else
                                     <div class="alert alert-info mt-5">Henüz proxy teslim edilmemiş.</div>
                                 @endif
+                            @elseif($order->isPProxyDelivery())
+                                @php
+                                    $ppPi = $order->product_info ?? [];
+                                    $ppUuid = $ppPi['pproxy_uuid'] ?? '';
+                                    $ppUsername = $ppPi['pproxy_username'] ?? '';
+                                    $ppPassword = $ppPi['pproxy_password'] ?? '';
+                                    $ppQuotaGb = $ppPi['pproxy_quota_gb'] ?? '';
+                                    $ppDays = $ppPi['pproxy_days'] ?? 30;
+                                    $ppRaw = $ppPi['pproxy_raw'] ?? [];
+                                    $ppActiveUntil = $ppRaw['active_until'] ?? '';
+                                    $ppCreatedAt = $ppRaw['created_at'] ?? '';
+                                    $ppThreads = $ppRaw['proxy_information']['threads'] ?? 0;
+                                    $ppBpsLimit = $ppRaw['proxy_information']['BpsLimit'] ?? 0;
+
+                                    $ppServerDomain = 'tr.saglamproxy.com';
+                                    $ppServerPort = '8080';
+                                    $ppProduct = $order->product;
+                                    $ppProductDomain = $ppProduct?->delivery_items['pproxy_server_domain'] ?? null;
+                                    if ($ppProductDomain && trim($ppProductDomain) !== '') {
+                                        $ppServerDomain = trim($ppProductDomain);
+                                    } else {
+                                        $ppSettings = \App\Models\PProxySettings::first();
+                                        if ($ppSettings && $ppSettings->server_domain && trim($ppSettings->server_domain) !== '') {
+                                            $ppServerDomain = trim($ppSettings->server_domain);
+                                        }
+                                    }
+
+                                    $ppSubUser = null;
+                                    try {
+                                        $ppSubUser = $order->getPProxySubUserData();
+                                    } catch (\Throwable $e) {}
+
+                                    $ppTrafficUsed = $ppSubUser['traffic_used'] ?? 0;
+                                    $ppBandwidth = $ppSubUser['bandwidth'] ?? 0;
+                                    $ppLiveActiveUntil = $ppSubUser['active_until'] ?? $ppActiveUntil;
+                                    $ppLiveThreads = $ppSubUser['threads'] ?? $ppThreads;
+
+                                    $ppQuotaBytes = $ppQuotaGb ? $ppQuotaGb * 1073741824 : 0;
+                                    $ppTrafficPercent = $ppQuotaBytes > 0 ? min(100, round(($ppTrafficUsed / $ppQuotaBytes) * 100, 1)) : 0;
+
+                                    $ppTrafficUsedFormatted = $ppTrafficUsed >= 1073741824
+                                        ? number_format($ppTrafficUsed / 1073741824, 2) . ' GB'
+                                        : ($ppTrafficUsed >= 1048576
+                                            ? number_format($ppTrafficUsed / 1048576, 2) . ' MB'
+                                            : number_format($ppTrafficUsed / 1024, 2) . ' KB');
+
+                                    $ppBandwidthFormatted = $ppBandwidth >= 1073741824
+                                        ? number_format($ppBandwidth / 1073741824, 2) . ' GB'
+                                        : ($ppBandwidth >= 1048576
+                                            ? number_format($ppBandwidth / 1048576, 2) . ' MB'
+                                            : number_format($ppBandwidth / 1024, 2) . ' KB');
+
+                                    $ppProgressColor = $ppTrafficPercent < 60 ? 'success' : ($ppTrafficPercent < 85 ? 'warning' : 'danger');
+                                @endphp
+
+                                @if($order->delivery_status !== 'DELIVERED')
+                                    <div class="alert alert-warning d-flex align-items-center p-5 mb-5">
+                                        <i class="fa fa-exclamation-triangle fs-2 me-4 text-warning"></i>
+                                        <div>
+                                            <h6 class="mb-0">PProxy henüz teslim edilmemiş.</h6>
+                                            <span class="text-muted fs-7">Teslimat durumu: <strong>{{ $order->delivery_status }}</strong></span>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="mb-5">
+                                        <label class="form-label fw-bold fs-5">PProxy Bağlantı Bilgileri</label>
+                                        <div class="row g-4 mb-4">
+                                            <div class="col-md-3">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-1">
+                                                        <i class="fa fa-server text-primary me-1"></i>Proxy Adresi
+                                                    </span>
+                                                    <code class="fs-6">{{ $ppServerDomain }}</code>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-1">
+                                                        <i class="fa fa-plug text-info me-1"></i>Port
+                                                    </span>
+                                                    <code class="fs-6">{{ $ppServerPort }}</code>
+                                                    <span class="text-muted fs-8 d-block">HTTP: 8080 / SOCKS5: 1080</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-1">
+                                                        <i class="fa fa-user text-success me-1"></i>Kullanıcı Adı
+                                                    </span>
+                                                    <code class="fs-6">{{ $ppUsername ?: '-' }}</code>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-1">
+                                                        <i class="fa fa-key text-warning me-1"></i>Şifre
+                                                    </span>
+                                                    <code class="fs-6">{{ $ppPassword ?: '-' }}</code>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="separator my-5"></div>
+
+                                    <div class="mb-5">
+                                        <label class="form-label fw-bold fs-5">Kullanım & Abonelik Bilgileri</label>
+                                        <div class="row g-4 mb-4">
+                                            <div class="col-md-4">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-2">
+                                                        <i class="fa fa-database text-primary me-1"></i>Trafik Kullanımı
+                                                    </span>
+                                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                                        <span class="fw-bold fs-6">{{ $ppTrafficUsedFormatted }}</span>
+                                                        <span class="text-muted fs-7">/ {{ $ppQuotaGb ? $ppQuotaGb . ' GB' : 'Limitsiz' }}</span>
+                                                    </div>
+                                                    @if($ppQuotaGb)
+                                                    <div class="progress h-8px">
+                                                        <div class="progress-bar bg-{{ $ppProgressColor }}" role="progressbar"
+                                                             style="width: {{ $ppTrafficPercent }}%"
+                                                             aria-valuenow="{{ $ppTrafficPercent }}" aria-valuemin="0" aria-valuemax="100">
+                                                        </div>
+                                                    </div>
+                                                    <span class="text-muted fs-8 mt-1 d-block">%{{ $ppTrafficPercent }} kullanıldı</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-2">
+                                                        <i class="fa fa-exchange-alt text-info me-1"></i>Bant Genişliği
+                                                    </span>
+                                                    <span class="fw-bold fs-6">{{ $ppBandwidthFormatted }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-2">
+                                                        <i class="fa fa-layer-group text-success me-1"></i>Thread
+                                                    </span>
+                                                    <span class="fw-bold fs-6">{{ $ppLiveThreads }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="row g-4">
+                                            <div class="col-md-4">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-2">
+                                                        <i class="fa fa-calendar-alt text-danger me-1"></i>Bitiş Tarihi
+                                                    </span>
+                                                    <span class="fw-bold fs-6">
+                                                        @if($ppLiveActiveUntil)
+                                                            {{ \Carbon\Carbon::parse($ppLiveActiveUntil)->format('d.m.Y H:i') }}
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-2">
+                                                        <i class="fa fa-clock text-warning me-1"></i>Süre (Gün)
+                                                    </span>
+                                                    <span class="fw-bold fs-6">{{ $ppDays }} gün</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="border border-dashed border-gray-300 rounded p-4 h-100">
+                                                    <span class="text-muted fw-semibold d-block fs-8 mb-2">
+                                                        <i class="fa fa-fingerprint text-secondary me-1"></i>UUID
+                                                    </span>
+                                                    <code class="fs-8" style="word-break: break-all">{{ $ppUuid ?: '-' }}</code>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="separator my-5"></div>
+
+                                    <div class="mb-5">
+                                        <label class="form-label fw-bold fs-5 mb-3">Proxy Bağlantı Formatı</label>
+                                        <div class="input-group mb-3">
+                                            <input type="text" class="form-control form-control-solid" id="ppProxyString" readonly
+                                                   value="{{ $ppServerDomain }}:{{ $ppServerPort }}:{{ $ppUsername }}:{{ $ppPassword }}">
+                                            <button class="btn btn-light-primary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('ppProxyString').value).then(()=>toastr.success('Kopyalandı!'))">
+                                                <i class="fa fa-copy"></i>
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">Format: ADRES:PORT:USER:PASS</small>
+                                    </div>
+                                @endif
                             @endif
                         </div>
                         <!--end::Card header-->

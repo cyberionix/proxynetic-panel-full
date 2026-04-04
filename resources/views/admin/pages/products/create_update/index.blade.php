@@ -398,6 +398,9 @@
                                                 <li class="nav-item">
                                                     <a class="nav-link" data-bs-toggle="tab" href="#np_as_tab_threeproxy">3Proxy</a>
                                                 </li>
+                                                <li class="nav-item">
+                                                    <a class="nav-link" data-bs-toggle="tab" href="#np_as_tab_pproxy">PProxy</a>
+                                                </li>
                                             </ul>
                                             <div class="tab-content">
                                             <div class="tab-pane fade show active" id="np_as_tab_localtonet">
@@ -805,6 +808,113 @@
                                             </div>
                                             <!--end::3Proxy tab-->
 
+                                            <!--begin::PProxy tab-->
+                                            <div class="tab-pane fade" id="np_as_tab_pproxy">
+                                                <div class="mb-7">
+                                                    <label class="form-label fw-bold fs-5">PProxy sipariş oluştuktan sonra ek kota seçenekleri</label>
+                                                    <label class="form-check form-check-custom form-check-solid mb-3">
+                                                        <input class="form-check-input h-25px w-25px" type="checkbox"
+                                                               {{ isset($pproxyQuotaAttr) ? "checked" : "" }}
+                                                               name="service_type[pproxy_quota][status]" value="1">
+                                                        <span class="form-check-label fw-semibold">PProxy Ek Kota</span>
+                                                    </label>
+                                                    <div class="row mt-3 g-2" data-np-additional-services="pproxy-quota-area">
+                                                        <div class="col-xl-4">
+                                                            <label class="fs-6 fw-bold text-gray-700">Başlık</label>
+                                                        </div>
+                                                        <div class="col-xl-4">
+                                                            <label class="fs-6 fw-bold text-gray-700">GB</label>
+                                                        </div>
+                                                        <div class="col-xl-4">
+                                                            <label class="fs-6 fw-bold text-gray-700">{{ __("price") }}</label>
+                                                        </div>
+                                                        <div class="col-12 mt-3">
+                                                            <div class="separator"></div>
+                                                        </div>
+                                                        <div class="col-12" data-np-pproxy-quota="items">
+                                                            @if(isset($pproxyQuotaAttr))
+                                                                @foreach(@$pproxyQuotaAttr["options"] as $options)
+                                                                    <div class="row mb-3 g-2" data-np-pproxy-quota="item">
+                                                                        <div class="col-xl-4">
+                                                                            <input type="text"
+                                                                                   name="service_type[pproxy_quota][label][]"
+                                                                                   value="{{ $options['label'] }}"
+                                                                                   placeholder="Başlık"
+                                                                                   class="form-control form-control-sm">
+                                                                        </div>
+                                                                        <div class="col-xl-4">
+                                                                            <input type="text"
+                                                                                   name="service_type[pproxy_quota][value][]"
+                                                                                   value="{{ $options['value'] }}"
+                                                                                   placeholder="GB"
+                                                                                   class="form-control form-control-sm">
+                                                                        </div>
+                                                                        <div class="col-xl-4 d-flex">
+                                                                            <input type="text"
+                                                                                   name="service_type[pproxy_quota][price][]"
+                                                                                   value="{{ showBalance($options['price']) }}"
+                                                                                   placeholder="{{ __('price') }}"
+                                                                                   data-np-price="price"
+                                                                                   class="form-control form-control-sm">
+                                                                            <button type="button"
+                                                                                    class="btn btn-sm btn-icon btn-active-color-primary"
+                                                                                    data-np-pproxy-quota="remove-item">
+                                                                                <i class="ki-duotone ki-trash fs-3">
+                                                                                    <span class="path1"></span>
+                                                                                    <span class="path2"></span>
+                                                                                    <span class="path3"></span>
+                                                                                    <span class="path4"></span>
+                                                                                    <span class="path5"></span>
+                                                                                </i>
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                @endforeach
+                                                            @endif
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <button type="button"
+                                                                    class="btn btn-sm btn-light-primary me-3"
+                                                                    data-np-pproxy-quota="add-item">
+                                                                <i class="fa fa-plus me-1"></i>Satır Ekle
+                                                            </button>
+                                                        </div>
+                                                        <div class="d-none" data-np-pproxy-quota="item-template">
+                                                            <div class="row mb-3 g-2" data-np-pproxy-quota="item">
+                                                                <div class="col-xl-4">
+                                                                    <input type="text" name="service_type[pproxy_quota][label][]"
+                                                                           value="" placeholder="Başlık"
+                                                                           class="form-control form-control-sm">
+                                                                </div>
+                                                                <div class="col-xl-4">
+                                                                    <input type="text" name="service_type[pproxy_quota][value][]"
+                                                                           value="" placeholder="GB"
+                                                                           class="form-control form-control-sm">
+                                                                </div>
+                                                                <div class="col-xl-4 d-flex">
+                                                                    <input type="text" name="service_type[pproxy_quota][price][]"
+                                                                           value="" placeholder="{{ __('price') }}"
+                                                                           data-np-price="price"
+                                                                           class="form-control form-control-sm">
+                                                                    <button type="button"
+                                                                            class="btn btn-sm btn-icon btn-active-color-primary"
+                                                                            data-np-pproxy-quota="remove-item">
+                                                                        <i class="ki-duotone ki-trash fs-3">
+                                                                            <span class="path1"></span>
+                                                                            <span class="path2"></span>
+                                                                            <span class="path3"></span>
+                                                                            <span class="path4"></span>
+                                                                            <span class="path5"></span>
+                                                                        </i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!--end::PProxy tab-->
+
                                             </div><!-- end tab-content -->
                                         </div>
                                         <!--end::Card body-->
@@ -954,6 +1064,15 @@
                                                     <input class="btn-check" type="radio" name="product[delivery_type]"
                                                            {{@$product->delivery_type == 'LOCALTONET_ROTATING' ? 'checked="checked"' : ''}} value="LOCALTONET_ROTATING"/>
                                                     Localtonet Rotating
+                                                </label>
+                                                <!--end::Radio-->
+                                                <!--begin::Radio-->
+                                                <label
+                                                    class="btn btn-outline btn-color-muted btn-active-success {{@$product->delivery_type == 'PPROXY' ? 'active' : ''}}"
+                                                    data-kt-button="true">
+                                                    <input class="btn-check" type="radio" name="product[delivery_type]"
+                                                           {{@$product->delivery_type == 'PPROXY' ? 'checked="checked"' : ''}} value="PPROXY"/>
+                                                    PProxy
                                                 </label>
                                                 <!--end::Radio-->
                                             </div>
@@ -1183,6 +1302,39 @@
                                                 </div>
                                             </div>
                                             <!--end::Localtonet Rotating Input group-->
+                                            <!--begin::PProxy Input group-->
+                                            <div class="show-on-pproxy">
+                                                <div class="row mb-5">
+                                                    <div class="col-md-3">
+                                                        <label class="form-label fw-bold required">Kota (GB)</label>
+                                                        <input type="number" step="0.1" min="0" class="form-control" name="pproxy_quota_gb"
+                                                               value="{{ isset($product) && $product->delivery_type == 'PPROXY' ? ($product->delivery_items['pproxy_quota_gb'] ?? 1) : 1 }}"
+                                                               placeholder="Örn: 10">
+                                                        <div class="form-text">0 = Sınırsız kota.</div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label class="form-label fw-bold required">Süre (Gün)</label>
+                                                        <input type="number" min="1" class="form-control" name="pproxy_days"
+                                                               value="{{ isset($product) && $product->delivery_type == 'PPROXY' ? ($product->delivery_items['pproxy_days'] ?? 30) : 30 }}"
+                                                               placeholder="Örn: 30">
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label class="form-label fw-bold">Hız Limiti (Mbps)</label>
+                                                        <input type="number" step="0.1" min="0" class="form-control" name="pproxy_speed_limit"
+                                                               value="{{ isset($product) && $product->delivery_type == 'PPROXY' ? ($product->delivery_items['pproxy_speed_limit'] ?? '') : '' }}"
+                                                               placeholder="Boş = Limitsiz">
+                                                        <div class="form-text">Boş bırakılırsa limitsiz olur.</div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label class="form-label fw-bold">Server Domain</label>
+                                                        <input type="text" class="form-control" name="pproxy_server_domain"
+                                                               value="{{ isset($product) && $product->delivery_type == 'PPROXY' ? ($product->delivery_items['pproxy_server_domain'] ?? '') : '' }}"
+                                                               placeholder="{{ \App\Models\PProxySettings::first()->server_domain ?? 'tr.saglamproxy.com' }}">
+                                                        <div class="form-text">Boş = PProxy ayarlarındaki varsayılan domain kullanılır.</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!--end::PProxy Input group-->
                                         </div>
                                         <!--end::Card header-->
                                     </div>
@@ -1236,6 +1388,7 @@
                 $('.show-on-localtonet-family').hide(500);
                 $('.show-on-threeproxy').hide(500);
                 $('.show-on-localtonet-rotating').hide(500);
+                $('.show-on-pproxy').hide(500);
                 if (v === 'STACK') {
                     $('.show-on-stack').show(500);
                 } else if (v === 'LOCALTONETV4') {
@@ -1246,6 +1399,8 @@
                     $('.show-on-threeproxy').show(500);
                 } else if (v === 'LOCALTONET_ROTATING') {
                     $('.show-on-localtonet-rotating').show(500);
+                } else if (v === 'PPROXY') {
+                    $('.show-on-pproxy').show(500);
                 } else {
                     $('.show-on-localtonet-family').show(500);
                     $('.show-on-localtonet-only').show();
@@ -1401,6 +1556,26 @@
 
             $(document).on("click", "[data-np-tp-duration='remove-item']", function () {
                 $(this).closest("[data-np-tp-duration='item']").remove();
+            })
+
+            $(document).on("change", "[data-np-additional-services='container'] [name='service_type[pproxy_quota][status]']", function () {
+                let element = $(this),
+                    area = $("[data-np-additional-services='pproxy-quota-area']");
+                if(element.is(":checked")){
+                    area.show(300)
+                }else{
+                    area.hide(300)
+                }
+            })
+            $("[data-np-additional-services='container'] [name='service_type[pproxy_quota][status]']").trigger("change")
+
+            $(document).on("click", "[data-np-pproxy-quota='add-item']", function () {
+                let items = $("[data-np-pproxy-quota='items']");
+                items.append($("[data-np-pproxy-quota='item-template']").html())
+            })
+
+            $(document).on("click", "[data-np-pproxy-quota='remove-item']", function () {
+                $(this).closest("[data-np-pproxy-quota='item']").remove();
             })
             /* <!-- END::Additional Services -!> */
 

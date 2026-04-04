@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\AdminNotificationService;
+use App\Services\SupportAutoReplyService;
 use App\Traits\SupportAttributes;
 use App\Traits\SupportEventHandlers;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -32,6 +33,13 @@ class Support extends Model
 
         static::created(function ($model) {
             AdminNotificationService::supportCreated($model);
+            SupportAutoReplyService::handleEvent('TICKET_CREATED', $model);
+        });
+
+        static::updated(function ($model) {
+            if ($model->isDirty('status') && $model->status === 'RESOLVED') {
+                SupportAutoReplyService::handleEvent('TICKET_RESOLVED', $model);
+            }
         });
     }
     public function user(): BelongsTo

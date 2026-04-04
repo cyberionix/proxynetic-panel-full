@@ -123,13 +123,13 @@
                 <div class="card-header">
                     <h3 class="card-title">
                         <div>
-                            <i class="bi bi-stack fs-2x text-primary me-3"></i>
+                            <i class="fa fa-boxes-stacked fs-2x text-primary me-3"></i>
                         </div>
                         <div class="d-flex align-items-start flex-column">
                             <span
-                                class="card-label fw-bold fs-3 mb-1">{{__("product")}} / {{__("service")}} Bilgileri</span>
+                                class="card-label fw-bold fs-3 mb-1">Son Siparişlerim</span>
                             <span
-                                class="text-muted mt-1 fw-semibold fs-7">{{__("last_:number_records", ["number" => "4"])}}</span>
+                                class="text-muted mt-1 fw-semibold fs-7">{{__("last_:number_records", ["number" => "5"])}}</span>
                         </div>
                     </h3>
                     <div class="card-toolbar">
@@ -137,30 +137,46 @@
                                 class="fa fa-eye"></i> {{__("view_all")}}</a>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body pt-0">
                     <!--begin::Table-->
                     <div class="table-responsive">
-                        <table id="proxyListTable" class="table align-middle table-row-dashed fs-6 gy-5">
+                        <table class="table align-middle table-row-dashed fs-6 gy-5">
                             <thead>
                             <tr class="text-start text-gray-500 fw-bold fs-6 gs-0">
                                 <th class="min-w-50px">#</th>
-                                <th class="min-w-125px">IP:PORT</th>
-                                <th class="min-w-125px">ISP</th>
-                                <th class="min-w-125px">{{__("Mevcut IP")}}</th>
+                                <th class="min-w-125px">{{__("product")}} / {{__("service")}}</th>
+                                <th class="min-w-125px">Son Ödeme Tarihi</th>
+                                <th class="min-w-125px">{{__("amount")}}</th>
                                 <th class="min-w-125px">{{__("status")}}</th>
-                                <th class="min-w-125px">{{__("Trafik")}}</th>
-                                <th class="min-w-125px">{{__("action")}}</th>
+                                <th class="min-w-70px">{{__("action")}}</th>
                             </tr>
                             </thead>
                             <tbody class="fw-semibold text-gray-600">
-
+                            @forelse($orders as $order)
+                                <tr>
+                                    <td>#{{ $order->id }}</td>
+                                    <td>
+                                        <div class="text-gray-800 fw-bold">{{ $order->product_data['name'] ?? '-' }}</div>
+                                        @if(!empty($order->product_data['category']['name']))
+                                            <span class="text-muted fw-semibold d-block fs-7">{{ $order->product_data['category']['name'] }}</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $order->end_date ? $order->end_date->format('d.m.Y') : '-' }}</td>
+                                    <td class="fw-bold">{{ number_format($order->getTotalAmount() ?? 0, 2, ',', '.') }} ₺</td>
+                                    <td>{!! $order->drawStatus() !!}</td>
+                                    <td>
+                                        <a href="{{ route('portal.orders.show', ['order' => $order->id]) }}" class="btn btn-light-primary btn-sm">{{__("view")}}</a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6">
+                                        <div class="text-gray-500 fw-bold text-center py-5 fs-6">{{__("there_are_no_products_services")}}</div>
+                                    </td>
+                                </tr>
+                            @endforelse
                             </tbody>
-                            <!--end::Table body-->
                         </table>
-                        <div class="w-100 h-100px d-flex flex-center proxyListSpinner"
-                             style="margin-top: 2rem">
-                            <span class="spinner-border spinner-border-sm align-middle"></span>
-                        </div>
                     </div>
                     <!--end::Table-->
                 </div>
@@ -176,7 +192,7 @@
                         <div class="d-flex align-items-start flex-column">
                             <span class="card-label fw-bold fs-3 mb-1">{{__("my_active_products_and_services")}}</span>
                             <span
-                                class="text-muted mt-1 fw-semibold fs-7">{{__("last_:number_records", ["number" => "4"])}}</span>
+                                class="text-muted mt-1 fw-semibold fs-7">{{__("last_:number_records", ["number" => "5"])}}</span>
                         </div>
                     </h3>
                     <div class="card-toolbar">
@@ -272,6 +288,62 @@
                         </tr>
                         </tfoot>
                     </table>
+                    <!--end::Table-->
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="card card-stretch">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <div>
+                            <i class="fa fa-file-invoice fs-2x text-primary me-3"></i>
+                        </div>
+                        <div class="d-flex align-items-start flex-column">
+                            <span class="card-label fw-bold fs-3 mb-1">Son Faturalarım</span>
+                            <span
+                                class="text-muted mt-1 fw-semibold fs-7">{{__("last_:number_records", ["number" => "5"])}}</span>
+                        </div>
+                    </h3>
+                    <div class="card-toolbar">
+                        <a href="{{route("portal.invoices.index")}}" class="btn btn-light-primary btn-sm"><i
+                                class="fa fa-eye"></i> {{__("view_all")}}</a>
+                    </div>
+                </div>
+                <div class="card-body pt-6">
+                    <!--begin::Table-->
+                    <div class="table-responsive">
+                        <table class="table align-middle table-row-dashed fs-6 gy-5">
+                            <thead>
+                            <tr class="text-start text-gray-500 fw-bold fs-6 gs-0">
+                                <th class="min-w-50px">#</th>
+                                <th class="min-w-100px">{{__("date")}}</th>
+                                <th class="min-w-100px">{{__("amount")}}</th>
+                                <th class="min-w-100px">{{__("status")}}</th>
+                                <th class="min-w-70px">{{__("action")}}</th>
+                            </tr>
+                            </thead>
+                            <tbody class="fw-semibold text-gray-600">
+                            @forelse($invoices as $invoice)
+                                <tr>
+                                    <td><span class="badge badge-light-primary">#{{ $invoice->invoice_number }}</span></td>
+                                    <td>{{ $invoice->invoice_date?->format('d.m.Y') ?? '-' }}</td>
+                                    <td class="fw-bold">{{ number_format($invoice->total_price_with_vat ?? 0, 2, ',', '.') }} ₺</td>
+                                    <td>{!! $invoice->drawStatus() !!}</td>
+                                    <td>
+                                        <a href="{{ route('portal.invoices.show', ['invoice' => $invoice->id]) }}" class="btn btn-light-primary btn-sm">{{__("view")}}</a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5">
+                                        <div class="text-gray-500 fw-bold text-center py-5 fs-6">Henüz faturanız bulunmamaktadır.</div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                     <!--end::Table-->
                 </div>
             </div>
@@ -426,77 +498,6 @@
 
                     alertArea.remove();
                 })
-            })
-        </script>
-        <script>
-            $(document).ready(function () {
-                let count = 4, dataOrder = 1;
-
-                function fetchData(dataOrder) {
-                    return new Promise((resolve, reject) => {
-                        $.ajax({
-                            type: 'GET',
-                            url: '{{route('portal.orders.localtonet.getProxyListTable')}}',
-                            data: {
-                                _token: '{{csrf_token()}}',
-                                dataOrder: dataOrder
-                            },
-                            dataType: 'json',
-                            beforeSend: function () {
-                                $(".proxyListSpinner").removeClass("d-none");
-                            },
-                            complete: function (data, status) {
-                                res = data.responseJSON;
-                                if (res && res.success === true) {
-                                    if (!res.data) {
-                                        $(".proxyListSpinner").addClass("d-none");
-                                        return resolve(false);
-                                    }
-
-                                    let changeIpDraw = "";
-                                    if (res.data?.deliveryType == "LOCALTONET" || res.data?.deliveryType == "LOCALTONETV4") {
-                                        changeIpDraw = '<div class="badge badge-primary cursor-pointer mt-1 ipChangeBtn" data-ajax-url="' + res.data.ip_change_url + '"><i class="fa fa-rotate-right text-white me-1"></i> IP Değiştir</div>';
-                                    }
-                                    let ispImage = "-";
-                                    if (res.data?.isp_image) {
-                                        ispImage = '<img class="w-50px" src="' + res.data?.isp_image + '"/>';
-                                    }
-                                    let seeMore = "";
-                                    if (res.data?.isSeeMore) {
-                                        seeMore = '<br><a class="text-hover-primary text-gray-500 fw-bold fs-7 gs-0" href="' + res.data?.viewUrl + '">...{{__("see_more")}}</a>';
-                                    }
-
-                                    $("#proxyListTable").find("tbody").append('<tr>' +
-                                        '<td>' + res.data?.orderId + '</td>' +
-                                        '<td>' + res.data?.ipPort + ' ' + seeMore + '</td>' +
-                                        '<td>' + ispImage + '</td>' +
-                                        '<td><div>' + res.data?.ip + '</div>' + changeIpDraw + '</td>' +
-                                        '<td>' + res.data?.drawStatus + '</td>' +
-                                        '<td>' + res.data?.traffic + '</td>' +
-                                        '<td><a href="' + res.data?.viewUrl + ' " class="btn btn-light-primary btn-sm">{{__("view")}}</a></td></tr>');
-                                    resolve(true);
-                                } else {
-                                    toastr.error(res?.message ?? "{{__('error')}}");
-                                    reject(new Error(res?.message ?? "{{__('error')}}"));
-                                }
-                                $(".proxyListSpinner").addClass("d-none");
-                            }
-                        });
-                    });
-                }
-
-                async function executeFetchData() {
-                    for (let i = 0; i < count; i++) {
-                        try {
-                            await fetchData(dataOrder);
-                            dataOrder++;
-                        } catch (error) {
-                            console.error("Error fetching data for order", dataOrder, error);
-                        }
-                    }
-                }
-
-                executeFetchData();
             })
         </script>
     @endif

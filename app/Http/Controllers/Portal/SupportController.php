@@ -9,6 +9,7 @@ use App\Models\SupportMessage;
 use App\Traits\AjaxResponses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class SupportController extends Controller
@@ -80,10 +81,13 @@ class SupportController extends Controller
             ];
         }
 
+        $latestUpdatedAt = $list->max('updated_at')?->timestamp ?? 0;
+
         $response = array(
             'recordsTotal' => $countTotalRecords,
             'recordsFiltered' => $countFilteredRecords,
-            'data' => $data
+            'data' => $data,
+            'latestUpdatedAt' => $latestUpdatedAt,
         );
         echo json_encode($response);
     }
@@ -125,23 +129,52 @@ class SupportController extends Controller
     {
         $request->validate([
             "message" => "required|max:1000",
+            "file" => "nullable|file|mimes:jpg,jpeg,png|max:5120",
         ], [
             "message.required" => __("custom_field_is_required", ["name" => __("message")]),
             'message.max' => __('custom_field_max_char_size', ['name' => __('message'), 'size' => "1000"]),
-
+            'file.mimes' => 'Sadece JPG, JPEG, PNG formatları desteklenir.',
+            'file.max' => 'Dosya boyutu en fazla 5MB olabilir.',
         ]);
+
+        $filePath = null;
+        if ($request->hasFile('file')) {
+            $filePath = $request->file('file')->store('support-attachments', 'public');
+        }
 
         $support->update([
             "status" => "WAITING_FOR_AN_ANSWER"
         ]);
 
         $save = $support->messages()->create([
-            "message" => $request->message
+            "message" => $request->message,
+            "file" => $filePath,
         ]);
 
         if ($save) {
             return $this->successResponse(__("message_delivered"));
         }
         return $this->errorResponse(__("error_response"));
+    }
+
+    public function typing(Support $support)
+    {
+        Cache::put("support_typing_user_{$support->id}", Auth::user()->full_name, now()->addSeconds(5));
+        return response()->json(['success' => true]);
+    }
+
+    public function pollMessages(Support $support)
+    {
+        $support->load('messages');
+        $lastMessageId = $support->messages->first()?->id ?? 0;
+        $isAdminTyping = Cache::get("support_typing_admin_{$support->id}");
+
+        return response()->json([
+            'success' => true,
+            'last_message_id' => $lastMessageId,
+            'data' => $support,
+            'is_admin_typing' => $isAdminTyping ? true : false,
+            'typing_admin_name' => $isAdminTyping ?: null,
+        ]);
     }
 }

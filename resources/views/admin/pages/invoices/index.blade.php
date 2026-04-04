@@ -65,6 +65,11 @@
                             <!--end::Search-->
                         </div>
                         <!--begin::Card title-->
+                        <div class="card-toolbar">
+                            <a href="{{route("admin.invoices.create")}}" class="btn btn-primary btn-sm">
+                                <i class="fa fa-plus me-1"></i>Fatura Oluştur
+                            </a>
+                        </div>
                     </div>
                     <!--end::Card header-->
                     <!--begin::Card body-->

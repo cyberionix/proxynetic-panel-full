@@ -9,25 +9,15 @@ var KTAppInvoicesCreate = function () {
             var t = e.querySelector('[data-kt-element="quantity"]'), l = e.querySelector('[data-kt-element="total"]'),
                 vatPercent = $(e).find('[data-kt-element="vat_percent"]').val(),
                 r = n.from(l.value);
-            console.log('saf',l.value)
             r = !r || r < 0 ? 0 : r;
             var i = parseInt(t.value);
             i = !i || i < 0 ? 1 : i
             l.value = n.to(r) === '0,00' ? null : n.to(r)
             t.value = i
-            let priceWithoutVat = r / (1 + (vatPercent / 100));
-console.log('merhaba',priceWithoutVat);
-            priceWithVat = ((r * parseFloat(vatPercent) / 100)) + r
-            console.log( e.querySelector('[data-kt-element="price"]'))
+            let priceWithoutVat = r / (1 + (parseFloat(vatPercent) / 100));
             e.querySelector('[data-kt-element="price"]').innerText = n.to(priceWithoutVat)
-            // e.querySelector('[data-kt-element="total"]').value = n.to(priceWithVat * i)
-            a += priceWithVat * i
-            // console.log(r, "rpice")
-            // console.log(i, "i > miktar")
-            // console.log(a, "a > grand total")
-            // console.log(l, "l > satÄ±r price")
-            // console.log(t, "t > total price")
-            let vat =  (r * i) * parseFloat(vatPercent) / 100;
+            a += r * i
+            let vat = (r - priceWithoutVat) * i;
             totalVat += vat;
 
         })), e.querySelector('[data-kt-element="sub-total"]').innerText = n.to(a - totalVat), e.querySelector('[data-kt-element="grand-total"]').innerText = n.to(a), e.querySelector('[data-kt-element="vat-total"]').innerText = n.to(totalVat)

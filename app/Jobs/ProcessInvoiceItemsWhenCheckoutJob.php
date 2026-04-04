@@ -5,9 +5,11 @@ namespace App\Jobs;
 use App\Library\Logger;
 use App\Models\BalanceActivity;
 use App\Models\Checkout;
+use App\Models\InvoiceItem;
 use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\ThreeProxyLog;
+use App\Services\PlainProxiesApiService;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -206,14 +208,6 @@ class ProcessInvoiceItemsWhenCheckoutJob implements ShouldQueue
                             break;
                         }
 
-                        $localtonetService = $invoiceItem->order->resolveLocaltonetService();
-
-                        $proxy = $invoiceItem->order->getProxyLocaltonet();
-                        if (!$proxy || !isset($proxy["result"]["id"]) || $proxy["result"]["id"] == 0) {
-                            Logger::error("PROCESS_INVOICE_ITEMS_WHEN_CHECKOUT_PROXY_NOT_FOUND_ADDITIONAL_QUOTA", ["invoice_item_id" => $invoiceItem->id]);
-                            break;
-                        }
-
                         $additionalService = @$invoiceItem->orderDetail->additional_services[0] ?? null;
 
                         if (!isset($additionalService["value"])) {
@@ -221,20 +215,32 @@ class ProcessInvoiceItemsWhenCheckoutJob implements ShouldQueue
                             break;
                         }
 
-                        if (@$proxy["result"]["bandwidthLimit"] != "unlimited") {
-                            $currentBytes = (float) ($proxy["result"]["bandwidthLimit"] ?? 0);
-                            $addGb = (float) $additionalService["value"];
-                            $bwCfg = $invoiceItem->order->product_data['delivery_items']['bandwidth_limit'] ?? null;
-                            $bwCfg = is_array($bwCfg) ? $bwCfg : [];
-                            [$dataSize, $dataSizeType] = self::bandwidthLimitPayloadForTunnel($currentBytes, $addGb, $bwCfg);
-                            if ($dataSize <= 0) {
-                                Logger::error('PROCESS_INVOICE_ITEMS_WHEN_CHECKOUT_BANDWIDTH_PAYLOAD_ZERO_ADDITIONAL_QUOTA', ['invoice_item_id' => $invoiceItem->id, 'currentBytes' => $currentBytes, 'addGb' => $addGb]);
-                            } else {
-                                $setBandwidthLimit = $localtonetService->setBandwidthLimitForTunnel($proxy["result"]["id"], $dataSize, $dataSizeType);
-                                if (@$setBandwidthLimit["hasError"]) {
-                                    Logger::error("PROCESS_INVOICE_ITEMS_WHEN_CHECKOUT_SET_BANDWIDTH_LIMIT_ADDITIONAL_QUOTA", ["invoice_item_id" => $invoiceItem->id, "tunnelId" => $proxy["result"]["id"], "dataSize" => $dataSize, "dataSizeType" => $dataSizeType, "errorCode" => @$setBandwidthLimit["errorCode"], "errors" => @$setBandwidthLimit["errors"]]);
+                        if ($invoiceItem->order->isPProxyDelivery()) {
+                            self::processPProxyAdditionalQuota($invoiceItem, $additionalService);
+                        } else {
+                            $localtonetService = $invoiceItem->order->resolveLocaltonetService();
+
+                            $proxy = $invoiceItem->order->getProxyLocaltonet();
+                            if (!$proxy || !isset($proxy["result"]["id"]) || $proxy["result"]["id"] == 0) {
+                                Logger::error("PROCESS_INVOICE_ITEMS_WHEN_CHECKOUT_PROXY_NOT_FOUND_ADDITIONAL_QUOTA", ["invoice_item_id" => $invoiceItem->id]);
+                                break;
+                            }
+
+                            if (@$proxy["result"]["bandwidthLimit"] != "unlimited") {
+                                $currentBytes = (float) ($proxy["result"]["bandwidthLimit"] ?? 0);
+                                $addGb = (float) $additionalService["value"];
+                                $bwCfg = $invoiceItem->order->product_data['delivery_items']['bandwidth_limit'] ?? null;
+                                $bwCfg = is_array($bwCfg) ? $bwCfg : [];
+                                [$dataSize, $dataSizeType] = self::bandwidthLimitPayloadForTunnel($currentBytes, $addGb, $bwCfg);
+                                if ($dataSize <= 0) {
+                                    Logger::error('PROCESS_INVOICE_ITEMS_WHEN_CHECKOUT_BANDWIDTH_PAYLOAD_ZERO_ADDITIONAL_QUOTA', ['invoice_item_id' => $invoiceItem->id, 'currentBytes' => $currentBytes, 'addGb' => $addGb]);
                                 } else {
-                                    self::forgetLocaltonetTunnelCache($invoiceItem->order);
+                                    $setBandwidthLimit = $localtonetService->setBandwidthLimitForTunnel($proxy["result"]["id"], $dataSize, $dataSizeType);
+                                    if (@$setBandwidthLimit["hasError"]) {
+                                        Logger::error("PROCESS_INVOICE_ITEMS_WHEN_CHECKOUT_SET_BANDWIDTH_LIMIT_ADDITIONAL_QUOTA", ["invoice_item_id" => $invoiceItem->id, "tunnelId" => $proxy["result"]["id"], "dataSize" => $dataSize, "dataSizeType" => $dataSizeType, "errorCode" => @$setBandwidthLimit["errorCode"], "errors" => @$setBandwidthLimit["errors"]]);
+                                    } else {
+                                        self::forgetLocaltonetTunnelCache($invoiceItem->order);
+                                    }
                                 }
                             }
                         }
@@ -452,6 +458,24 @@ class ProcessInvoiceItemsWhenCheckoutJob implements ShouldQueue
                             ]);
                         }
                         break;
+
+                    case "PPROXY_ADDITIONAL_QUOTA":
+                        if (!$invoiceItem->order || !$invoiceItem->orderDetail) {
+                            Logger::error('PPROXY_ADDITIONAL_QUOTA_ORDER_OR_DETAIL_MISSING', ['invoice_item_id' => $invoiceItem->id]);
+                            break;
+                        }
+                        $additionalService = @$invoiceItem->orderDetail->additional_services[0] ?? null;
+                        if (!isset($additionalService["value"])) {
+                            Logger::error('PPROXY_ADDITIONAL_QUOTA_SERVICE_DATA_MISSING', ['invoice_item_id' => $invoiceItem->id]);
+                            break;
+                        }
+                        self::processPProxyAdditionalQuota($invoiceItem, $additionalService);
+                        $invoiceItem->orderDetail->update([
+                            "checkout_id" => $checkout->id,
+                            "is_active" => 1,
+                            "is_hidden" => 0,
+                        ]);
+                        break;
                 }
             }
         } catch (\Throwable $e) {
@@ -460,6 +484,63 @@ class ProcessInvoiceItemsWhenCheckoutJob implements ShouldQueue
                 'invoice_id' => $invoice->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+            ]);
+        }
+    }
+
+    private static function processPProxyAdditionalQuota(InvoiceItem $invoiceItem, array $additionalService): void
+    {
+        try {
+            $order = $invoiceItem->order;
+            $pi = $order->product_info ?? [];
+            $uuid = $pi['pproxy_uuid'] ?? null;
+
+            if (!$uuid) {
+                Logger::error('PPROXY_ADDITIONAL_QUOTA_UUID_MISSING', ['invoice_item_id' => $invoiceItem->id, 'order_id' => $order->id]);
+                return;
+            }
+
+            $addGb = (float) ($additionalService['value'] ?? 0);
+            if ($addGb <= 0) {
+                Logger::error('PPROXY_ADDITIONAL_QUOTA_VALUE_INVALID', ['invoice_item_id' => $invoiceItem->id, 'value' => $addGb]);
+                return;
+            }
+
+            $service = new PlainProxiesApiService();
+            $info = $service->getSubUserInfo($uuid);
+            $currentBandwidthBytes = $info['data']['data']['bandwidth'] ?? 0;
+            $currentBandwidthGb = ceil($currentBandwidthBytes / 1000000000);
+            $newTotalGb = $currentBandwidthGb + $addGb;
+
+            $res = $service->setBandwidth($uuid, $newTotalGb);
+
+            if (!$res || !($res['success'] ?? false)) {
+                Logger::error('PPROXY_ADDITIONAL_QUOTA_API_FAIL', [
+                    'invoice_item_id' => $invoiceItem->id,
+                    'order_id'        => $order->id,
+                    'current_gb'      => $currentBandwidthGb,
+                    'add_gb'          => $addGb,
+                    'new_total_gb'    => $newTotalGb,
+                    'api_response'    => $res['data'] ?? null,
+                ]);
+                return;
+            }
+
+            $pi['pproxy_quota_gb'] = $newTotalGb;
+            $order->product_info = $pi;
+            $order->saveQuietly();
+
+            Cache::forget('PPROXY_SUB_' . $uuid);
+
+            Logger::info('PPROXY_ADDITIONAL_QUOTA_SUCCESS', [
+                'order_id'     => $order->id,
+                'added_gb'     => $addGb,
+                'new_total_gb' => $newTotalGb,
+            ]);
+        } catch (\Throwable $e) {
+            Logger::error('PPROXY_ADDITIONAL_QUOTA_EXCEPTION', [
+                'invoice_item_id' => $invoiceItem->id,
+                'error'           => $e->getMessage(),
             ]);
         }
     }

@@ -8,6 +8,7 @@ use App\Models\Support;
 use App\Traits\AjaxResponses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -88,17 +89,33 @@ class SupportController extends Controller
         };
 
         $countFilteredRecords = $makeQuery()->count();
-        $list = $makeQuery()->offset($start)->limit($length)->get();
+        $list = $makeQuery()->with('order')->offset($start)->limit($length)->get();
 
         $data = [];
         foreach ($list as $item) {
             $subject = "<a href='".route('admin.supports.show', ['support' => $item->id])."'>".$item->subject.'</a>';
             if ($showAllList) {
+                $productHtml = '-';
+                if ($item->order) {
+                    $productName = e($item->order->product_data['name'] ?? '-');
+                    $categoryName = $item->order->product_data['category']['name'] ?? '';
+                    $orderUrl = route('admin.orders.show', ['order' => $item->order->id]);
+                    $productHtml = '<a href="' . $orderUrl . '" target="_blank" class="text-gray-800 text-hover-primary fw-bold">' . $productName . '</a>';
+                    $productHtml .= '<span class="text-muted fw-semibold d-block fs-7">#' . $item->order->id;
+                    if ($categoryName) {
+                        $productHtml .= ' &middot; ' . e($categoryName);
+                    }
+                    $productHtml .= '</span>';
+                }
+
+                $checkbox = '<div class="form-check form-check-sm form-check-custom form-check-solid"><input class="form-check-input row-checkbox" type="checkbox" value="'.$item->id.'" /></div>';
+
                 $data[] = [
+                    $checkbox,
                     "<span data-id='".$item->id."' class='badge badge-sm badge-light-primary'>#".$item->id.'</span>',
                     "<a target='_blank' href='".route('admin.users.show', ['user' => $item->user_id])."'>".e($item->user_name).'</a>',
                     $subject,
-                    __(strtolower($item->department)),
+                    $productHtml,
                     $item->updated_at->format(defaultDateTimeFormat()),
                     $item->drawStatusBadge(),
                     '<a href="'.route('admin.supports.show', ['support' => $item->id]).'" class="btn btn-light-primary btn-sm">'.__('view').'</a>',
@@ -106,10 +123,15 @@ class SupportController extends Controller
             }
         }
 
+        $latestUpdatedAt = $list->max('updated_at')?->timestamp ?? 0;
+        $totalTickets = Support::withoutGlobalScope('for_user')->count();
+
         return response()->json([
             'recordsTotal' => $countFilteredRecords,
             'recordsFiltered' => $countFilteredRecords,
             'data' => $data,
+            'latestUpdatedAt' => $latestUpdatedAt,
+            'totalTickets' => $totalTickets,
         ]);
     }
     public function show(Support $support)
@@ -194,5 +216,54 @@ class SupportController extends Controller
         $save = $support->delete();
         if (!$save) return $this->errorResponse(__("error_response"));
         return $this->successResponse("Destek talebi başarıyla silindi.", ["redirectUrl" => route("admin.supports.index")]);
+    }
+
+    public function bulkAction(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer',
+            'action' => 'required|string|in:RESOLVED,ANSWERED,WAITING_FOR_AN_ANSWER,DELETE',
+        ]);
+
+        $ids = $request->ids;
+        $action = $request->action;
+
+        $supports = Support::withoutGlobalScope('for_user')->whereIn('id', $ids);
+
+        if ($action === 'DELETE') {
+            $count = $supports->count();
+            $supports->delete();
+            return $this->successResponse("{$count} destek talebi silindi.");
+        }
+
+        $count = $supports->update(['status' => $action]);
+        $statusLabels = [
+            'RESOLVED' => 'Çözümlendi',
+            'ANSWERED' => 'Yanıtlandı',
+            'WAITING_FOR_AN_ANSWER' => 'Yanıt Bekliyor',
+        ];
+        return $this->successResponse("{$count} destek talebi '{$statusLabels[$action]}' olarak güncellendi.");
+    }
+
+    public function typing(Support $support)
+    {
+        Cache::put("support_typing_admin_{$support->id}", Auth::user()->full_name, now()->addSeconds(5));
+        return response()->json(['success' => true]);
+    }
+
+    public function pollMessages(Support $support)
+    {
+        $support->load('messages');
+        $lastMessageId = $support->messages->first()?->id ?? 0;
+        $isUserTyping = Cache::get("support_typing_user_{$support->id}");
+
+        return response()->json([
+            'success' => true,
+            'last_message_id' => $lastMessageId,
+            'data' => $support,
+            'is_user_typing' => $isUserTyping ? true : false,
+            'typing_user_name' => $isUserTyping ?: null,
+        ]);
     }
 }

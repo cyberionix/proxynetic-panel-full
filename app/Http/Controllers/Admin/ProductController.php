@@ -155,6 +155,12 @@ class ProductController extends Controller
                     return $this->errorResponse($lr['error']);
                 }
                 $productData["product"]["delivery_items"] = $lr['items'];
+            } else if ($productData["product"]["delivery_type"] == "PPROXY") {
+                $pp = $this->buildPProxyDeliveryItems($request);
+                if (isset($pp['error'])) {
+                    return $this->errorResponse($pp['error']);
+                }
+                $productData["product"]["delivery_items"] = $pp['items'];
             }
 
             $productData["product"]["vat_percent"] = 20;
@@ -267,6 +273,23 @@ class ProductController extends Controller
                 }
             }
 
+            $newPProxyQuotaAttr = null;
+            if (isset($serviceType["pproxy_quota"]["status"]) && $serviceType["pproxy_quota"]["status"] == 1) {
+                $ppQuotaOptions = [];
+                foreach (($serviceType["pproxy_quota"]["label"] ?? []) as $key => $label) {
+                    if (!trim($label) || !trim($serviceType["pproxy_quota"]["price"][$key] ?? '')) continue;
+                    $ppQuotaOptions[] = [
+                        "label" => $label,
+                        "value" => $serviceType["pproxy_quota"]["value"][$key] ?? 0,
+                        "price" => commaToDot($serviceType["pproxy_quota"]["price"][$key]),
+                    ];
+                }
+                if (count($ppQuotaOptions) > 0) {
+                    $newPProxyQuotaAttr = getPProxyQuotaForAttrs();
+                    $newPProxyQuotaAttr["options"] = $ppQuotaOptions;
+                }
+            }
+
             $newTpChangeIpsAttr = null;
             if (isset($serviceType["tp_change_ips"]["status"]) && $serviceType["tp_change_ips"]["status"] == 1) {
                 $newTpChangeIpsAttr = getTpChangeIpsForAttrs();
@@ -289,6 +312,7 @@ class ProductController extends Controller
             if ($newProxyTypeAttr) $newProductAttrs[] = $newProxyTypeAttr;
             if ($newQuotaAttr) $newProductAttrs[] = $newQuotaAttr;
             if ($newQuotaDurationAttr) $newProductAttrs[] = $newQuotaDurationAttr;
+            if ($newPProxyQuotaAttr) $newProductAttrs[] = $newPProxyQuotaAttr;
             if ($newTpExtraDurationAttr) $newProductAttrs[] = $newTpExtraDurationAttr;
             if ($newTpChangeIpsAttr) $newProductAttrs[] = $newTpChangeIpsAttr;
             if ($newTpSubnetIpsAttr) $newProductAttrs[] = $newTpSubnetIpsAttr;
@@ -320,13 +344,14 @@ class ProductController extends Controller
         $proxyTypeAttr = $product->findAttrsByServiceType("protocol_select");
         $quotaAttr = $product->findAttrsByServiceType("quota");
         $quotaDurationAttr = $product->findAttrsByServiceType("quota_duration");
+        $pproxyQuotaAttr = $product->findAttrsByServiceType("pproxy_quota");
         $tpExtraDurationAttr = $product->findAttrsByServiceType("tp_extra_duration");
         $tpChangeIpsAttr = collect($product->attrs ?? [])->where("service_type", "tp_change_ips")->first();
         $tpSubnetIpsAttr = collect($product->attrs ?? [])->where("service_type", "tp_subnet_ips")->first();
         $tpClassIpsAttr = collect($product->attrs ?? [])->where("service_type", "tp_class_ips")->first();
 
         $tokenPools = TokenPool::all();
-        return view("admin.pages.products.create_update.index", compact(["pageTitle", "tokenPools","product", "proxyTypeAttr", "quotaAttr", "quotaDurationAttr", "tpExtraDurationAttr", "tpChangeIpsAttr", "tpSubnetIpsAttr", "tpClassIpsAttr"]));
+        return view("admin.pages.products.create_update.index", compact(["pageTitle", "tokenPools","product", "proxyTypeAttr", "quotaAttr", "quotaDurationAttr", "pproxyQuotaAttr", "tpExtraDurationAttr", "tpChangeIpsAttr", "tpSubnetIpsAttr", "tpClassIpsAttr"]));
     }
 
     public function update(UpdateRequest $request, Product $product)
@@ -370,6 +395,12 @@ class ProductController extends Controller
                     return $this->errorResponse($lr['error']);
                 }
                 $productData["product"]["delivery_items"] = $lr['items'];
+            } else if ($productData["product"]["delivery_type"] == "PPROXY") {
+                $pp = $this->buildPProxyDeliveryItems($request);
+                if (isset($pp['error'])) {
+                    return $this->errorResponse($pp['error']);
+                }
+                $productData["product"]["delivery_items"] = $pp['items'];
             }
 
             $product->update($productData['product']);
@@ -515,6 +546,23 @@ class ProductController extends Controller
                 }
             }
 
+            $newPProxyQuotaAttr2 = null;
+            if (isset($serviceType["pproxy_quota"]["status"]) && $serviceType["pproxy_quota"]["status"] == 1) {
+                $ppQuotaOptions2 = [];
+                foreach (($serviceType["pproxy_quota"]["label"] ?? []) as $key => $label) {
+                    if (!trim($label) || !trim($serviceType["pproxy_quota"]["price"][$key] ?? '')) continue;
+                    $ppQuotaOptions2[] = [
+                        "label" => $label,
+                        "value" => $serviceType["pproxy_quota"]["value"][$key] ?? 0,
+                        "price" => commaToDot($serviceType["pproxy_quota"]["price"][$key]),
+                    ];
+                }
+                if (count($ppQuotaOptions2) > 0) {
+                    $newPProxyQuotaAttr2 = getPProxyQuotaForAttrs();
+                    $newPProxyQuotaAttr2["options"] = $ppQuotaOptions2;
+                }
+            }
+
             $newTpChangeIpsAttr2 = null;
             if (isset($serviceType["tp_change_ips"]["status"]) && $serviceType["tp_change_ips"]["status"] == 1) {
                 $newTpChangeIpsAttr2 = getTpChangeIpsForAttrs();
@@ -537,6 +585,7 @@ class ProductController extends Controller
             if ($newProxyTypeAttr) $newProductAttrs[] = $newProxyTypeAttr;
             if ($newQuotaAttr) $newProductAttrs[] = $newQuotaAttr;
             if ($newQuotaDurationAttr) $newProductAttrs[] = $newQuotaDurationAttr;
+            if ($newPProxyQuotaAttr2) $newProductAttrs[] = $newPProxyQuotaAttr2;
             if ($newTpExtraDurationAttr2) $newProductAttrs[] = $newTpExtraDurationAttr2;
             if ($newTpChangeIpsAttr2) $newProductAttrs[] = $newTpChangeIpsAttr2;
             if ($newTpSubnetIpsAttr2) $newProductAttrs[] = $newTpSubnetIpsAttr2;
@@ -568,7 +617,7 @@ class ProductController extends Controller
                 if ($order?->activeDetail?->checkout?->status != "COMPLETED") continue;
 
                 $localtonetFamily = ['LOCALTONET', 'LOCALTONETV4'];
-                $allSpecialTypes = ['LOCALTONET', 'LOCALTONETV4', 'THREEPROXY', 'LOCALTONET_ROTATING'];
+                $allSpecialTypes = ['LOCALTONET', 'LOCALTONETV4', 'THREEPROXY', 'LOCALTONET_ROTATING', 'PPROXY'];
                 if ($productData["product"]["delivery_type"] == "STACK" && in_array($order->product->delivery_type, $allSpecialTypes, true)) {
                     continue;
                 }
@@ -738,6 +787,30 @@ class ProductController extends Controller
         }
 
         return ['items' => $items];
+    }
+
+    private function buildPProxyDeliveryItems(Request $request): array
+    {
+        $quotaGb = (float) $request->input('pproxy_quota_gb', 1);
+        if ($quotaGb < 0) $quotaGb = 0;
+
+        $days = (int) $request->input('pproxy_days', 30);
+        if ($days < 1) $days = 1;
+
+        $speedLimit = $request->input('pproxy_speed_limit');
+        $speedLimit = $speedLimit !== null && $speedLimit !== '' ? (float) $speedLimit : null;
+
+        $serverDomain = $request->input('pproxy_server_domain');
+        $serverDomain = $serverDomain !== null && trim($serverDomain) !== '' ? trim($serverDomain) : null;
+
+        return [
+            'items' => [
+                'pproxy_quota_gb'         => $quotaGb,
+                'pproxy_days'             => $days,
+                'pproxy_speed_limit'      => $speedLimit,
+                'pproxy_server_domain'    => $serverDomain,
+            ],
+        ];
     }
 
     public function destroy(Product $product)
