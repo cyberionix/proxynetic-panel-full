@@ -6,6 +6,7 @@ use App\Models\Admin;
 use App\Models\Support;
 use App\Models\SupportAutoReply;
 use App\Models\SupportMessage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SupportAutoReplyService
@@ -24,7 +25,11 @@ class SupportAutoReplyService
 
             $support->loadMissing(['order', 'messages']);
 
-            $hasAdminReply = $support->messages->whereNotNull('admin_id')->isNotEmpty();
+            $hasAdminReply = $support->messages
+                ->where('is_auto_reply', false)
+                ->whereNotNull('admin_id')
+                ->isNotEmpty();
+
             $orderCategoryId = $support->order?->product_data['category']['id'] ?? null;
 
             $matchedRules = [];
@@ -53,15 +58,14 @@ class SupportAutoReplyService
 
             foreach ($rulesToSend as $rule) {
                 if ($rule->delay_minutes > 0) {
-                    $ruleId = $rule->id;
-                    $supportId = $support->id;
-                    dispatch(function () use ($ruleId, $supportId) {
-                        $r = SupportAutoReply::find($ruleId);
-                        $s = Support::withoutGlobalScope('for_user')->find($supportId);
-                        if ($r && $s) {
-                            SupportAutoReplyService::sendAutoReply($r, $s);
-                        }
-                    })->afterCommit()->delay(now()->addMinutes($rule->delay_minutes));
+                    DB::table('support_pending_auto_replies')->insert([
+                        'rule_id' => $rule->id,
+                        'support_id' => $support->id,
+                        'send_at' => now()->addMinutes($rule->delay_minutes),
+                        'sent' => false,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
                 } else {
                     static::sendAutoReply($rule, $support);
                 }
@@ -75,7 +79,47 @@ class SupportAutoReplyService
         }
     }
 
-    protected static function sendAutoReply(SupportAutoReply $rule, Support $support): void
+    public static function processPendingAutoReplies(): int
+    {
+        $sent = 0;
+        try {
+            $pending = DB::table('support_pending_auto_replies')
+                ->where('sent', false)
+                ->where('send_at', '<=', now())
+                ->orderBy('send_at')
+                ->limit(20)
+                ->get();
+
+            foreach ($pending as $item) {
+                try {
+                    $rule = SupportAutoReply::find($item->rule_id);
+                    $support = Support::withoutGlobalScope('for_user')->find($item->support_id);
+
+                    if ($rule && $support) {
+                        static::sendAutoReply($rule, $support);
+                        $sent++;
+                    }
+
+                    DB::table('support_pending_auto_replies')
+                        ->where('id', $item->id)
+                        ->update(['sent' => true, 'updated_at' => now()]);
+                } catch (\Throwable $e) {
+                    Log::error('AutoReply pending send hatası', [
+                        'pending_id' => $item->id,
+                        'exception' => $e->getMessage(),
+                    ]);
+                    DB::table('support_pending_auto_replies')
+                        ->where('id', $item->id)
+                        ->update(['sent' => true, 'updated_at' => now()]);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('AutoReply processPending hatası', ['exception' => $e->getMessage()]);
+        }
+        return $sent;
+    }
+
+    public static function sendAutoReply(SupportAutoReply $rule, Support $support): void
     {
         try {
             $support->loadMissing('user');

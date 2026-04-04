@@ -2,32 +2,19 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Appointment;
-use App\Models\User;
-use Carbon\Carbon;
+use App\Services\SupportAutoReplyService;
 use Illuminate\Console\Command;
 
 class PerMinuteJobs extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'app:per-minute-jobs';
+    protected $description = 'Dakikalık arka plan görevlerini çalıştırır';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Command description';
-
-    /**
-     * Execute the console command.
-     */
     public function handle()
     {
-
+        $sent = SupportAutoReplyService::processPendingAutoReplies();
+        if ($sent > 0) {
+            $this->info("Otomatik yanıt gönderildi: {$sent}");
+        }
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SmsLog;
 use App\Models\Support;
+use App\Services\SupportAutoReplyService;
 use App\Traits\AjaxResponses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,6 +19,7 @@ class SupportController extends Controller
 
     public function index()
     {
+        SupportAutoReplyService::processPendingAutoReplies();
         return view("admin.pages.supports.index");
     }
     public function ajax(Request $request)
@@ -136,10 +138,12 @@ class SupportController extends Controller
     }
     public function show(Support $support)
     {
+        SupportAutoReplyService::processPendingAutoReplies();
         return view("admin.pages.supports.show.index", compact("support"));
     }
     public function find(Support $support)
     {
+        SupportAutoReplyService::processPendingAutoReplies();
         $support->load("messages");
         return $this->successResponse("", ["data" => $support]);
     }

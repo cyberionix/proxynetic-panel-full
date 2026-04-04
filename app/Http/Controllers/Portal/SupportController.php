@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Portal\Support\StoreRequest;
 use App\Models\Support;
 use App\Models\SupportMessage;
+use App\Services\SupportAutoReplyService;
 use App\Traits\AjaxResponses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,6 +19,7 @@ class SupportController extends Controller
 
     public function index()
     {
+        SupportAutoReplyService::processPendingAutoReplies();
         return view("portal.pages.supports.index");
     }
 
@@ -116,11 +118,13 @@ class SupportController extends Controller
 
     public function show(Support $support)
     {
+        SupportAutoReplyService::processPendingAutoReplies();
         return view("portal.pages.supports.show.index", compact("support"));
     }
 
     public function find(Support $support)
     {
+        SupportAutoReplyService::processPendingAutoReplies();
         $support->load("messages");
         return $this->successResponse("", ["data" => $support]);
     }
