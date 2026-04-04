@@ -20,7 +20,8 @@ Route::middleware('basic.token')->group( function () {
     Route::get('/get-tunnel-details',[ApiController::class,'getTunnelDetails'])->name('api.get-tunnel-details');
     Route::get('/get-ip-history',[ApiController::class,'getIpHistory'])->name('api.get-ip-history');
     Route::post('/create-tunnel',[ApiController::class,'createTunnel'])->name('api.create-tunnel');
-
+    Route::post('/set-expiration-date-for-tunnel',[ApiController::class,'setExpirationDateForTunnel'])->name('api.set-expiration-date');
+    Route::post('/update-ip-change-link',[ApiController::class,'updateIpChangeLink'])->name('api.update-ip-change-link');
 });
 
 Route::post('/tunnel-manager',[ApiController::class,'proxyManagerActions'])->name('api.proxy-manager-actions');

@@ -441,6 +441,51 @@ class ApiController extends Controller
         $tunnel = json_decode(json_encode($tunnel['data'])) ?? [];
     }
 
+    public function setExpirationDateForTunnel(Request $request)
+    {
+        $tunnelId = $request->tunnel_id;
+        $dueDate = $request->due_date;
+
+        if (!$tunnelId || !$dueDate) {
+            return $this->errorResponse('tunnel_id ve due_date parametreleri gereklidir.');
+        }
+
+        $result = $this->localtonetService->setExpirationDateForTunnel($tunnelId, $dueDate);
+
+        if ($result && @$result['hasError'] === false) {
+            return [
+                'success' => true,
+                'message' => 'Süre başarıyla güncellendi.',
+                'data' => $result['result'] ?? null,
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => 'Süre güncellenirken hata oluştu.',
+            'errors' => $result['errors'] ?? [],
+        ];
+    }
+
+    public function updateIpChangeLink(Request $request)
+    {
+        $tunnelId = $request->tunnel_id;
+        $ipChangeLink = $request->ip_change_link;
+
+        if (!$tunnelId) {
+            return $this->errorResponse('tunnel_id parametresi gereklidir.');
+        }
+
+        return [
+            'success' => true,
+            'message' => 'IP change link güncellendi.',
+            'data' => [
+                'tunnel_id' => $tunnelId,
+                'ip_change_link' => $ipChangeLink,
+            ],
+        ];
+    }
+
     private function validateTokenId($id, $token)
     {
         $validate_token = base64_encode(base64_encode(sha1(md5(sha1(intval($id) * 2901 + 199 . 'NETPUS2020**asd')))));
