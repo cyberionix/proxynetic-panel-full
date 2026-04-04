@@ -433,6 +433,36 @@
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {{-- SMS Test Alanı --}}
+                                        <div class="separator separator-dashed my-5"></div>
+                                        <h6 class="fw-bold text-gray-700 mb-4"><i class="fa fa-vial me-2"></i>SMS Test</h6>
+                                        <div class="row">
+                                            <div class="col-md-5 mb-5">
+                                                <label class="form-label fw-semibold">Test Telefon Numarası</label>
+                                                <input type="text" id="smsTestNumber" class="form-control form-control-solid"
+                                                       placeholder="905xxxxxxxxx"/>
+                                                <div class="form-text text-gray-500">Ülke kodu ile birlikte (905...)</div>
+                                            </div>
+                                            <div class="col-md-5 mb-5">
+                                                <label class="form-label fw-semibold">Test Mesajı</label>
+                                                <input type="text" id="smsTestMessage" class="form-control form-control-solid"
+                                                       value="Bu bir test SMS mesajıdır." placeholder="Test mesajı"/>
+                                            </div>
+                                            <div class="col-md-2 mb-5 d-flex align-items-end gap-2">
+                                                <button type="button" class="btn btn-sm btn-light-info w-100" id="smsTestConnectionBtn">
+                                                    <i class="fa fa-plug me-1"></i>Bağlantı
+                                                </button>
+                                            </div>
+                                            <div class="col-12 mb-3">
+                                                <button type="button" class="btn btn-sm btn-light-success" id="smsTestSendBtn">
+                                                    <i class="fa fa-paper-plane me-1"></i>Test SMS Gönder
+                                                </button>
+                                            </div>
+                                            <div class="col-12">
+                                                <div id="smsTestResult" class="d-none"></div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -521,6 +551,35 @@
                                                     <input type="text" name="sms_mail[mailjet_apisecret]" class="form-control form-control-solid"
                                                            value="{{ $smsMailConfig['mailjet_apisecret'] }}" placeholder="Mailjet API Secret"/>
                                                 </div>
+                                            </div>
+                                        </div>
+
+                                        {{-- Mail Test Alanı --}}
+                                        <div class="separator separator-dashed my-5"></div>
+                                        <h6 class="fw-bold text-gray-700 mb-4"><i class="fa fa-vial me-2"></i>Mail Test</h6>
+                                        <div class="row">
+                                            <div class="col-md-5 mb-5">
+                                                <label class="form-label fw-semibold">Test E-posta Adresi</label>
+                                                <input type="email" id="mailTestAddress" class="form-control form-control-solid"
+                                                       placeholder="test@example.com"/>
+                                            </div>
+                                            <div class="col-md-5 mb-5">
+                                                <label class="form-label fw-semibold">Test Konusu</label>
+                                                <input type="text" id="mailTestSubject" class="form-control form-control-solid"
+                                                       value="Test E-postası" placeholder="E-posta konusu"/>
+                                            </div>
+                                            <div class="col-md-2 mb-5 d-flex align-items-end gap-2">
+                                                <button type="button" class="btn btn-sm btn-light-info w-100" id="mailTestConnectionBtn">
+                                                    <i class="fa fa-plug me-1"></i>Bağlantı
+                                                </button>
+                                            </div>
+                                            <div class="col-12 mb-3">
+                                                <button type="button" class="btn btn-sm btn-light-success" id="mailTestSendBtn">
+                                                    <i class="fa fa-paper-plane me-1"></i>Test Mail Gönder
+                                                </button>
+                                            </div>
+                                            <div class="col-12">
+                                                <div id="mailTestResult" class="d-none"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -635,6 +694,135 @@
                 var val = $(this).val();
                 $('#mailSmtpFields').toggleClass('d-none', val !== 'smtp');
                 $('#mailMailjetFields').toggleClass('d-none', val !== 'mailjet');
+            });
+
+            function showTestResult(container, success, message, details) {
+                var cls = success ? 'alert-success' : 'alert-danger';
+                var icon = success ? 'fa-check-circle' : 'fa-times-circle';
+                var html = '<div class="alert ' + cls + ' d-flex align-items-start py-3 px-4 mb-0">'
+                    + '<i class="fa ' + icon + ' me-3 mt-1"></i>'
+                    + '<div><strong>' + message + '</strong>';
+                if (details) {
+                    html += '<br><small class="text-muted">' + details + '</small>';
+                }
+                html += '</div></div>';
+                $(container).html(html).removeClass('d-none');
+            }
+
+            function collectSmsFormData() {
+                var form = $('#system_settings_sms_mail_tab form');
+                var data = {};
+                form.find('[name^="sms_mail"]').each(function(){
+                    var name = $(this).attr('name').replace('sms_mail[', '').replace(']', '');
+                    if ($(this).is(':checkbox')) {
+                        if ($(this).is(':checked')) data[name] = $(this).val();
+                    } else if ($(this).attr('type') === 'hidden' && $(this).attr('name').indexOf('sms_mail') >= 0) {
+                        if (!data.hasOwnProperty(name)) data[name] = $(this).val();
+                    } else {
+                        data[name] = $(this).val();
+                    }
+                });
+                return data;
+            }
+
+            $('#smsTestConnectionBtn').on('click', function(){
+                var btn = $(this);
+                btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i>Test...');
+                var formData = collectSmsFormData();
+                $.ajax({
+                    url: '{{ route("admin.testSmsConnection") }}',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: { _token: '{{ csrf_token() }}', config: formData },
+                    success: function(res){
+                        showTestResult('#smsTestResult', res.success, res.message, res.details || '');
+                    },
+                    error: function(xhr){
+                        var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Bağlantı hatası';
+                        showTestResult('#smsTestResult', false, msg, '');
+                    },
+                    complete: function(){
+                        btn.prop('disabled', false).html('<i class="fa fa-plug me-1"></i>Bağlantı');
+                    }
+                });
+            });
+
+            $('#smsTestSendBtn').on('click', function(){
+                var number = $('#smsTestNumber').val();
+                var message = $('#smsTestMessage').val();
+                if (!number) {
+                    showTestResult('#smsTestResult', false, 'Lütfen bir telefon numarası girin.', '');
+                    return;
+                }
+                var btn = $(this);
+                btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i>Gönderiliyor...');
+                var formData = collectSmsFormData();
+                $.ajax({
+                    url: '{{ route("admin.testSmsSend") }}',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: { _token: '{{ csrf_token() }}', config: formData, number: number, message: message },
+                    success: function(res){
+                        showTestResult('#smsTestResult', res.success, res.message, res.details || '');
+                    },
+                    error: function(xhr){
+                        var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Gönderim hatası';
+                        showTestResult('#smsTestResult', false, msg, '');
+                    },
+                    complete: function(){
+                        btn.prop('disabled', false).html('<i class="fa fa-paper-plane me-1"></i>Test SMS Gönder');
+                    }
+                });
+            });
+
+            $('#mailTestConnectionBtn').on('click', function(){
+                var btn = $(this);
+                btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i>Test...');
+                var formData = collectSmsFormData();
+                $.ajax({
+                    url: '{{ route("admin.testMailConnection") }}',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: { _token: '{{ csrf_token() }}', config: formData },
+                    success: function(res){
+                        showTestResult('#mailTestResult', res.success, res.message, res.details || '');
+                    },
+                    error: function(xhr){
+                        var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Bağlantı hatası';
+                        showTestResult('#mailTestResult', false, msg, '');
+                    },
+                    complete: function(){
+                        btn.prop('disabled', false).html('<i class="fa fa-plug me-1"></i>Bağlantı');
+                    }
+                });
+            });
+
+            $('#mailTestSendBtn').on('click', function(){
+                var email = $('#mailTestAddress').val();
+                var subject = $('#mailTestSubject').val();
+                if (!email) {
+                    showTestResult('#mailTestResult', false, 'Lütfen bir e-posta adresi girin.', '');
+                    return;
+                }
+                var btn = $(this);
+                btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i>Gönderiliyor...');
+                var formData = collectSmsFormData();
+                $.ajax({
+                    url: '{{ route("admin.testMailSend") }}',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: { _token: '{{ csrf_token() }}', config: formData, email: email, subject: subject },
+                    success: function(res){
+                        showTestResult('#mailTestResult', res.success, res.message, res.details || '');
+                    },
+                    error: function(xhr){
+                        var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Gönderim hatası';
+                        showTestResult('#mailTestResult', false, msg, '');
+                    },
+                    complete: function(){
+                        btn.prop('disabled', false).html('<i class="fa fa-paper-plane me-1"></i>Test Mail Gönder');
+                    }
+                });
             });
 
             $(document).on("select2:select", '.productSelection', function (e) {

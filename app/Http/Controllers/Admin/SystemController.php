@@ -447,4 +447,265 @@ class SystemController extends Controller
 
         return $defaults;
     }
+
+    public function testSmsConnection(Request $request)
+    {
+        $cfg = $request->input('config', []);
+        $provider = $cfg['sms_provider'] ?? 'iletimerkezi';
+
+        try {
+            if ($provider === 'iletimerkezi') {
+                $key = $cfg['iletimerkezi_key'] ?? '';
+                $secret = $cfg['iletimerkezi_secret'] ?? '';
+                if (empty($key) || empty($secret)) {
+                    return $this->errorResponse('API Key ve Secret alanları boş olamaz.');
+                }
+                $response = \Illuminate\Support\Facades\Http::timeout(10)
+                    ->post('https://api.iletimerkezi.com/v1/get-balance/json', [
+                        'request' => [
+                            'authentication' => ['key' => $key, 'hash' => $secret],
+                        ],
+                    ]);
+                $data = $response->json();
+                if (isset($data['response']['status']['code']) && $data['response']['status']['code'] == 200) {
+                    $balance = $data['response']['balance']['sms'] ?? '?';
+                    return $this->successResponse('Bağlantı başarılı!', ['details' => "Kalan SMS kredisi: {$balance}"]);
+                }
+                $msg = $data['response']['status']['message'] ?? 'Bilinmeyen hata';
+                return $this->errorResponse('Bağlantı başarısız: ' . $msg);
+            }
+
+            if ($provider === 'mutlucell') {
+                $username = $cfg['mutlucell_username'] ?? '';
+                $password = $cfg['mutlucell_password'] ?? '';
+                if (empty($username) || empty($password)) {
+                    return $this->errorResponse('Kullanıcı adı ve şifre alanları boş olamaz.');
+                }
+                $response = \Illuminate\Support\Facades\Http::timeout(10)
+                    ->get('https://smsgw.mutlucell.com/smsgw-ws/sndinfosms', [
+                        'ka' => $username,
+                        'pwd' => $password,
+                        'org' => $cfg['mutlucell_sender'] ?? '',
+                        'cmd' => 'KREDI',
+                    ]);
+                $body = trim($response->body());
+                if (is_numeric($body) && (float) $body >= 0) {
+                    return $this->successResponse('Bağlantı başarılı!', ['details' => "Kalan SMS kredisi: {$body}"]);
+                }
+                return $this->errorResponse('Bağlantı başarısız: ' . $body);
+            }
+
+            return $this->errorResponse('Geçersiz sağlayıcı.');
+        } catch (\Throwable $e) {
+            return $this->errorResponse('Bağlantı hatası: ' . $e->getMessage());
+        }
+    }
+
+    public function testSmsSend(Request $request)
+    {
+        $cfg = $request->input('config', []);
+        $number = $request->input('number');
+        $message = $request->input('message', 'Test SMS');
+        $provider = $cfg['sms_provider'] ?? 'iletimerkezi';
+
+        if (empty($number)) {
+            return $this->errorResponse('Telefon numarası gereklidir.');
+        }
+
+        try {
+            if ($provider === 'iletimerkezi') {
+                $key = $cfg['iletimerkezi_key'] ?? '';
+                $secret = $cfg['iletimerkezi_secret'] ?? '';
+                $origin = $cfg['iletimerkezi_origin'] ?? '';
+                if (empty($key) || empty($secret)) {
+                    return $this->errorResponse('API Key ve Secret alanları boş olamaz.');
+                }
+                $data = [
+                    'request' => [
+                        'authentication' => ['key' => $key, 'hash' => $secret],
+                        'order' => [
+                            'sender' => $origin,
+                            'sendDateTime' => '',
+                            'iys' => 0,
+                            'message' => [
+                                'text' => $message,
+                                'receipents' => ['number' => [$number]],
+                            ],
+                        ],
+                    ],
+                ];
+                $response = \Illuminate\Support\Facades\Http::timeout(15)
+                    ->post('https://api.iletimerkezi.com/v1/send-sms/json', $data);
+                $result = $response->json();
+                if (isset($result['response']['status']['code']) && $result['response']['status']['code'] == 200) {
+                    $orderId = $result['response']['order']['id'] ?? '';
+                    return $this->successResponse('SMS başarıyla gönderildi!', ['details' => "Sipariş No: {$orderId}"]);
+                }
+                $msg = $result['response']['status']['message'] ?? 'Bilinmeyen hata';
+                return $this->errorResponse('SMS gönderilemedi: ' . $msg);
+            }
+
+            if ($provider === 'mutlucell') {
+                $username = $cfg['mutlucell_username'] ?? '';
+                $password = $cfg['mutlucell_password'] ?? '';
+                $sender = $cfg['mutlucell_sender'] ?? '';
+                if (empty($username) || empty($password)) {
+                    return $this->errorResponse('Kullanıcı adı ve şifre alanları boş olamaz.');
+                }
+                $response = \Illuminate\Support\Facades\Http::timeout(15)
+                    ->get('https://smsgw.mutlucell.com/smsgw-ws/sndinfosms', [
+                        'ka' => $username,
+                        'pwd' => $password,
+                        'org' => $sender,
+                        'msg' => $message,
+                        'no' => $number,
+                    ]);
+                $body = trim($response->body());
+                if (is_numeric($body) && (int) $body > 0) {
+                    return $this->successResponse('SMS başarıyla gönderildi!', ['details' => "Mesaj ID: {$body}"]);
+                }
+                return $this->errorResponse('SMS gönderilemedi: ' . $body);
+            }
+
+            return $this->errorResponse('Geçersiz sağlayıcı.');
+        } catch (\Throwable $e) {
+            return $this->errorResponse('SMS gönderim hatası: ' . $e->getMessage());
+        }
+    }
+
+    public function testMailConnection(Request $request)
+    {
+        $cfg = $request->input('config', []);
+        $provider = $cfg['mail_provider'] ?? 'smtp';
+
+        try {
+            if ($provider === 'smtp') {
+                $host = $cfg['smtp_host'] ?? '';
+                $port = (int) ($cfg['smtp_port'] ?? 587);
+                $encryption = $cfg['smtp_encryption'] ?? 'tls';
+                $username = $cfg['smtp_username'] ?? '';
+                $password = $cfg['smtp_password'] ?? '';
+
+                if (empty($host)) {
+                    return $this->errorResponse('SMTP Host alanı boş olamaz.');
+                }
+
+                $transport = new \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport(
+                    $host,
+                    $port,
+                    $encryption === 'tls' || $encryption === 'ssl'
+                );
+                if (!empty($username)) {
+                    $transport->setUsername($username);
+                }
+                if (!empty($password)) {
+                    $transport->setPassword($password);
+                }
+                $transport->start();
+                $transport->stop();
+
+                return $this->successResponse('SMTP bağlantısı başarılı!', ['details' => "{$host}:{$port} ({$encryption})"]);
+            }
+
+            if ($provider === 'mailjet') {
+                $apiKey = $cfg['mailjet_apikey'] ?? '';
+                $apiSecret = $cfg['mailjet_apisecret'] ?? '';
+                if (empty($apiKey) || empty($apiSecret)) {
+                    return $this->errorResponse('Mailjet API Key ve Secret alanları boş olamaz.');
+                }
+                $response = \Illuminate\Support\Facades\Http::timeout(10)
+                    ->withBasicAuth($apiKey, $apiSecret)
+                    ->get('https://api.mailjet.com/v3/REST/apikey');
+                if ($response->successful()) {
+                    return $this->successResponse('Mailjet bağlantısı başarılı!', ['details' => 'API kimlik doğrulaması geçerli.']);
+                }
+                return $this->errorResponse('Mailjet bağlantısı başarısız: HTTP ' . $response->status());
+            }
+
+            return $this->errorResponse('Geçersiz sağlayıcı.');
+        } catch (\Throwable $e) {
+            return $this->errorResponse('Bağlantı hatası: ' . $e->getMessage());
+        }
+    }
+
+    public function testMailSend(Request $request)
+    {
+        $cfg = $request->input('config', []);
+        $toEmail = $request->input('email');
+        $subject = $request->input('subject', 'Test E-postası');
+        $provider = $cfg['mail_provider'] ?? 'smtp';
+        $fromAddress = $cfg['mail_from_address'] ?? config('mail.from.address');
+        $fromName = $cfg['mail_from_name'] ?? config('mail.from.name');
+
+        if (empty($toEmail)) {
+            return $this->errorResponse('E-posta adresi gereklidir.');
+        }
+
+        try {
+            if ($provider === 'smtp') {
+                $host = $cfg['smtp_host'] ?? '';
+                $port = (int) ($cfg['smtp_port'] ?? 587);
+                $encryption = $cfg['smtp_encryption'] ?? 'tls';
+                $username = $cfg['smtp_username'] ?? '';
+                $password = $cfg['smtp_password'] ?? '';
+
+                $transport = new \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport(
+                    $host,
+                    $port,
+                    $encryption === 'tls' || $encryption === 'ssl'
+                );
+                if (!empty($username)) {
+                    $transport->setUsername($username);
+                }
+                if (!empty($password)) {
+                    $transport->setPassword($password);
+                }
+
+                $email = (new \Symfony\Component\Mime\Email())
+                    ->from(new \Symfony\Component\Mime\Address($fromAddress, $fromName))
+                    ->to($toEmail)
+                    ->subject($subject)
+                    ->html('<div style="font-family:Arial,sans-serif;padding:20px;"><h2>Test E-postası</h2><p>Bu bir test e-postasıdır. Mail ayarlarınız doğru çalışıyor.</p><p style="color:#888;font-size:12px;">Gönderim zamanı: ' . now()->format('d.m.Y H:i:s') . '</p></div>');
+
+                $mailer = new \Symfony\Component\Mailer\Mailer($transport);
+                $mailer->send($email);
+
+                return $this->successResponse('Test e-postası başarıyla gönderildi!', ['details' => "Alıcı: {$toEmail}"]);
+            }
+
+            if ($provider === 'mailjet') {
+                $apiKey = $cfg['mailjet_apikey'] ?? '';
+                $apiSecret = $cfg['mailjet_apisecret'] ?? '';
+                if (empty($apiKey) || empty($apiSecret)) {
+                    return $this->errorResponse('Mailjet API Key ve Secret alanları boş olamaz.');
+                }
+
+                $response = \Illuminate\Support\Facades\Http::timeout(15)
+                    ->withBasicAuth($apiKey, $apiSecret)
+                    ->post('https://api.mailjet.com/v3.1/send', [
+                        'Messages' => [[
+                            'From' => ['Email' => $fromAddress, 'Name' => $fromName],
+                            'To' => [['Email' => $toEmail]],
+                            'Subject' => $subject,
+                            'HTMLPart' => '<div style="font-family:Arial,sans-serif;padding:20px;"><h2>Test E-postası</h2><p>Bu bir test e-postasıdır. Mailjet ayarlarınız doğru çalışıyor.</p><p style="color:#888;font-size:12px;">Gönderim zamanı: ' . now()->format('d.m.Y H:i:s') . '</p></div>',
+                        ]],
+                    ]);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $status = $data['Messages'][0]['Status'] ?? 'unknown';
+                    if ($status === 'success') {
+                        return $this->successResponse('Test e-postası başarıyla gönderildi!', ['details' => "Alıcı: {$toEmail}"]);
+                    }
+                    $errors = json_encode($data['Messages'][0]['Errors'] ?? []);
+                    return $this->errorResponse('Mailjet gönderim hatası: ' . $errors);
+                }
+                return $this->errorResponse('Mailjet API hatası: HTTP ' . $response->status());
+            }
+
+            return $this->errorResponse('Geçersiz sağlayıcı.');
+        } catch (\Throwable $e) {
+            return $this->errorResponse('Mail gönderim hatası: ' . $e->getMessage());
+        }
+    }
 }

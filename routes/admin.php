@@ -57,6 +57,10 @@ Route::group(['prefix' => 'netAdmin', 'as' => 'admin.'], function () {
         Route::get('/system-status-ajax', [SystemController::class, 'systemStatusAjax'])->name('systemStatusAjax');
         Route::post('/system-process-start', [SystemController::class, 'startProcess'])->name('systemProcessStart');
         Route::post('/system-process-stop', [SystemController::class, 'stopProcess'])->name('systemProcessStop');
+        Route::post('/test-sms-connection', [SystemController::class, 'testSmsConnection'])->name('testSmsConnection');
+        Route::post('/test-sms-send', [SystemController::class, 'testSmsSend'])->name('testSmsSend');
+        Route::post('/test-mail-connection', [SystemController::class, 'testMailConnection'])->name('testMailConnection');
+        Route::post('/test-mail-send', [SystemController::class, 'testMailSend'])->name('testMailSend');
         Route::get('/test', function (\App\Library\EInvoiceManager $EInvoiceManager, \Illuminate\Http\Request $request) {
 
             $ipAddress = $request->ip();
