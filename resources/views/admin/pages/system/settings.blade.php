@@ -256,9 +256,9 @@
                     @endif
                 </div>
 
-                <form action="{{ route('admin.updateSettings') }}" method="POST">
-                    @csrf
-                    <div class="tab-pane fade" id="system_settings_general_tab" role="tabpanel">
+                <div class="tab-pane fade" id="system_settings_general_tab" role="tabpanel">
+                    <form action="{{ route('admin.updateSettings') }}" method="POST">
+                        @csrf
                         <div class="w-50 mx-auto row">
                             <div class="fv-row mb-7">
                                 <label class="required form-label mb-3">ACL List</label>
@@ -307,9 +307,12 @@
                             </div>
                             <button type="submit" class="btn btn-success">Değişiklikleri Kaydet</button>
                         </div>
-                    </div>
+                    </form>
+                </div>
 
-                    <div class="tab-pane fade" id="system_settings_localtonet_tab" role="tabpanel">
+                <div class="tab-pane fade" id="system_settings_localtonet_tab" role="tabpanel">
+                    <form action="{{ route('admin.updateSettings') }}" method="POST">
+                        @csrf
                         <div class="w-50 mx-auto row">
                             <div class="col-12 mb-7">
                                 <label class="form-label fw-semibold">HTTPS SSL doğrulama (cURL verify)</label>
@@ -328,10 +331,13 @@
                             </div>
                             <button type="submit" class="btn btn-success">Değişiklikleri Kaydet</button>
                         </div>
-                    </div>
+                    </form>
+                </div>
 
-                    {{-- SMS ve Mail Ayarları Tab --}}
-                    <div class="tab-pane fade" id="system_settings_sms_mail_tab" role="tabpanel">
+                {{-- SMS ve Mail Ayarları Tab --}}
+                <div class="tab-pane fade" id="system_settings_sms_mail_tab" role="tabpanel">
+                    <form action="{{ route('admin.updateSettings') }}" method="POST">
+                        @csrf
                         <div class="w-75 mx-auto">
                             {{-- SMS Ayarları --}}
                             <div class="card card-flush border border-dashed mb-8">
@@ -525,8 +531,8 @@
                                 <i class="fa fa-save me-2"></i>Değişiklikleri Kaydet
                             </button>
                         </div>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
             <!--end::Tab content-->
         </div>
