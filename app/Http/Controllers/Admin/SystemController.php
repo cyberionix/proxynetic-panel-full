@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\NotificationTemplate;
 use App\Models\Order;
 use App\Models\Price;
 use App\Models\Product;
@@ -109,7 +110,9 @@ class SystemController extends Controller
 
         $smsMailConfig = $this->getSmsMailConfig();
 
-        return view('admin.pages.system.settings', compact('urls', 'test_product', 'test_product_price', 'localtonetHttpVerify', 'systemStatus', 'smsMailConfig'));
+        $notificationTemplates = NotificationTemplate::orderBy('sort_order')->get()->groupBy('category');
+
+        return view('admin.pages.system.settings', compact('urls', 'test_product', 'test_product_price', 'localtonetHttpVerify', 'systemStatus', 'smsMailConfig', 'notificationTemplates'));
     }
 
     public function systemStatusAjax()
@@ -717,5 +720,39 @@ class SystemController extends Controller
         } catch (\Throwable $e) {
             return $this->errorResponse('Mail gönderim hatası: ' . $e->getMessage());
         }
+    }
+
+    public function getNotificationTemplate(Request $request, $id)
+    {
+        $template = NotificationTemplate::findOrFail($id);
+        return response()->json([
+            'success' => true,
+            'data' => $template,
+        ]);
+    }
+
+    public function updateNotificationTemplate(Request $request, $id)
+    {
+        $template = NotificationTemplate::findOrFail($id);
+
+        $template->update([
+            'sms_enabled' => $request->boolean('sms_enabled'),
+            'mail_enabled' => $request->boolean('mail_enabled'),
+            'sms_content' => $request->input('sms_content', ''),
+            'mail_subject' => $request->input('mail_subject', ''),
+            'mail_content' => $request->input('mail_content', ''),
+            'is_active' => $request->boolean('is_active'),
+        ]);
+
+        return $this->successResponse('Şablon başarıyla güncellendi.');
+    }
+
+    public function toggleNotificationTemplate(Request $request, $id)
+    {
+        $template = NotificationTemplate::findOrFail($id);
+        $template->update(['is_active' => !$template->is_active]);
+
+        $status = $template->is_active ? 'aktif' : 'pasif';
+        return $this->successResponse("Şablon {$status} edildi.");
     }
 }

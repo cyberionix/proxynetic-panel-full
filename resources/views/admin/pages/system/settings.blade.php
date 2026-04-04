@@ -62,6 +62,11 @@
                         <i class="fa fa-envelope me-2"></i>SMS ve Mail
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link pb-4" data-bs-toggle="tab" href="#system_settings_templates_tab">
+                        <i class="fa fa-file-alt me-2"></i>SMS ve Mail Şablonları
+                    </a>
+                </li>
             </ul>
 
             <div class="tab-content" id="systemSettingsTabs">
@@ -332,6 +337,106 @@
                             <button type="submit" class="btn btn-success">Değişiklikleri Kaydet</button>
                         </div>
                     </form>
+                </div>
+
+                {{-- SMS ve Mail Şablonları Tab --}}
+                <div class="tab-pane fade" id="system_settings_templates_tab" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-6">
+                        <div>
+                            <h3 class="fw-bold mb-1">Bildirim Şablonları</h3>
+                            <span class="text-muted fs-7">SMS ve e-posta bildirim içeriklerini özelleştirin</span>
+                        </div>
+                    </div>
+
+                    @if(isset($notificationTemplates) && $notificationTemplates->count() > 0)
+                        @foreach(['genel', 'fatura', 'siparis', 'destek'] as $categoryKey)
+                            @if(isset($notificationTemplates[$categoryKey]))
+                                @php
+                                    $catLabel = \App\Models\NotificationTemplate::getCategoryLabel($categoryKey);
+                                    $catIcon = \App\Models\NotificationTemplate::getCategoryIcon($categoryKey);
+                                    $catColor = \App\Models\NotificationTemplate::getCategoryColor($categoryKey);
+                                    $templates = $notificationTemplates[$categoryKey];
+                                @endphp
+                                <div class="card card-flush border border-dashed mb-5">
+                                    <div class="card-header pt-4 pb-3 min-h-auto cursor-pointer" data-bs-toggle="collapse" data-bs-target="#templateCategory_{{ $categoryKey }}">
+                                        <div class="card-title d-flex align-items-center gap-3">
+                                            <div class="d-flex align-items-center justify-content-center rounded-circle bg-light-{{ $catColor }}" style="width:38px;height:38px;">
+                                                <i class="fa {{ $catIcon }} fs-5 text-{{ $catColor }}"></i>
+                                            </div>
+                                            <div>
+                                                <span class="fw-bold fs-5 d-block">{{ $catLabel }}</span>
+                                                <span class="text-muted fs-8">{{ $templates->count() }} şablon</span>
+                                            </div>
+                                        </div>
+                                        <div class="card-toolbar">
+                                            <i class="fa fa-chevron-down text-muted fs-7"></i>
+                                        </div>
+                                    </div>
+                                    <div class="collapse {{ $categoryKey === 'genel' ? 'show' : '' }}" id="templateCategory_{{ $categoryKey }}">
+                                        <div class="card-body pt-0">
+                                            <div class="table-responsive">
+                                                <table class="table table-row-bordered table-row-gray-200 align-middle fs-7 gy-3 mb-0">
+                                                    <thead>
+                                                        <tr class="text-muted fw-semibold">
+                                                            <th>Şablon</th>
+                                                            <th class="text-center" style="width:80px">SMS</th>
+                                                            <th class="text-center" style="width:80px">E-Posta</th>
+                                                            <th class="text-center" style="width:80px">Durum</th>
+                                                            <th class="text-end" style="width:80px">İşlem</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($templates as $tpl)
+                                                        <tr>
+                                                            <td>
+                                                                <span class="fw-semibold">{{ $tpl->title }}</span>
+                                                                <span class="text-muted fs-8 d-block">{{ $tpl->key }}</span>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                @if($tpl->sms_enabled)
+                                                                    <span class="badge badge-light-success">Aktif</span>
+                                                                @else
+                                                                    <span class="badge badge-light-danger">Pasif</span>
+                                                                @endif
+                                                            </td>
+                                                            <td class="text-center">
+                                                                @if($tpl->mail_enabled)
+                                                                    <span class="badge badge-light-success">Aktif</span>
+                                                                @else
+                                                                    <span class="badge badge-light-danger">Pasif</span>
+                                                                @endif
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check form-switch form-check-custom form-check-solid justify-content-center">
+                                                                    <input class="form-check-input templateToggle" type="checkbox"
+                                                                           data-id="{{ $tpl->id }}" {{ $tpl->is_active ? 'checked' : '' }}/>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-end">
+                                                                <button type="button" class="btn btn-sm btn-icon btn-light-primary templateEditBtn"
+                                                                        data-id="{{ $tpl->id }}">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
+                    @else
+                        <div class="notice d-flex bg-light-warning rounded border-warning border border-dashed p-5">
+                            <i class="fa fa-exclamation-triangle fs-2 text-warning me-4"></i>
+                            <div>
+                                <h5 class="fw-bold mb-1">Şablon bulunamadı</h5>
+                                <p class="text-muted fs-7 mb-0">Bildirim şablonları henüz oluşturulmamış. Lütfen veritabanı seeder'ını çalıştırın.</p>
+                            </div>
+                        </div>
+                    @endif
                 </div>
 
                 {{-- SMS ve Mail Ayarları Tab --}}
@@ -615,6 +720,92 @@
     </div>
     <!--end::Card-->
 
+    {{-- Template Edit Modal --}}
+    <div class="modal fade" id="templateEditModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="templateEditTitle">Şablon Düzenle</h2>
+                    <div class="btn btn-sm btn-icon btn-active-color-primary" data-bs-dismiss="modal">
+                        <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                    </div>
+                </div>
+                <div class="modal-body py-5 px-8">
+                    <form id="templateEditForm">
+                        @csrf
+                        <input type="hidden" id="templateEditId" name="id"/>
+
+                        {{-- Variables Info --}}
+                        <div class="notice d-flex bg-light-info rounded border-info border border-dashed p-4 mb-5">
+                            <i class="fa fa-info-circle fs-3 text-info me-3 mt-1"></i>
+                            <div>
+                                <span class="fw-bold fs-7 d-block mb-1">Kullanılabilir Değişkenler</span>
+                                <div id="templateVariablesList" class="d-flex flex-wrap gap-2"></div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            {{-- Durum ve Kanallar --}}
+                            <div class="col-12 mb-5">
+                                <div class="d-flex gap-6">
+                                    <div class="form-check form-switch form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="checkbox" name="is_active" id="tplIsActive" value="1"/>
+                                        <label class="form-check-label fw-semibold" for="tplIsActive">Şablon Aktif</label>
+                                    </div>
+                                    <div class="form-check form-switch form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="checkbox" name="sms_enabled" id="tplSmsEnabled" value="1"/>
+                                        <label class="form-check-label fw-semibold" for="tplSmsEnabled">SMS Gönderimi</label>
+                                    </div>
+                                    <div class="form-check form-switch form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="checkbox" name="mail_enabled" id="tplMailEnabled" value="1"/>
+                                        <label class="form-check-label fw-semibold" for="tplMailEnabled">E-Posta Gönderimi</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- SMS İçeriği --}}
+                            <div class="col-12 mb-5">
+                                <label class="form-label fw-semibold">
+                                    <i class="fa fa-sms text-success me-1"></i>SMS İçeriği
+                                </label>
+                                <textarea name="sms_content" id="tplSmsContent" class="form-control form-control-solid" rows="3"
+                                          placeholder="SMS mesaj içeriği..."></textarea>
+                                <div class="form-text text-gray-500">Değişkenleri çift süslü parantez ile kullanın: <code>{<!-- -->{degisken_adi}<!-- -->}</code></div>
+                            </div>
+
+                            {{-- Mail Konu --}}
+                            <div class="col-12 mb-5">
+                                <label class="form-label fw-semibold">
+                                    <i class="fa fa-at text-primary me-1"></i>E-Posta Konusu
+                                </label>
+                                <input type="text" name="mail_subject" id="tplMailSubject" class="form-control form-control-solid"
+                                       placeholder="E-posta konu satırı..."/>
+                            </div>
+
+                            {{-- Mail İçeriği (TinyMCE) --}}
+                            <div class="col-12 mb-5">
+                                <label class="form-label fw-semibold">
+                                    <i class="fa fa-code text-primary me-1"></i>E-Posta İçeriği (HTML)
+                                </label>
+                                <textarea name="mail_content" id="tplMailContent" class="form-control" rows="12"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-3 pt-3">
+                            <button type="reset" class="btn btn-light" data-bs-dismiss="modal">İptal</button>
+                            <button type="submit" class="btn btn-primary" id="templateSaveBtn">
+                                <span class="indicator-label"><i class="fa fa-save me-1"></i>Kaydet</span>
+                                <span class="indicator-progress">Kaydediliyor...
+                                    <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
+                                </span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!--begin::Modals-->
     <div class="modal fade" id="primaryGroupModal" tabindex="-1" aria-hidden="true">
         <!--begin::Modal dialog-->
@@ -689,8 +880,162 @@
     <!--end::Modals-->
 @endsection
 @section("js")
+    <script src="{{ assetAdmin('plugins/custom/tinymce/tinymce.bundle.js') }}"></script>
     <script>
         $(document).ready(function(){
+            // === Notification Templates ===
+            var tplEditor = null;
+
+            function initTinyMCE() {
+                if (tplEditor) {
+                    tplEditor.destroy();
+                    tplEditor = null;
+                }
+                tinymce.init({
+                    selector: '#tplMailContent',
+                    height: 350,
+                    menubar: true,
+                    plugins: 'code table lists link image preview fullscreen',
+                    toolbar: 'undo redo | blocks | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image table | code fullscreen preview',
+                    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
+                    branding: false,
+                    promotion: false,
+                    setup: function(editor) {
+                        tplEditor = editor;
+                    }
+                });
+            }
+
+            $(document).on('click', '.templateEditBtn', function(){
+                var id = $(this).data('id');
+                $('#templateEditForm')[0].reset();
+
+                $.ajax({
+                    url: '/netAdmin/notification-template/' + id,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(res) {
+                        if (res.success) {
+                            var d = res.data;
+                            $('#templateEditId').val(d.id);
+                            $('#templateEditTitle').text('Şablon Düzenle: ' + d.title);
+                            $('#tplIsActive').prop('checked', d.is_active);
+                            $('#tplSmsEnabled').prop('checked', d.sms_enabled);
+                            $('#tplMailEnabled').prop('checked', d.mail_enabled);
+                            $('#tplSmsContent').val(d.sms_content || '');
+                            $('#tplMailSubject').val(d.mail_subject || '');
+
+                            var varsHtml = '';
+                            if (d.variables && d.variables.length > 0) {
+                                d.variables.forEach(function(v) {
+                                    varsHtml += '<span class="badge badge-light-primary cursor-pointer templateVarBadge" data-var="{{' + v + '}}" title="Kopyalamak için tıklayın">{{' + v + '}}</span>';
+                                });
+                            } else {
+                                varsHtml = '<span class="text-muted fs-8">Bu şablon için değişken tanımlanmamış</span>';
+                            }
+                            $('#templateVariablesList').html(varsHtml);
+
+                            $('#templateEditModal').modal('show');
+
+                            setTimeout(function(){
+                                initTinyMCE();
+                                setTimeout(function(){
+                                    if (tplEditor) {
+                                        tplEditor.setContent(d.mail_content || '');
+                                    }
+                                }, 300);
+                            }, 200);
+                        }
+                    },
+                    error: function() {
+                        toastr.error('Şablon yüklenirken hata oluştu.');
+                    }
+                });
+            });
+
+            $(document).on('click', '.templateVarBadge', function(){
+                var varText = $(this).data('var');
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(varText);
+                    toastr.info(varText + ' kopyalandı');
+                }
+            });
+
+            $('#templateEditForm').on('submit', function(e){
+                e.preventDefault();
+                var id = $('#templateEditId').val();
+                var btn = $('#templateSaveBtn');
+
+                if (tplEditor) {
+                    tplEditor.save();
+                }
+
+                var formData = {
+                    _token: '{{ csrf_token() }}',
+                    is_active: $('#tplIsActive').is(':checked') ? 1 : 0,
+                    sms_enabled: $('#tplSmsEnabled').is(':checked') ? 1 : 0,
+                    mail_enabled: $('#tplMailEnabled').is(':checked') ? 1 : 0,
+                    sms_content: $('#tplSmsContent').val(),
+                    mail_subject: $('#tplMailSubject').val(),
+                    mail_content: $('#tplMailContent').val(),
+                };
+
+                btn.attr('data-kt-indicator', 'on').prop('disabled', true);
+
+                $.ajax({
+                    url: '/netAdmin/notification-template/' + id,
+                    type: 'POST',
+                    dataType: 'json',
+                    data: formData,
+                    success: function(res) {
+                        if (res.success) {
+                            toastr.success(res.message);
+                            $('#templateEditModal').modal('hide');
+                            setTimeout(function(){ window.location.reload(); }, 800);
+                        } else {
+                            toastr.error(res.message || 'Hata oluştu');
+                        }
+                    },
+                    error: function(xhr) {
+                        toastr.error(xhr.responseJSON?.message || 'Kaydetme hatası');
+                    },
+                    complete: function() {
+                        btn.removeAttr('data-kt-indicator').prop('disabled', false);
+                    }
+                });
+            });
+
+            $(document).on('change', '.templateToggle', function(){
+                var id = $(this).data('id');
+                var toggle = $(this);
+                $.ajax({
+                    url: '/netAdmin/notification-template/' + id + '/toggle',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: { _token: '{{ csrf_token() }}' },
+                    success: function(res) {
+                        if (res.success) {
+                            toastr.success(res.message);
+                        } else {
+                            toggle.prop('checked', !toggle.is(':checked'));
+                            toastr.error(res.message || 'Hata oluştu');
+                        }
+                    },
+                    error: function() {
+                        toggle.prop('checked', !toggle.is(':checked'));
+                        toastr.error('İşlem sırasında hata oluştu');
+                    }
+                });
+            });
+
+            $('#templateEditModal').on('hidden.bs.modal', function(){
+                if (tplEditor) {
+                    tplEditor.destroy();
+                    tplEditor = null;
+                }
+            });
+
+            // === Existing System Settings JS ===
             var $ltHidden = $("#localtonetHttpVerifyHidden");
             var $ltSwitch = $("#localtonetHttpVerifySwitch");
             function syncLocaltonetVerifyHidden() {

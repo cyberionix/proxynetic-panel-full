@@ -61,6 +61,9 @@ Route::group(['prefix' => 'netAdmin', 'as' => 'admin.'], function () {
         Route::post('/test-sms-send', [SystemController::class, 'testSmsSend'])->name('testSmsSend');
         Route::post('/test-mail-connection', [SystemController::class, 'testMailConnection'])->name('testMailConnection');
         Route::post('/test-mail-send', [SystemController::class, 'testMailSend'])->name('testMailSend');
+        Route::get('/notification-template/{id}', [SystemController::class, 'getNotificationTemplate'])->name('getNotificationTemplate');
+        Route::post('/notification-template/{id}', [SystemController::class, 'updateNotificationTemplate'])->name('updateNotificationTemplate');
+        Route::post('/notification-template/{id}/toggle', [SystemController::class, 'toggleNotificationTemplate'])->name('toggleNotificationTemplate');
         Route::get('/test', function (\App\Library\EInvoiceManager $EInvoiceManager, \Illuminate\Http\Request $request) {
 
             $ipAddress = $request->ip();
