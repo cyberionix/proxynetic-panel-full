@@ -18,44 +18,75 @@ class SystemController extends Controller
 {
     use AjaxResponses;
 
-    private static function pidFilePath(string $name): string
+    private static function isSchedulerRunning(): bool
     {
-        return storage_path("framework/{$name}.pid");
+        $heartbeat = storage_path('framework/scheduler-heartbeat');
+        if (file_exists($heartbeat)) {
+            $lastRun = (int) file_get_contents($heartbeat);
+            if ($lastRun > 0 && (time() - $lastRun) < 180) {
+                return true;
+            }
+        }
+
+        $scheduleFiles = glob(storage_path('framework/schedule-*'));
+        if (!empty($scheduleFiles)) {
+            $latestFile = end($scheduleFiles);
+            $mtime = filemtime($latestFile);
+            if ($mtime && (time() - $mtime) < 180) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    private static function isProcessRunning(string $name): bool
+    private static function getSchedulerLastRun(): ?string
     {
-        $pidFile = static::pidFilePath($name);
-        if (!file_exists($pidFile)) {
-            return false;
-        }
-        $pid = (int) trim(file_get_contents($pidFile));
-        if ($pid <= 0) {
-            return false;
+        $heartbeat = storage_path('framework/scheduler-heartbeat');
+        if (file_exists($heartbeat)) {
+            $ts = (int) file_get_contents($heartbeat);
+            if ($ts > 0) {
+                return date('d.m.Y H:i:s', $ts);
+            }
         }
 
+        $scheduleFiles = glob(storage_path('framework/schedule-*'));
+        if (!empty($scheduleFiles)) {
+            $latestFile = end($scheduleFiles);
+            $mtime = filemtime($latestFile);
+            if ($mtime) {
+                return date('d.m.Y H:i:s', $mtime);
+            }
+        }
+
+        return null;
+    }
+
+    private static function isQueueWorkerRunning(): bool
+    {
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             $output = [];
-            exec("tasklist /FI \"PID eq {$pid}\" /NH 2>NUL", $output);
+            exec('wmic process where "CommandLine like \'%queue:work%\' and not CommandLine like \'%wmic%\'" get ProcessId /format:list 2>NUL', $output);
             foreach ($output as $line) {
-                if (strpos($line, (string) $pid) !== false && stripos($line, 'INFO:') === false) {
+                if (preg_match('/ProcessId=(\d+)/', $line, $m)) {
                     return true;
                 }
             }
             return false;
         }
 
-        return posix_kill($pid, 0);
-    }
-
-    private static function getProcessPid(string $name): ?int
-    {
-        $pidFile = static::pidFilePath($name);
-        if (!file_exists($pidFile)) {
-            return null;
+        $output = [];
+        exec("pgrep -f 'queue:work' 2>/dev/null", $output);
+        if (!empty($output)) {
+            return true;
         }
-        $pid = (int) trim(file_get_contents($pidFile));
-        return $pid > 0 ? $pid : null;
+
+        $result = @shell_exec("supervisorctl status proxynetic-worker:* 2>/dev/null");
+        if ($result && stripos($result, 'RUNNING') !== false) {
+            return true;
+        }
+
+        return false;
     }
 
     public function settings(Request $request)
@@ -91,78 +122,80 @@ class SystemController extends Controller
     public function startProcess(Request $request)
     {
         $type = $request->input('type');
-        $php = PHP_BINARY ?: 'php';
-        $artisan = base_path('artisan');
 
         $allowed = ['scheduler', 'queue'];
         if (!in_array($type, $allowed)) {
             return $this->errorResponse('Geçersiz işlem türü.');
         }
 
-        if (static::isProcessRunning($type)) {
-            return $this->errorResponse(ucfirst($type) . ' zaten çalışıyor.');
-        }
-
-        $logFile = storage_path("logs/{$type}-worker.log");
-
         if ($type === 'scheduler') {
-            $cmd = "\"{$php}\" \"{$artisan}\" schedule:work";
-        } else {
-            $cmd = "\"{$php}\" \"{$artisan}\" queue:work --stop-when-empty --timeout=60";
+            if (static::isSchedulerRunning()) {
+                return $this->successResponse('Zamanlayıcı zaten çalışıyor (cron aktif).');
+            }
+
+            $php = PHP_BINARY ?: '/opt/plesk/php/8.3/bin/php';
+            $artisan = base_path('artisan');
+
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                $logFile = storage_path('logs/scheduler-worker.log');
+                $baseDir = base_path();
+                $batFile = storage_path('framework/scheduler-worker.bat');
+                $cmd = "\"{$php}\" \"{$artisan}\" schedule:work";
+                $batContent = "@echo off\r\ncd /d \"{$baseDir}\"\r\n{$cmd} > \"{$logFile}\" 2>&1\r\n";
+                file_put_contents($batFile, $batContent);
+                $desc = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+                $process = proc_open("start /B \"\" \"{$batFile}\"", $desc, $pipes, $baseDir);
+                if (is_resource($process)) {
+                    fclose($pipes[0]); fclose($pipes[1]); fclose($pipes[2]);
+                    proc_close($process);
+                }
+            } else {
+                try {
+                    Artisan::call('schedule:run');
+                    file_put_contents(storage_path('framework/scheduler-heartbeat'), time());
+                } catch (\Throwable $e) {}
+            }
+
+            return $this->successResponse('Zamanlayıcı tetiklendi. Cron job aktifse her dakika otomatik çalışır.');
         }
 
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $baseDir = base_path();
-            $batFile = storage_path("framework/{$type}-worker.bat");
-            $batContent = "@echo off\r\ncd /d \"{$baseDir}\"\r\n{$cmd} > \"{$logFile}\" 2>&1\r\n";
-            file_put_contents($batFile, $batContent);
-
-            $desc = [
-                0 => ['pipe', 'r'],
-                1 => ['pipe', 'w'],
-                2 => ['pipe', 'w'],
-            ];
-            $process = proc_open("start /B \"\" \"{$batFile}\"", $desc, $pipes, $baseDir);
-            if (is_resource($process)) {
-                fclose($pipes[0]);
-                fclose($pipes[1]);
-                fclose($pipes[2]);
-                proc_close($process);
+        if ($type === 'queue') {
+            if (static::isQueueWorkerRunning()) {
+                return $this->successResponse('Kuyruk İşçisi zaten çalışıyor.');
             }
-            sleep(3);
 
-            $pid = null;
-            $search = $type === 'scheduler' ? 'schedule:work' : 'queue:work';
-            $output = [];
-            exec("wmic process where \"CommandLine like '%{$search}%' and not CommandLine like '%wmic%'\" get ProcessId /format:list 2>NUL", $output);
-            foreach ($output as $line) {
-                if (preg_match('/ProcessId=(\d+)/', $line, $m)) {
-                    $pid = (int) $m[1];
+            if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
+                $result = @shell_exec('supervisorctl start proxynetic-worker:* 2>&1');
+                if ($result && stripos($result, 'ERROR') === false) {
+                    return $this->successResponse('Kuyruk İşçisi başlatıldı (supervisor).');
                 }
-            }
 
-            if (!$pid) {
-                exec("wmic process where \"CommandLine like '%artisan%' and CommandLine like '%{$search}%'\" get ProcessId /format:list 2>NUL", $output);
-                foreach ($output as $line) {
-                    if (preg_match('/ProcessId=(\d+)/', $line, $m)) {
-                        $pid = (int) $m[1];
-                    }
+                $php = PHP_BINARY ?: '/opt/plesk/php/8.3/bin/php';
+                $artisan = base_path('artisan');
+                $logFile = storage_path('logs/queue-worker.log');
+                $cmd = "nohup {$php} {$artisan} queue:work database --sleep=3 --tries=3 --max-time=3600 >> {$logFile} 2>&1 &";
+                @shell_exec($cmd);
+                return $this->successResponse('Kuyruk İşçisi başlatıldı.');
+            } else {
+                $php = PHP_BINARY ?: 'php';
+                $artisan = base_path('artisan');
+                $logFile = storage_path('logs/queue-worker.log');
+                $baseDir = base_path();
+                $batFile = storage_path('framework/queue-worker.bat');
+                $cmd = "\"{$php}\" \"{$artisan}\" queue:work database --sleep=3 --tries=3 --max-time=3600";
+                $batContent = "@echo off\r\ncd /d \"{$baseDir}\"\r\n{$cmd} > \"{$logFile}\" 2>&1\r\n";
+                file_put_contents($batFile, $batContent);
+                $desc = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+                $process = proc_open("start /B \"\" \"{$batFile}\"", $desc, $pipes, $baseDir);
+                if (is_resource($process)) {
+                    fclose($pipes[0]); fclose($pipes[1]); fclose($pipes[2]);
+                    proc_close($process);
                 }
-            }
-
-            if ($pid) {
-                file_put_contents(static::pidFilePath($type), $pid);
-            }
-        } else {
-            $fullCmd = "{$cmd} > \"{$logFile}\" 2>&1 & echo $!";
-            $pid = trim(shell_exec($fullCmd));
-            if ($pid) {
-                file_put_contents(static::pidFilePath($type), $pid);
+                return $this->successResponse('Kuyruk İşçisi başlatıldı.');
             }
         }
 
-        $label = $type === 'scheduler' ? 'Zamanlayıcı' : 'Kuyruk İşçisi';
-        return $this->successResponse("{$label} başarıyla başlatıldı.");
+        return $this->errorResponse('Bilinmeyen işlem.');
     }
 
     public function stopProcess(Request $request)
@@ -174,40 +207,34 @@ class SystemController extends Controller
             return $this->errorResponse('Geçersiz işlem türü.');
         }
 
-        $pid = static::getProcessPid($type);
-        if (!$pid) {
-            @unlink(static::pidFilePath($type));
-            return $this->errorResponse('Çalışan işlem bulunamadı.');
+        if ($type === 'scheduler') {
+            @unlink(storage_path('framework/scheduler-heartbeat'));
+            return $this->successResponse('Zamanlayıcı durumu sıfırlandı. Kalıcı durdurmak için Plesk cron job\'ı devre dışı bırakın.');
         }
 
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            exec("taskkill /PID {$pid} /F /T 2>NUL");
-        } else {
-            posix_kill($pid, 15);
+        if ($type === 'queue') {
+            if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
+                $result = @shell_exec('supervisorctl stop proxynetic-worker:* 2>&1');
+                if ($result && stripos($result, 'stopped') !== false) {
+                    return $this->successResponse('Kuyruk İşçisi durduruldu (supervisor).');
+                }
+
+                @shell_exec("pkill -f 'queue:work' 2>/dev/null");
+                return $this->successResponse('Kuyruk İşçisi durduruldu.');
+            } else {
+                @shell_exec("wmic process where \"CommandLine like '%queue:work%' and not CommandLine like '%wmic%'\" call terminate 2>NUL");
+                return $this->successResponse('Kuyruk İşçisi durduruldu.');
+            }
         }
 
-        @unlink(static::pidFilePath($type));
-
-        $label = $type === 'scheduler' ? 'Zamanlayıcı' : 'Kuyruk İşçisi';
-        return $this->successResponse("{$label} durduruldu.");
+        return $this->errorResponse('Bilinmeyen işlem.');
     }
 
     private function getSystemStatusData(): array
     {
-        $schedulerRunning = static::isProcessRunning('scheduler');
-        $schedulerLastRun = null;
-
-        $scheduleFiles = glob(storage_path('framework/schedule-*'));
-        if (!empty($scheduleFiles)) {
-            $latestFile = end($scheduleFiles);
-            $mtime = filemtime($latestFile);
-            if ($mtime && (time() - $mtime) < 120) {
-                $schedulerRunning = true;
-            }
-            $schedulerLastRun = $mtime ? date('d.m.Y H:i:s', $mtime) : null;
-        }
-
-        $queueWorkerRunning = static::isProcessRunning('queue');
+        $schedulerRunning = static::isSchedulerRunning();
+        $schedulerLastRun = static::getSchedulerLastRun();
+        $queueWorkerRunning = static::isQueueWorkerRunning();
 
         $queuePending = 0;
         try {

@@ -12,6 +12,8 @@ class PerMinuteJobs extends Command
 
     public function handle()
     {
+        file_put_contents(storage_path('framework/scheduler-heartbeat'), time());
+
         $sent = SupportAutoReplyService::processPendingAutoReplies();
         if ($sent > 0) {
             $this->info("Otomatik yanıt gönderildi: {$sent}");
