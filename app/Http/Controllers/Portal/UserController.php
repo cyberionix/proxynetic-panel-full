@@ -161,7 +161,7 @@ class UserController extends Controller
         $request->validate([
             'phone' => [
                 'required',
-                Rule::unique('users', 'phone')->ignore(Auth::id()),
+                Rule::unique('users', 'phone')->ignore(Auth::id())->whereNull('deleted_at'),
             ],
         ],[
             "phone.unique" => "Telefon numarası sistemde kullanılıyor.",
