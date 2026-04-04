@@ -407,5 +407,15 @@ dd($data->is_proxy || $data->is_vpn);
         Route::get('/three-proxy-logs', [ThreeProxyLogController::class, 'index'])->name('threeProxyLogs.index');
         Route::get('/three-proxy-logs/export', [ThreeProxyLogController::class, 'export'])->name('threeProxyLogs.export');
 
+        Route::group(['prefix' => 'campaigns', 'as' => 'campaigns.'], function () {
+            Route::post('/store', [SystemController::class, 'storeCampaign'])->name('store');
+            Route::get('/{id}', [SystemController::class, 'getCampaign'])->name('get');
+            Route::post('/{id}/update', [SystemController::class, 'updateCampaign'])->name('update');
+            Route::post('/{id}/delete', [SystemController::class, 'deleteCampaign'])->name('delete');
+            Route::post('/{id}/send', [SystemController::class, 'sendCampaign'])->name('send');
+            Route::post('/{id}/duplicate', [SystemController::class, 'duplicateCampaign'])->name('duplicate');
+            Route::post('/preview-recipients', [SystemController::class, 'previewCampaignRecipients'])->name('previewRecipients');
+        });
+
     });
 });

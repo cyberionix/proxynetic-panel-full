@@ -3,17 +3,25 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Campaign;
 use App\Models\NotificationTemplate;
 use App\Models\Order;
 use App\Models\Price;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\SupportAutoReply;
+use App\Models\User;
+use App\Models\UserGroup;
+use App\Services\NotificationTemplateService;
 use App\Traits\AjaxResponses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class SystemController extends Controller
 {
@@ -112,7 +120,12 @@ class SystemController extends Controller
 
         $notificationTemplates = NotificationTemplate::orderBy('sort_order')->get()->groupBy('category');
 
-        return view('admin.pages.system.settings', compact('urls', 'test_product', 'test_product_price', 'localtonetHttpVerify', 'systemStatus', 'smsMailConfig', 'notificationTemplates'));
+        $campaigns = Campaign::orderByDesc('id')->get();
+        $userGroups = UserGroup::all();
+        $productCategories = ProductCategory::orderBy('name')->get();
+        $products = Product::orderBy('name')->get(['id', 'name', 'category_id']);
+
+        return view('admin.pages.system.settings', compact('urls', 'test_product', 'test_product_price', 'localtonetHttpVerify', 'systemStatus', 'smsMailConfig', 'notificationTemplates', 'campaigns', 'userGroups', 'productCategories', 'products'));
     }
 
     public function systemStatusAjax()
@@ -754,5 +767,269 @@ class SystemController extends Controller
 
         $status = $template->is_active ? 'aktif' : 'pasif';
         return $this->successResponse("Şablon {$status} edildi.");
+    }
+
+    // ─── Kampanya Yönetimi ───
+
+    public function storeCampaign(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'channel' => 'required|in:sms,mail,both',
+            'target_type' => 'required|string',
+        ]);
+
+        $filters = [];
+        $targetType = $request->input('target_type');
+
+        if ($targetType === 'user_group' && $request->filled('user_group_ids')) {
+            $filters['user_group_ids'] = $request->input('user_group_ids');
+        } elseif ($targetType === 'product_category' && $request->filled('category_ids')) {
+            $filters['category_ids'] = $request->input('category_ids');
+        } elseif ($targetType === 'product' && $request->filled('product_ids')) {
+            $filters['product_ids'] = $request->input('product_ids');
+        } elseif ($targetType === 'custom' && $request->filled('user_ids')) {
+            $filters['user_ids'] = $request->input('user_ids');
+        }
+
+        $campaign = Campaign::create([
+            'name' => $request->input('name'),
+            'channel' => $request->input('channel'),
+            'target_type' => $targetType,
+            'target_filters' => $filters,
+            'sms_content' => $request->input('sms_content', ''),
+            'mail_subject' => $request->input('mail_subject', ''),
+            'mail_content' => $request->input('mail_content', ''),
+            'status' => 'draft',
+            'created_by' => Auth::guard('admin')->id(),
+        ]);
+
+        return $this->successResponse('Kampanya başarıyla kaydedildi.', ['campaign' => $campaign]);
+    }
+
+    public function getCampaign(Request $request, $id)
+    {
+        $campaign = Campaign::findOrFail($id);
+        return response()->json(['success' => true, 'data' => $campaign]);
+    }
+
+    public function updateCampaign(Request $request, $id)
+    {
+        $campaign = Campaign::findOrFail($id);
+
+        if ($campaign->status === 'sent') {
+            return $this->errorResponse('Gönderilmiş kampanya düzenlenemez.');
+        }
+
+        $filters = [];
+        $targetType = $request->input('target_type', $campaign->target_type);
+
+        if ($targetType === 'user_group' && $request->filled('user_group_ids')) {
+            $filters['user_group_ids'] = $request->input('user_group_ids');
+        } elseif ($targetType === 'product_category' && $request->filled('category_ids')) {
+            $filters['category_ids'] = $request->input('category_ids');
+        } elseif ($targetType === 'product' && $request->filled('product_ids')) {
+            $filters['product_ids'] = $request->input('product_ids');
+        } elseif ($targetType === 'custom' && $request->filled('user_ids')) {
+            $filters['user_ids'] = $request->input('user_ids');
+        }
+
+        $campaign->update([
+            'name' => $request->input('name', $campaign->name),
+            'channel' => $request->input('channel', $campaign->channel),
+            'target_type' => $targetType,
+            'target_filters' => $filters,
+            'sms_content' => $request->input('sms_content', $campaign->sms_content),
+            'mail_subject' => $request->input('mail_subject', $campaign->mail_subject),
+            'mail_content' => $request->input('mail_content', $campaign->mail_content),
+        ]);
+
+        return $this->successResponse('Kampanya güncellendi.', ['campaign' => $campaign->fresh()]);
+    }
+
+    public function deleteCampaign(Request $request, $id)
+    {
+        $campaign = Campaign::findOrFail($id);
+        $campaign->delete();
+        return $this->successResponse('Kampanya silindi.');
+    }
+
+    public function previewCampaignRecipients(Request $request)
+    {
+        $temp = new Campaign([
+            'target_type' => $request->input('target_type', 'all'),
+            'target_filters' => $request->input('target_filters', []),
+            'channel' => $request->input('channel', 'both'),
+        ]);
+
+        $recipients = $temp->resolveRecipients();
+        $list = $recipients->map(fn($u) => [
+            'id' => $u->id,
+            'name' => $u->first_name . ' ' . $u->last_name,
+            'email' => $u->email,
+            'phone' => $u->phone,
+        ])->values();
+
+        return response()->json([
+            'success' => true,
+            'count' => $recipients->count(),
+            'recipients' => $list->take(50),
+        ]);
+    }
+
+    public function sendCampaign(Request $request, $id)
+    {
+        $campaign = Campaign::findOrFail($id);
+
+        if ($campaign->status === 'sent') {
+            return $this->errorResponse('Bu kampanya zaten gönderildi.');
+        }
+        if ($campaign->status === 'sending') {
+            return $this->errorResponse('Bu kampanya şu anda gönderiliyor.');
+        }
+
+        $recipients = $campaign->resolveRecipients();
+        if ($recipients->isEmpty()) {
+            return $this->errorResponse('Hedef kitlede alıcı bulunamadı.');
+        }
+
+        $campaign->update([
+            'status' => 'sending',
+            'total_recipients' => $recipients->count(),
+        ]);
+
+        $smsMailSettings = $this->loadSmsMailSettingsStatic();
+        $sentSms = 0;
+        $sentMail = 0;
+        $failedCount = 0;
+
+        foreach ($recipients as $user) {
+            try {
+                $variables = [
+                    'ad' => $user->first_name,
+                    'soyad' => $user->last_name,
+                    'email' => $user->email,
+                    'site_url' => config('app.url', url('/')),
+                    'site_adi' => config('app.name', 'Proxynetic'),
+                ];
+
+                if (in_array($campaign->channel, ['mail', 'both']) && $user->email) {
+                    $subject = $this->replaceCampaignVars($campaign->mail_subject ?? '', $variables);
+                    $htmlContent = $this->replaceCampaignVars($campaign->mail_content ?? '', $variables);
+                    if (!empty($htmlContent)) {
+                        try {
+                            Mail::html($htmlContent, function ($message) use ($user, $subject) {
+                                $message->to($user->email)->subject($subject);
+                            });
+                            $sentMail++;
+                        } catch (\Throwable $e) {
+                            Log::error('Kampanya mail hatası', ['campaign_id' => $campaign->id, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+                            $failedCount++;
+                        }
+                    }
+                }
+
+                if (in_array($campaign->channel, ['sms', 'both']) && $user->phone && !empty($smsMailSettings['sms_enabled'])) {
+                    $smsContent = $this->replaceCampaignVars($campaign->sms_content ?? '', $variables);
+                    if (!empty($smsContent)) {
+                        try {
+                            $this->sendCampaignSms($smsMailSettings, $user->phone, $smsContent);
+                            $sentSms++;
+                        } catch (\Throwable $e) {
+                            Log::error('Kampanya SMS hatası', ['campaign_id' => $campaign->id, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+                            $failedCount++;
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                $failedCount++;
+                Log::error('Kampanya gönderim hatası', ['campaign_id' => $campaign->id, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        $campaign->update([
+            'status' => 'sent',
+            'sent_sms' => $sentSms,
+            'sent_mail' => $sentMail,
+            'failed_count' => $failedCount,
+            'sent_at' => now(),
+        ]);
+
+        return $this->successResponse("Kampanya gönderimi tamamlandı! SMS: {$sentSms}, E-posta: {$sentMail}, Başarısız: {$failedCount}");
+    }
+
+    public function duplicateCampaign(Request $request, $id)
+    {
+        $campaign = Campaign::findOrFail($id);
+        $newCampaign = $campaign->replicate();
+        $newCampaign->name = $campaign->name . ' (Kopya)';
+        $newCampaign->status = 'draft';
+        $newCampaign->sent_sms = 0;
+        $newCampaign->sent_mail = 0;
+        $newCampaign->failed_count = 0;
+        $newCampaign->total_recipients = 0;
+        $newCampaign->sent_at = null;
+        $newCampaign->created_by = Auth::guard('admin')->id();
+        $newCampaign->save();
+
+        return $this->successResponse('Kampanya kopyalandı.', ['campaign' => $newCampaign]);
+    }
+
+    private function replaceCampaignVars(string $template, array $data): string
+    {
+        foreach ($data as $key => $value) {
+            $template = str_replace('{{' . $key . '}}', (string) $value, $template);
+        }
+        return $template;
+    }
+
+    private function sendCampaignSms(array $settings, string $phone, string $message): void
+    {
+        $provider = $settings['sms_provider'] ?? 'mutlucell';
+
+        if ($provider === 'iletimerkezi') {
+            \Illuminate\Support\Facades\Http::timeout(15)->post('https://api.iletimerkezi.com/v1/send-sms/json', [
+                'request' => [
+                    'authentication' => [
+                        'key' => $settings['iletimerkezi_key'] ?? '',
+                        'hash' => $settings['iletimerkezi_secret'] ?? '',
+                    ],
+                    'order' => [
+                        'sender' => $settings['iletimerkezi_origin'] ?? '',
+                        'sendDateTime' => '',
+                        'iys' => 0,
+                        'message' => [
+                            'text' => $message,
+                            'receipents' => ['number' => [$phone]],
+                        ],
+                    ],
+                ],
+            ]);
+        } else {
+            $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><smspack/>');
+            $xml->addAttribute('ka', $settings['mutlucell_username'] ?? '');
+            $xml->addAttribute('pwd', $settings['mutlucell_password'] ?? '');
+            $xml->addAttribute('org', $settings['mutlucell_sender'] ?? '');
+            $xml->addAttribute('charset', 'turkish');
+            $mesaj = $xml->addChild('mesaj');
+            $mesaj->addChild('metin', $message);
+            $mesaj->addChild('nums', $phone);
+
+            \Illuminate\Support\Facades\Http::timeout(15)
+                ->withBody($xml->asXML(), 'text/xml; charset=UTF-8')
+                ->post('https://smsgw.mutlucell.com/smsgw-ws/sndblkex');
+        }
+    }
+
+    private function loadSmsMailSettingsStatic(): array
+    {
+        $path = config_path('sms_mail_settings.php');
+        if (is_file($path)) {
+            $data = require $path;
+            if (is_array($data)) {
+                return $data;
+            }
+        }
+        return [];
     }
 }

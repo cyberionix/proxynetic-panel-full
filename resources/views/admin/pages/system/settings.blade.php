@@ -67,6 +67,11 @@
                         <i class="fa fa-file-alt me-2"></i>SMS ve Mail Şablonları
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link pb-4" data-bs-toggle="tab" href="#system_settings_campaigns_tab">
+                        <i class="fa fa-bullhorn me-2"></i>Kampanya Gönderimi
+                    </a>
+                </li>
             </ul>
 
             <div class="tab-content" id="systemSettingsTabs">
@@ -713,8 +718,275 @@
                         </div>
                     </form>
                 </div>
+
+                {{-- Kampanya Gönderimi Tab --}}
+                <div class="tab-pane fade" id="system_settings_campaigns_tab" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-6">
+                        <div>
+                            <h3 class="fw-bold mb-1"><i class="fa fa-bullhorn text-primary me-2"></i>Kampanya SMS ve Mail Gönderimi</h3>
+                            <span class="text-muted fs-7">Toplu SMS ve e-posta kampanyaları oluşturun, hedef kitle belirleyin ve gönderin</span>
+                        </div>
+                        <button type="button" class="btn btn-primary" id="newCampaignBtn">
+                            <i class="fa fa-plus me-2"></i>Yeni Kampanya
+                        </button>
+                    </div>
+
+                    {{-- Kampanya Listesi --}}
+                    <div class="table-responsive">
+                        <table class="table table-row-bordered table-row-gray-200 align-middle fs-7 gy-3" id="campaignsTable">
+                            <thead>
+                                <tr class="text-muted fw-semibold">
+                                    <th>#</th>
+                                    <th>Kampanya Adı</th>
+                                    <th>Kanal</th>
+                                    <th>Hedef Kitle</th>
+                                    <th class="text-center">Alıcı</th>
+                                    <th class="text-center">SMS</th>
+                                    <th class="text-center">E-Posta</th>
+                                    <th class="text-center">Durum</th>
+                                    <th>Tarih</th>
+                                    <th class="text-end">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($campaigns ?? [] as $camp)
+                                <tr data-id="{{ $camp->id }}">
+                                    <td>{{ $camp->id }}</td>
+                                    <td><span class="fw-semibold">{{ $camp->name }}</span></td>
+                                    <td>
+                                        @if($camp->channel === 'sms')
+                                            <span class="badge badge-light-success">SMS</span>
+                                        @elseif($camp->channel === 'mail')
+                                            <span class="badge badge-light-info">E-Posta</span>
+                                        @else
+                                            <span class="badge badge-light-primary">SMS + E-Posta</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ \App\Models\Campaign::getTargetTypeLabel($camp->target_type) }}</td>
+                                    <td class="text-center">{{ $camp->total_recipients }}</td>
+                                    <td class="text-center">{{ $camp->sent_sms }}</td>
+                                    <td class="text-center">{{ $camp->sent_mail }}</td>
+                                    <td class="text-center">
+                                        @if($camp->status === 'draft')
+                                            <span class="badge badge-light-warning">Taslak</span>
+                                        @elseif($camp->status === 'sending')
+                                            <span class="badge badge-light-info">Gönderiliyor</span>
+                                        @elseif($camp->status === 'sent')
+                                            <span class="badge badge-light-success">Gönderildi</span>
+                                        @else
+                                            <span class="badge badge-light-danger">Hata</span>
+                                        @endif
+                                    </td>
+                                    <td class="fs-8 text-muted">{{ $camp->sent_at ? $camp->sent_at->format('d/m/Y H:i') : $camp->created_at->format('d/m/Y H:i') }}</td>
+                                    <td class="text-end">
+                                        @if($camp->status === 'draft')
+                                            <button class="btn btn-sm btn-icon btn-light-primary campaignEditBtn" data-id="{{ $camp->id }}" title="Düzenle">
+                                                <i class="fa fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-icon btn-light-success campaignSendBtn" data-id="{{ $camp->id }}" title="Gönder">
+                                                <i class="fa fa-paper-plane"></i>
+                                            </button>
+                                        @endif
+                                        <button class="btn btn-sm btn-icon btn-light-info campaignDuplicateBtn" data-id="{{ $camp->id }}" title="Kopyala">
+                                            <i class="fa fa-copy"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-icon btn-light-danger campaignDeleteBtn" data-id="{{ $camp->id }}" title="Sil">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr id="campaignEmptyRow">
+                                    <td colspan="10" class="text-center text-muted py-8">
+                                        <i class="fa fa-bullhorn fs-2 text-muted d-block mb-3"></i>
+                                        Henüz kampanya oluşturulmamış
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             <!--end::Tab content-->
+
+            {{-- Kampanya Oluşturma/Düzenleme Modal --}}
+            <div class="modal fade" id="campaignModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 class="fw-bold" id="campaignModalTitle">Yeni Kampanya</h3>
+                            <div class="btn btn-sm btn-icon btn-active-color-primary" data-bs-dismiss="modal">
+                                <i class="fa fa-times fs-4"></i>
+                            </div>
+                        </div>
+                        <div class="modal-body py-8">
+                            <form id="campaignForm">
+                                @csrf
+                                <input type="hidden" name="campaign_id" id="campaignId" value="">
+
+                                <div class="row">
+                                    {{-- Sol Kolon: Temel Bilgiler --}}
+                                    <div class="col-lg-5">
+                                        <div class="card card-flush border border-dashed mb-5">
+                                            <div class="card-header pt-4 pb-2 min-h-auto">
+                                                <div class="card-title"><i class="fa fa-cog text-primary me-2"></i>Kampanya Ayarları</div>
+                                            </div>
+                                            <div class="card-body pt-2">
+                                                <div class="mb-5">
+                                                    <label class="form-label fw-semibold required">Kampanya Adı</label>
+                                                    <input type="text" name="name" id="campName" class="form-control form-control-solid" placeholder="Örn: Yılbaşı Kampanyası"/>
+                                                </div>
+                                                <div class="mb-5">
+                                                    <label class="form-label fw-semibold required">Gönderim Kanalı</label>
+                                                    <select name="channel" id="campChannel" class="form-select form-select-solid">
+                                                        <option value="both">SMS + E-Posta</option>
+                                                        <option value="sms">Yalnızca SMS</option>
+                                                        <option value="mail">Yalnızca E-Posta</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-5">
+                                                    <label class="form-label fw-semibold required">Hedef Kitle</label>
+                                                    <select name="target_type" id="campTargetType" class="form-select form-select-solid">
+                                                        <option value="all">Tüm Müşteriler</option>
+                                                        <option value="user_group">Müşteri Grubuna Göre</option>
+                                                        <option value="product_category">Ürün Kategorisine Göre</option>
+                                                        <option value="product">Belirli Ürünü Alanlara</option>
+                                                        <option value="active_orders">Aktif Siparişi Olanlara</option>
+                                                        <option value="custom">Manuel Seçim</option>
+                                                    </select>
+                                                </div>
+
+                                                <div id="campFilterUserGroup" class="mb-5 d-none">
+                                                    <label class="form-label fw-semibold">Müşteri Grupları</label>
+                                                    <select name="user_group_ids[]" id="campUserGroupIds" class="form-select form-select-solid" multiple>
+                                                        @foreach($userGroups ?? [] as $ug)
+                                                            <option value="{{ $ug->id }}">{{ $ug->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div id="campFilterCategory" class="mb-5 d-none">
+                                                    <label class="form-label fw-semibold">Ürün Kategorileri</label>
+                                                    <select name="category_ids[]" id="campCategoryIds" class="form-select form-select-solid" multiple>
+                                                        @foreach($productCategories ?? [] as $pc)
+                                                            <option value="{{ $pc->id }}">{{ $pc->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div id="campFilterProduct" class="mb-5 d-none">
+                                                    <label class="form-label fw-semibold">Ürünler</label>
+                                                    <select name="product_ids[]" id="campProductIds" class="form-select form-select-solid" multiple>
+                                                        @foreach($products ?? [] as $pr)
+                                                            <option value="{{ $pr->id }}">{{ $pr->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div id="campFilterCustom" class="mb-5 d-none">
+                                                    <label class="form-label fw-semibold">Müşteri ID'leri (virgülle ayırın)</label>
+                                                    <input type="text" name="user_ids_text" id="campUserIdsText" class="form-control form-control-solid" placeholder="1,2,3,15"/>
+                                                </div>
+
+                                                <button type="button" class="btn btn-sm btn-light-primary w-100" id="campPreviewBtn">
+                                                    <i class="fa fa-eye me-2"></i>Alıcıları Önizle
+                                                </button>
+                                                <div id="campPreviewResult" class="mt-3 d-none">
+                                                    <div class="border border-dashed rounded p-3 bg-light">
+                                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                                            <span class="fw-bold fs-7">Toplam Alıcı:</span>
+                                                            <span class="badge badge-primary" id="campPreviewCount">0</span>
+                                                        </div>
+                                                        <div id="campPreviewList" class="fs-8 text-muted" style="max-height:200px;overflow-y:auto;"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Sağ Kolon: İçerikler --}}
+                                    <div class="col-lg-7">
+                                        {{-- SMS İçeriği --}}
+                                        <div class="card card-flush border border-dashed mb-5" id="campSmsCard">
+                                            <div class="card-header pt-4 pb-2 min-h-auto">
+                                                <div class="card-title"><i class="fa fa-sms text-success me-2"></i>SMS İçeriği</div>
+                                            </div>
+                                            <div class="card-body pt-2">
+                                                <textarea name="sms_content" id="campSmsContent" class="form-control form-control-solid" rows="4" placeholder="Merhaba {{ad}}, kampanya mesajınız..."></textarea>
+                                                <div class="mt-2">
+                                                    <span class="text-muted fs-8">Kullanılabilir değişkenler: </span>
+                                                    <span class="badge badge-light-info cursor-pointer campVar" data-var="ad">@{{ad}}</span>
+                                                    <span class="badge badge-light-info cursor-pointer campVar" data-var="soyad">@{{soyad}}</span>
+                                                    <span class="badge badge-light-info cursor-pointer campVar" data-var="email">@{{email}}</span>
+                                                    <span class="badge badge-light-info cursor-pointer campVar" data-var="site_url">@{{site_url}}</span>
+                                                    <span class="badge badge-light-info cursor-pointer campVar" data-var="site_adi">@{{site_adi}}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {{-- Mail İçeriği --}}
+                                        <div class="card card-flush border border-dashed mb-5" id="campMailCard">
+                                            <div class="card-header pt-4 pb-2 min-h-auto">
+                                                <div class="card-title"><i class="fa fa-envelope text-info me-2"></i>E-Posta İçeriği</div>
+                                            </div>
+                                            <div class="card-body pt-2">
+                                                <div class="mb-4">
+                                                    <label class="form-label fw-semibold">Konu</label>
+                                                    <input type="text" name="mail_subject" id="campMailSubject" class="form-control form-control-solid" placeholder="E-posta konu satırı..."/>
+                                                </div>
+                                                <div>
+                                                    <label class="form-label fw-semibold">İçerik (HTML)</label>
+                                                    <textarea name="mail_content" id="campMailContent" class="form-control" rows="12"></textarea>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <span class="text-muted fs-8">Kullanılabilir değişkenler: </span>
+                                                    <span class="badge badge-light-info cursor-pointer campVar" data-var="ad">@{{ad}}</span>
+                                                    <span class="badge badge-light-info cursor-pointer campVar" data-var="soyad">@{{soyad}}</span>
+                                                    <span class="badge badge-light-info cursor-pointer campVar" data-var="email">@{{email}}</span>
+                                                    <span class="badge badge-light-info cursor-pointer campVar" data-var="site_url">@{{site_url}}</span>
+                                                    <span class="badge badge-light-info cursor-pointer campVar" data-var="site_adi">@{{site_adi}}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end gap-3 pt-3 border-top mt-3">
+                                    <button type="reset" class="btn btn-light" data-bs-dismiss="modal">İptal</button>
+                                    <button type="submit" class="btn btn-primary" id="campaignSaveBtn">
+                                        <span class="indicator-label"><i class="fa fa-save me-1"></i>Kaydet</span>
+                                        <span class="indicator-progress">Kaydediliyor...<span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Kampanya Gönder Onay Modal --}}
+            <div class="modal fade" id="campaignSendConfirmModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-light-warning">
+                            <h4 class="fw-bold"><i class="fa fa-exclamation-triangle text-warning me-2"></i>Kampanya Gönderimi</h4>
+                            <div class="btn btn-sm btn-icon btn-active-color-primary" data-bs-dismiss="modal">
+                                <i class="fa fa-times fs-4"></i>
+                            </div>
+                        </div>
+                        <div class="modal-body py-6">
+                            <p class="fs-6">Bu kampanyayı göndermek istediğinize emin misiniz?</p>
+                            <p class="text-muted fs-7">Gönderim başladıktan sonra geri alınamaz. Tüm hedef alıcılara SMS ve/veya e-posta gönderilecektir.</p>
+                            <input type="hidden" id="sendConfirmCampaignId" value="">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Vazgeç</button>
+                            <button type="button" class="btn btn-warning" id="campaignSendConfirmBtn">
+                                <span class="indicator-label"><i class="fa fa-paper-plane me-1"></i>Gönder</span>
+                                <span class="indicator-progress">Gönderiliyor...<span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <!--end::Card body-->
     </div>
@@ -1451,6 +1723,248 @@
                     complete: function(){
                         btn.prop('disabled', false);
                     }
+                });
+            });
+
+            // ── Kampanya Yönetimi ──
+            var campTinyInstance = null;
+
+            function initCampaignTinyMCE(){
+                if(campTinyInstance) { try { campTinyInstance.destroy(); } catch(e){} campTinyInstance = null; }
+                tinymce.init({
+                    selector: '#campMailContent',
+                    height: 350,
+                    menubar: true,
+                    plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount',
+                    toolbar: 'undo redo | blocks | bold italic forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | code fullscreen',
+                    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
+                    setup: function(editor){ campTinyInstance = editor; }
+                });
+            }
+
+            function destroyCampaignTinyMCE(){
+                if(campTinyInstance){ try { campTinyInstance.destroy(); } catch(e){} campTinyInstance = null; }
+            }
+
+            function resetCampaignForm(){
+                $('#campaignId').val('');
+                $('#campName').val('');
+                $('#campChannel').val('both');
+                $('#campTargetType').val('all').trigger('change');
+                $('#campSmsContent').val('');
+                $('#campMailSubject').val('');
+                $('#campMailContent').val('');
+                $('#campPreviewResult').addClass('d-none');
+                $('#campaignModalTitle').text('Yeni Kampanya');
+            }
+
+            $('#campTargetType').on('change', function(){
+                var v = $(this).val();
+                $('#campFilterUserGroup, #campFilterCategory, #campFilterProduct, #campFilterCustom').addClass('d-none');
+                if(v === 'user_group') $('#campFilterUserGroup').removeClass('d-none');
+                else if(v === 'product_category') $('#campFilterCategory').removeClass('d-none');
+                else if(v === 'product') $('#campFilterProduct').removeClass('d-none');
+                else if(v === 'custom') $('#campFilterCustom').removeClass('d-none');
+            });
+
+            $('#campChannel').on('change', function(){
+                var v = $(this).val();
+                if(v === 'sms'){ $('#campMailCard').addClass('d-none'); $('#campSmsCard').removeClass('d-none'); }
+                else if(v === 'mail'){ $('#campSmsCard').addClass('d-none'); $('#campMailCard').removeClass('d-none'); }
+                else { $('#campSmsCard, #campMailCard').removeClass('d-none'); }
+            });
+
+            $('#newCampaignBtn').on('click', function(){
+                resetCampaignForm();
+                initCampaignTinyMCE();
+                $('#campaignModal').modal('show');
+            });
+
+            $('#campaignModal').on('hidden.bs.modal', function(){ destroyCampaignTinyMCE(); });
+
+            $(document).on('click', '.campVar', function(){
+                var varName = '{{' + $(this).data('var') + '}}';
+                navigator.clipboard.writeText(varName);
+                toastr.info('Değişken kopyalandı: ' + varName);
+            });
+
+            $('#campPreviewBtn').on('click', function(){
+                var btn = $(this);
+                var targetType = $('#campTargetType').val();
+                var filters = {};
+                if(targetType === 'user_group') filters.user_group_ids = $('#campUserGroupIds').val();
+                else if(targetType === 'product_category') filters.category_ids = $('#campCategoryIds').val();
+                else if(targetType === 'product') filters.product_ids = $('#campProductIds').val();
+                else if(targetType === 'custom'){
+                    var ids = $('#campUserIdsText').val().split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+                    filters.user_ids = ids;
+                }
+
+                btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-2"></i>Yükleniyor...');
+                $.ajax({
+                    url: '/netAdmin/campaigns/preview-recipients',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: { _token: '{{ csrf_token() }}', target_type: targetType, target_filters: filters, channel: $('#campChannel').val() },
+                    success: function(res){
+                        if(res.success){
+                            $('#campPreviewCount').text(res.count);
+                            var html = '';
+                            if(res.recipients && res.recipients.length > 0){
+                                res.recipients.forEach(function(r){
+                                    html += '<div class="d-flex justify-content-between border-bottom py-1">';
+                                    html += '<span>' + r.name + '</span>';
+                                    html += '<span class="text-muted">' + (r.email || '') + ' | ' + (r.phone || '') + '</span>';
+                                    html += '</div>';
+                                });
+                                if(res.count > 50) html += '<div class="text-center text-muted mt-2">...ve ' + (res.count - 50) + ' kişi daha</div>';
+                            } else {
+                                html = '<div class="text-center text-muted">Alıcı bulunamadı</div>';
+                            }
+                            $('#campPreviewList').html(html);
+                            $('#campPreviewResult').removeClass('d-none');
+                        } else {
+                            toastr.error(res.message || 'Hata');
+                        }
+                    },
+                    error: function(){ toastr.error('Önizleme hatası'); },
+                    complete: function(){ btn.prop('disabled', false).html('<i class="fa fa-eye me-2"></i>Alıcıları Önizle'); }
+                });
+            });
+
+            $('#campaignForm').on('submit', function(e){
+                e.preventDefault();
+                if(campTinyInstance) campTinyInstance.triggerSave();
+                var btn = $('#campaignSaveBtn');
+                btn.attr('data-kt-indicator', 'on').prop('disabled', true);
+
+                var campId = $('#campaignId').val();
+                var url = campId ? '/netAdmin/campaigns/' + campId + '/update' : '/netAdmin/campaigns/store';
+
+                var formData = {
+                    _token: '{{ csrf_token() }}',
+                    name: $('#campName').val(),
+                    channel: $('#campChannel').val(),
+                    target_type: $('#campTargetType').val(),
+                    sms_content: $('#campSmsContent').val(),
+                    mail_subject: $('#campMailSubject').val(),
+                    mail_content: $('#campMailContent').val()
+                };
+
+                var tt = formData.target_type;
+                if(tt === 'user_group') formData.user_group_ids = $('#campUserGroupIds').val();
+                else if(tt === 'product_category') formData.category_ids = $('#campCategoryIds').val();
+                else if(tt === 'product') formData.product_ids = $('#campProductIds').val();
+                else if(tt === 'custom'){
+                    formData.user_ids = $('#campUserIdsText').val().split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+                }
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    dataType: 'json',
+                    data: formData,
+                    success: function(res){
+                        if(res.success){
+                            toastr.success(res.message);
+                            $('#campaignModal').modal('hide');
+                            setTimeout(function(){ location.reload(); }, 800);
+                        } else {
+                            toastr.error(res.message || 'Hata');
+                        }
+                    },
+                    error: function(xhr){
+                        var msg = 'Kayıt hatası';
+                        if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                        toastr.error(msg);
+                    },
+                    complete: function(){ btn.removeAttr('data-kt-indicator').prop('disabled', false); }
+                });
+            });
+
+            $(document).on('click', '.campaignEditBtn', function(){
+                var id = $(this).data('id');
+                resetCampaignForm();
+                $.get('/netAdmin/campaigns/' + id, function(res){
+                    if(res.success){
+                        var d = res.data;
+                        $('#campaignId').val(d.id);
+                        $('#campaignModalTitle').text('Kampanya Düzenle');
+                        $('#campName').val(d.name);
+                        $('#campChannel').val(d.channel).trigger('change');
+                        $('#campTargetType').val(d.target_type).trigger('change');
+                        var f = d.target_filters || {};
+                        if(d.target_type === 'user_group' && f.user_group_ids) $('#campUserGroupIds').val(f.user_group_ids);
+                        if(d.target_type === 'product_category' && f.category_ids) $('#campCategoryIds').val(f.category_ids);
+                        if(d.target_type === 'product' && f.product_ids) $('#campProductIds').val(f.product_ids);
+                        if(d.target_type === 'custom' && f.user_ids) $('#campUserIdsText').val(f.user_ids.join(','));
+                        $('#campSmsContent').val(d.sms_content || '');
+                        $('#campMailSubject').val(d.mail_subject || '');
+                        $('#campMailContent').val(d.mail_content || '');
+                        initCampaignTinyMCE();
+                        $('#campaignModal').modal('show');
+                    }
+                });
+            });
+
+            $(document).on('click', '.campaignSendBtn', function(){
+                var id = $(this).data('id');
+                $('#sendConfirmCampaignId').val(id);
+                $('#campaignSendConfirmModal').modal('show');
+            });
+
+            $('#campaignSendConfirmBtn').on('click', function(){
+                var btn = $(this);
+                var id = $('#sendConfirmCampaignId').val();
+                btn.attr('data-kt-indicator', 'on').prop('disabled', true);
+
+                $.ajax({
+                    url: '/netAdmin/campaigns/' + id + '/send',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: { _token: '{{ csrf_token() }}' },
+                    success: function(res){
+                        if(res.success){
+                            toastr.success(res.message);
+                            $('#campaignSendConfirmModal').modal('hide');
+                            setTimeout(function(){ location.reload(); }, 800);
+                        } else {
+                            toastr.error(res.message || 'Gönderim hatası');
+                        }
+                    },
+                    error: function(){ toastr.error('Gönderim sırasında hata oluştu'); },
+                    complete: function(){ btn.removeAttr('data-kt-indicator').prop('disabled', false); }
+                });
+            });
+
+            $(document).on('click', '.campaignDuplicateBtn', function(){
+                var id = $(this).data('id');
+                $.ajax({
+                    url: '/netAdmin/campaigns/' + id + '/duplicate',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: { _token: '{{ csrf_token() }}' },
+                    success: function(res){
+                        if(res.success){ toastr.success(res.message); setTimeout(function(){ location.reload(); }, 500); }
+                        else toastr.error(res.message || 'Hata');
+                    },
+                    error: function(){ toastr.error('Kopyalama hatası'); }
+                });
+            });
+
+            $(document).on('click', '.campaignDeleteBtn', function(){
+                var id = $(this).data('id');
+                if(!confirm('Bu kampanyayı silmek istediğinize emin misiniz?')) return;
+                $.ajax({
+                    url: '/netAdmin/campaigns/' + id + '/delete',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: { _token: '{{ csrf_token() }}' },
+                    success: function(res){
+                        if(res.success){ toastr.success(res.message); $('tr[data-id="'+id+'"]').fadeOut(300, function(){ $(this).remove(); }); }
+                        else toastr.error(res.message || 'Hata');
+                    },
+                    error: function(){ toastr.error('Silme hatası'); }
                 });
             });
         })
