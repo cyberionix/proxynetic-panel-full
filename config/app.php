@@ -171,7 +171,6 @@ return [
         App\Providers\EventServiceProvider::class,
         RealRashid\SweetAlert\SweetAlertServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
-        Barryvdh\Debugbar\ServiceProvider::class,
         yedincisenol\Parasut\Laravel\LaravelServiceProvider::class,
         \App\Providers\ParasutServiceProvider::class
     ])->toArray(),
@@ -191,7 +190,6 @@ return [
         'Alert' => RealRashid\SweetAlert\Facades\Alert::class,
         'Mailjet' => Mailjet\LaravelMailjet\Facades\Mailjet::class,
         'Parasut'       => yedincisenol\Parasut\Laravel\LaravelFacade::class,
-        'Debugbar' => Barryvdh\Debugbar\Facades\Debugbar::class
     ])->toArray(),
 
 ];
