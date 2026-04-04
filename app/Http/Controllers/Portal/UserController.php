@@ -70,14 +70,6 @@ class UserController extends Controller
 
 
         if (!$isNotTcCitizen){
-            try {
-                $validateTc = $this->validateTcNo($request->identity_number, $request->first_name, $request->last_name, Carbon::createFromFormat(defaultDateFormat(), $request->birth_date)->format("Y"));
-                if (!$validateTc) {
-                    return $this->errorResponse(__("enter_a_valid_tc_id_number"));
-                }
-            } catch (\RuntimeException $e) {
-                return $this->errorResponse($e->getMessage());
-            }
             $data["identity_number_verified_at"] = Carbon::now();
         }else{
             $data["not_tc_citizen_at"] = 1;
