@@ -116,7 +116,7 @@
 
                                         <!--begin::Actions-->
                                         <div>
-                                            <span class="badge badge-primary me-2" data-np-message="user-ip"></span>
+                                            <span class="badge badge-primary me-2" data-np-message="user-ip" style="cursor:pointer"></span>
                                             <span class="badge badge-success" data-np-message="date"></span>
                                         </div>
                                         <!--end::Actions-->
@@ -393,7 +393,7 @@
                         itemTemplate.find("[data-np-message='name']").text(userFullName);
                         itemTemplate.find("[data-np-message='badge']").removeClass("badge-success badge-warning").addClass("badge-primary").text("Müşteri");
                         itemTemplate.find("[data-np-message='date']").removeClass("badge-success badge-warning").addClass("badge-primary").text(createdAt);
-                        itemTemplate.find("[data-np-message='user-ip']").text("IP:  " + item?.user_ip);
+                        itemTemplate.find("[data-np-message='user-ip']").text("IP: " + item?.user_ip).attr("data-ip-lookup", item?.user_ip || "");
                         itemTemplate.find("[data-np-message='user-ip']").removeClass("d-none");
                     }
                     let msgHtml = item.message;

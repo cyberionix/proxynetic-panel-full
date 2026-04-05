@@ -221,6 +221,83 @@
 
 <script src="{{assetAdmin('')}}/js/custom.js"></script>
 
+<style>
+[data-ip-lookup]{cursor:pointer;position:relative;transition:opacity .15s}
+[data-ip-lookup]:hover{opacity:.85}
+.ip-popover{position:absolute;z-index:1080;bottom:calc(100% + 8px);right:0;min-width:280px;background:#fff;border:1px solid #e4e6ef;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.12);padding:0;font-size:13px;pointer-events:auto}
+.ip-popover .ip-pop-header{padding:10px 14px;border-bottom:1px solid #f1f1f4;display:flex;align-items:center;justify-content:space-between}
+.ip-popover .ip-pop-body{padding:10px 14px}
+.ip-popover .ip-pop-row{display:flex;justify-content:space-between;padding:3px 0}
+.ip-popover .ip-pop-row .ip-pop-label{color:#a1a5b7;font-weight:500}
+.ip-popover .ip-pop-row .ip-pop-value{color:#181c32;font-weight:600;text-align:right}
+.ip-popover::after{content:'';position:absolute;top:100%;right:14px;border:6px solid transparent;border-top-color:#fff}
+</style>
+
+<script>
+(function(){
+    var ipCache = {};
+    var activePopover = null;
+
+    function fetchIpInfo(ip, cb) {
+        if (ipCache[ip]) return cb(ipCache[ip]);
+        $.ajax({
+            url: 'https://ipinfo.io/' + ip + '/json',
+            dataType: 'json',
+            timeout: 5000,
+            success: function(data) { ipCache[ip] = data; cb(data); },
+            error: function() { cb(null); }
+        });
+    }
+
+    function buildPopover(ip, data) {
+        var flag = data && data.country ? '<img src="https://flagcdn.com/16x12/' + data.country.toLowerCase() + '.png" class="me-1" style="vertical-align:-1px" />' : '';
+        var rows = '';
+        if (data) {
+            if (data.city) rows += '<div class="ip-pop-row"><span class="ip-pop-label">Şehir</span><span class="ip-pop-value">' + flag + data.city + (data.region ? ', ' + data.region : '') + '</span></div>';
+            if (data.country) rows += '<div class="ip-pop-row"><span class="ip-pop-label">Ülke</span><span class="ip-pop-value">' + data.country + '</span></div>';
+            if (data.org) rows += '<div class="ip-pop-row"><span class="ip-pop-label">ISP</span><span class="ip-pop-value">' + data.org + '</span></div>';
+            if (data.timezone) rows += '<div class="ip-pop-row"><span class="ip-pop-label">Timezone</span><span class="ip-pop-value">' + data.timezone + '</span></div>';
+        } else {
+            rows = '<div class="text-muted text-center py-2">Bilgi alınamadı</div>';
+        }
+        return '<div class="ip-popover">'
+            + '<div class="ip-pop-header"><span class="fw-bold text-gray-800">' + ip + '</span>'
+            + '<a href="https://ipinfo.io/' + ip + '" target="_blank" class="btn btn-sm btn-light-primary py-1 px-3 fs-8">ipinfo.io <i class="fa fa-external-link-alt fs-9 ms-1"></i></a></div>'
+            + '<div class="ip-pop-body">' + rows + '</div></div>';
+    }
+
+    function removePopover() {
+        if (activePopover) { activePopover.remove(); activePopover = null; }
+    }
+
+    $(document).on('mouseenter', '[data-ip-lookup]', function() {
+        var el = $(this);
+        var ip = el.attr('data-ip-lookup');
+        if (!ip) return;
+        removePopover();
+        el.css('position', 'relative');
+        var loading = $('<div class="ip-popover"><div class="ip-pop-body text-center py-3"><span class="spinner-border spinner-border-sm me-2"></span>Yükleniyor...</div></div>');
+        el.append(loading);
+        activePopover = loading;
+        fetchIpInfo(ip, function(data) {
+            if (!el.is(':hover')) { removePopover(); return; }
+            loading.replaceWith(buildPopover(ip, data));
+            activePopover = el.find('.ip-popover');
+        });
+    });
+
+    $(document).on('mouseleave', '[data-ip-lookup]', function() {
+        removePopover();
+    });
+
+    $(document).on('click', '[data-ip-lookup]', function(e) {
+        if ($(e.target).closest('a').length) return;
+        var ip = $(this).attr('data-ip-lookup');
+        if (ip) window.open('https://ipinfo.io/' + ip, '_blank');
+    });
+})();
+</script>
+
 <script>
 (function(){
     var storageKey = 'admin_last_ticket_id';

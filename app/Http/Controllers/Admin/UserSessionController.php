@@ -89,13 +89,13 @@ class UserSessionController extends Controller
                 $data[] = [
                     $item->id,
                     "<a target='_blank' href='" . route("admin.users.show", ["user" => $item->user_id]) . "'>" . $item->user_name . "</a>",
-                    "<span class='badge badge-secondary badge-lg'>" . $item->ip_address . "</span>",
+                    "<span class='badge badge-secondary badge-lg' data-ip-lookup='" . e($item->ip_address) . "'>" . e($item->ip_address) . "</span>",
                     $item->login_date->format(defaultDateTimeFormat())
                 ];
             } else {
                 $data[] = [
                     $item->id,
-                    "<span class='badge badge-secondary badge-lg'>" . $item->ip_address . "</span>",
+                    "<span class='badge badge-secondary badge-lg' data-ip-lookup='" . e($item->ip_address) . "'>" . e($item->ip_address) . "</span>",
                     $item->login_date->format(defaultDateTimeFormat())
                 ];
             }
