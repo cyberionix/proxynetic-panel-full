@@ -9,13 +9,13 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('app:deliver-localtonet-orders')->everyMinute();
-        $schedule->command('app:per-minute-jobs')->everyMinute();
-        $schedule->command('app:stop-test-product-orders')->everyTenMinutes();
+        $schedule->command('app:deliver-localtonet-orders')->everyMinute()->withoutOverlapping();
+        $schedule->command('app:per-minute-jobs')->everyMinute()->withoutOverlapping();
+        $schedule->command('app:stop-test-product-orders')->everyTenMinutes()->withoutOverlapping();
 
-        $schedule->command('app:renew-orders')->everyFiveMinutes();
-        $schedule->command('app:invoices-with-upcoming-due-dates')->everyFiveMinutes();
-        $schedule->command('app:stop-service-on-unpaid-renew-invoices')->everyFiveMinutes();
+        $schedule->command('app:renew-orders')->everyFiveMinutes()->withoutOverlapping();
+        $schedule->command('app:invoices-with-upcoming-due-dates')->everyFiveMinutes()->withoutOverlapping();
+        $schedule->command('app:stop-service-on-unpaid-renew-invoices')->everyFiveMinutes()->withoutOverlapping();
     }
 
     /**

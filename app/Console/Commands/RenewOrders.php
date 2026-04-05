@@ -33,8 +33,16 @@ class RenewOrders extends Command
      */
     function createInvoiceAndOrderDetails($order, $priceData, $additionalServices, $durationUnit)
     {
+        $invoice = null;
+        $orderDetail = null;
         DB::beginTransaction();
         try {
+            if ($this->hasExistingRenewInvoice($order->id)) {
+                DB::rollback();
+                Log::info('CRON_RENEW_ORDERS_SKIPPED_IN_CREATE', ['order_id' => $order->id, 'reason' => 'existing_pending_renew']);
+                return;
+            }
+
             $priceData['price'] = $order->activeDetail->price->price_without_vat;
             $priceData['total_vat'] = ($priceData['price'] * $order->product->vat_percent) / 100;
             $priceData['price_with_vat'] = $priceData['price'] + $priceData['total_vat'];
@@ -73,6 +81,16 @@ class RenewOrders extends Command
                 "invoice_id" => $invoice->id,
             ]);
 
+            DB::commit();
+            Log::info('CRON_RENEW_ORDERS', ["invoice_id" => $invoice->id, "order_id" => $order->id, "order_item_id" => $orderDetail->id]);
+        } catch (\Exception $e) {
+            Invoice::$skipCreatedNotification = false;
+            DB::rollback();
+            Log::error('CRON_RENEW_ORDERS', ['order_id' => $order->id, "error" => $e->getMessage()]);
+            return;
+        }
+
+        try {
             $invoice->user->notify(new RenewOrderNotification($invoice, $order));
             \App\Services\NotificationTemplateService::send('order_renewed', $invoice->user, [
                 'siparis_no' => $order->id,
@@ -82,12 +100,8 @@ class RenewOrders extends Command
                 'son_odeme_tarihi' => $invoice->due_date?->format('d/m/Y') ?? '',
                 'fatura_url' => url('/invoices/' . $invoice->id),
             ]);
-            DB::commit();
-            Log::info('CRON_RENEW_ORDERS', ["invoice_id" => $invoice->id, "order_id" => $order->id, "order_item_id" => $orderDetail->id]);
         } catch (\Exception $e) {
-            Invoice::$skipCreatedNotification = false;
-            DB::rollback();
-            Log::error('CRON_RENEW_ORDERS', ['order_id' => $order->id, "error" => $e->getMessage()]);
+            Log::error('CRON_RENEW_ORDERS_NOTIFICATION', ['order_id' => $order->id, 'invoice_id' => $invoice->id, "error" => $e->getMessage()]);
         }
     }
     private function hasExistingRenewInvoice($orderId): bool
