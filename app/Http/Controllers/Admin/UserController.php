@@ -104,13 +104,11 @@ class UserController extends Controller
         foreach ($list as $item) {
             $userGroup = $item->user_group_name ? "<span class='badge badge-secondary badge-sm'>" . $item->user_group_name . "</span>" : "";
             $lastSeenAt = $item->last_seen_at ? "<span class='badge badge-secondary badge-sm'>" . $item->last_seen_at->format(defaultDateTimeFormat()) . "</span>" : "";
-            $process = '<a href="#" class="btn btn-light btn-active-light-primary btn-flex btn-center btn-sm d-none d-md-inline-flex" data-kt-menu-trigger="click" data-kt-menu-placement="bottom-end">
-                        İşlemler
-                        <i class="ki-duotone ki-down fs-5 ms-1"></i>
+            $process = '<a href="#" class="btn btn-light btn-active-light-primary btn-flex btn-center btn-sm user-action-btn" data-kt-menu-trigger="click" data-kt-menu-placement="bottom-end">
+                        <span class="d-none d-md-inline">İşlemler</span>
+                        <i class="ki-duotone ki-down fs-5 ms-1 d-none d-md-inline"></i>
+                        <i class="fa fa-ellipsis-vertical d-inline d-md-none"></i>
                         </a>
-<a href="#" class="btn btn-sm btn-icon btn-light d-inline-flex d-md-none" data-kt-menu-trigger="click" data-kt-menu-placement="bottom-end">
-    <i class="fa fa-ellipsis-vertical"></i>
-</a>
 <div class="menu menu-sub menu-sub-dropdown menu-column menu-rounded menu-gray-600 menu-state-bg-light-primary fw-semibold fs-7 w-125px py-4" data-kt-menu="true">
 
     <div class="menu-item px-3">

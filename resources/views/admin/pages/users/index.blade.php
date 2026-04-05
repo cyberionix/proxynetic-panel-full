@@ -18,6 +18,7 @@
             #usersTable td a { font-size: 11px; }
             #usersTable .badge { font-size: 10px; }
             #usersTable .btn { font-size: 10px; padding: 3px 6px; }
+            #usersTable .user-action-btn { width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
             .table-responsive { overflow-x: hidden; }
             .table-filter-area { padding-left: 8px !important; padding-right: 8px !important; }
             [data-table-action="search"] { font-size: 12px; width: 100% !important; }
