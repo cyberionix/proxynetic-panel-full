@@ -43,7 +43,13 @@ class SupportMessage extends Model
                     $isFirstMessage = SupportMessage::whereSupportId($model->support_id)
                         ->where('is_auto_reply', false)
                         ->count() == 1;
-                    if (!$isFirstMessage) {
+                    if ($isFirstMessage) {
+                        try {
+                            (new \App\Services\TelegramService())->sendSupportNotification($model->support, $model->message);
+                        } catch (\Throwable $e) {
+                            Log::error('SUPPORT_TELEGRAM_NOTIFY_FAIL', ['id' => $model->support_id, 'error' => $e->getMessage()]);
+                        }
+                    } else {
                         AdminNotificationService::supportMessageCreated($model->support);
                         SupportAutoReplyService::handleEvent('CUSTOMER_REPLIED', $model->support);
                     }

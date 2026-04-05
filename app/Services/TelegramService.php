@@ -56,14 +56,11 @@ class TelegramService
         }
     }
 
-    public function sendSupportNotification($ticket): bool
+    public function sendSupportNotification($ticket, ?string $messageText = null): bool
     {
         $userName = $ticket->user ? $ticket->user->full_name : 'Bilinmiyor';
         $priority = $ticket->priority ?? '-';
-        $firstMsg = $ticket->relationLoaded('messages')
-            ? $ticket->messages->last()
-            : $ticket->messages()->oldest()->first();
-        $message  = $firstMsg ? strip_tags($firstMsg->message ?? '') : '';
+        $message  = strip_tags($messageText ?? '');
         $adminUrl = url('/netAdmin/supports/' . $ticket->id);
 
         $productLine = '';

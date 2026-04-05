@@ -54,11 +54,6 @@ class Support extends Model
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::error('SUPPORT_USER_NOTIFY_FAIL', ['id' => $model->id, 'error' => $e->getMessage()]);
             }
-            try {
-                (new \App\Services\TelegramService())->sendSupportNotification($model);
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::error('SUPPORT_TELEGRAM_NOTIFY_FAIL', ['id' => $model->id, 'error' => $e->getMessage()]);
-            }
         });
 
         static::updated(function ($model) {
