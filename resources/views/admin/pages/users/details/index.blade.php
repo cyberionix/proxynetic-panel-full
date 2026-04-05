@@ -750,24 +750,39 @@
         <!--end:::Tab pane-->
         <!--begin:::Tab pane-->
         <div class="tab-pane fade" id="invoices_tab" role="tabpanel">
-            <!--begin::Card-->
             <div class="card pt-4 mb-6 mb-xl-9">
-                <!--begin::Card header-->
                 <div class="card-header border-0">
-                    <!--begin::Card title-->
                     <div class="card-title">
                         <h2>{{__("invoices")}}</h2>
                     </div>
-                    <!--end::Card title-->
+                    <div class="card-toolbar">
+                        <div id="invBulkBar" class="d-none d-flex align-items-center gap-2">
+                            <span class="fw-semibold text-gray-700 me-1"><span id="invSelectedCount">0</span> seçili</span>
+                            <button class="btn btn-sm btn-light-success inv-bulk-btn" data-action="mark_paid">
+                                <i class="fa fa-check me-1"></i>Ödendi Yap
+                            </button>
+                            <button class="btn btn-sm btn-light-warning inv-bulk-btn" data-action="mark_pending">
+                                <i class="fa fa-clock me-1"></i>Bekliyor Yap
+                            </button>
+                            <button class="btn btn-sm btn-light-secondary inv-bulk-btn" data-action="mark_cancelled">
+                                <i class="fa fa-ban me-1"></i>İptal Et
+                            </button>
+                            <button class="btn btn-sm btn-light-danger inv-bulk-btn" data-action="delete">
+                                <i class="fa fa-trash me-1"></i>Sil
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <!--end::Card header-->
-                <!--begin::Card body-->
                 <div class="card-body py-0">
-                    <!--begin::Table-->
                     <table id="invoiceTable"
                            class="table align-middle table-row-dashed fs-6 gy-5">
                         <thead>
                         <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+                            <th class="w-10px pe-2">
+                                <div class="form-check form-check-sm form-check-custom form-check-solid">
+                                    <input class="form-check-input" type="checkbox" id="invCheckAll" />
+                                </div>
+                            </th>
                             <th class="m-w-50">#</th>
                             <th class="min-w-125px">{{__("invoice_date")}}</th>
                             <th class="min-w-125px">{{__("amount")}}</th>
@@ -778,16 +793,9 @@
                         <tbody class="fw-semibold text-gray-600">
 
                         </tbody>
-                        <!--end::Table body-->
                     </table>
-                    <!--end::Table-->
                 </div>
-                <!--end::Card body-->
             </div>
-            <!--end::Card-->
-            <!--begin::Modals-->
-
-            <!--end::Modals-->
         </div>
         <!--end:::Tab pane-->
         <!--begin:::Tab pane-->
@@ -2693,24 +2701,11 @@
             // <--END::Checkouts -->
 
             // <--START::Invoices -->
-            $("#invoiceTable").DataTable({
+            var invTable = $("#invoiceTable").DataTable({
                 order: [],
                 columnDefs: [
-                    {
-                        orderable: !0, targets: 0
-                    },
-                    {
-                        orderable: !0, targets: 1
-                    },
-                    {
-                        orderable: !0, targets: 2
-                    },
-                    {
-                        orderable: !0, targets: 3
-                    },
-                    {
-                        orderable: !1, targets: 4
-                    }
+                    { orderable: false, targets: [0, 5] },
+                    { orderable: true, targets: [1, 2, 3, 4] }
                 ],
                 "processing": true,
                 "serverSide": true,
@@ -2724,6 +2719,63 @@
                 },
             }).on("draw", function () {
                 KTMenu.createInstances();
+                $('#invCheckAll').prop('checked', false);
+                invUpdateBulk();
+            });
+
+            function invGetIds() {
+                var ids = [];
+                $('#invoiceTable .bulk-check:checked').each(function() { ids.push($(this).val()); });
+                return ids;
+            }
+            function invUpdateBulk() {
+                var ids = invGetIds();
+                $('#invSelectedCount').text(ids.length);
+                ids.length > 0 ? $('#invBulkBar').removeClass('d-none') : $('#invBulkBar').addClass('d-none');
+            }
+            $(document).on('change', '#invCheckAll', function() {
+                $('#invoiceTable .bulk-check').prop('checked', $(this).is(':checked'));
+                invUpdateBulk();
+            });
+            $(document).on('change', '#invoiceTable .bulk-check', function() {
+                if (!$(this).is(':checked')) $('#invCheckAll').prop('checked', false);
+                invUpdateBulk();
+            });
+            $(document).on('click', '.inv-bulk-btn', function() {
+                var action = $(this).data('action');
+                var ids = invGetIds();
+                if (ids.length === 0) return;
+                var msgs = {
+                    'mark_paid': ids.length + ' faturayı ödendi olarak işaretlemek istediğinize emin misiniz?',
+                    'mark_pending': ids.length + ' faturayı bekliyor olarak işaretlemek istediğinize emin misiniz?',
+                    'mark_cancelled': ids.length + ' faturayı iptal etmek istediğinize emin misiniz?',
+                    'delete': ids.length + ' faturayı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.'
+                };
+                Swal.fire({
+                    title: 'Toplu İşlem',
+                    text: msgs[action] || 'Emin misiniz?',
+                    icon: action === 'delete' ? 'warning' : 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, uygula',
+                    cancelButtonText: 'Vazgeç',
+                    confirmButtonColor: action === 'delete' ? '#dc3545' : '#3085d6',
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: "{{ route('admin.invoices.bulkAction') }}",
+                            type: 'POST',
+                            data: { _token: "{{ csrf_token() }}", ids: ids, action: action },
+                            success: function(res) {
+                                if (res.success) {
+                                    Swal.fire({ title: 'Başarılı', text: res.message, icon: 'success', timer: 2000, showConfirmButton: false });
+                                    invTable.draw();
+                                } else {
+                                    Swal.fire({ title: 'Hata', text: res.message, icon: 'error' });
+                                }
+                            }
+                        });
+                    }
+                });
             });
             // <--END::Invoices -->
 
