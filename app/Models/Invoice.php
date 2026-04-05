@@ -71,7 +71,9 @@ class Invoice extends Model
 
     public function getTotalPriceWithVatAttribute()
     {
-        return $this->attributes['real_total'] && $this->attributes['real_total'] > 0 ? $this->attributes['real_total'] : $this->attributes['total_price_with_vat'];
+        $realTotal = $this->attributes['real_total'] ?? null;
+        $totalWithVat = $this->attributes['total_price_with_vat'] ?? 0;
+        return ($realTotal && $realTotal > 0) ? $realTotal : $totalWithVat;
     }
 
     public function drawStatus($customClass = null)
