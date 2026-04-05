@@ -91,6 +91,15 @@ class RenewOrders extends Command
         }
 
         try {
+            $newEndDate = $order->end_date;
+            $duration = (int) ($priceData['duration'] ?? 1);
+            switch ($durationUnit) {
+                case 'DAILY': $newEndDate = $order->end_date->copy()->addDays($duration); break;
+                case 'WEEKLY': $newEndDate = $order->end_date->copy()->addWeeks($duration); break;
+                case 'MONTHLY': $newEndDate = $order->end_date->copy()->addMonths($duration); break;
+                case 'YEARLY': $newEndDate = $order->end_date->copy()->addYears($duration); break;
+            }
+
             $invoice->user->notify(new RenewOrderNotification($invoice, $order));
             \App\Services\NotificationTemplateService::send('order_renewed', $invoice->user, [
                 'siparis_no' => $order->id,
@@ -98,6 +107,7 @@ class RenewOrders extends Command
                 'fatura_no' => $invoice->invoice_number ?? $invoice->id,
                 'tutar' => number_format($invoice->total_price_with_vat ?? 0, 2, ',', '.'),
                 'son_odeme_tarihi' => $invoice->due_date?->format('d/m/Y') ?? '',
+                'yeni_bitis_tarihi' => $newEndDate->format('d/m/Y'),
                 'fatura_url' => url('/invoices/' . $invoice->id),
             ]);
         } catch (\Exception $e) {
