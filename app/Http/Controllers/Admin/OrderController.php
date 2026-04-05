@@ -115,27 +115,29 @@ class OrderController extends Controller
         foreach ($list as $item) {
             $checkbox = '<div class="form-check form-check-sm form-check-custom form-check-solid"><input class="form-check-input bulk-check-order" type="checkbox" value="' . $item->id . '" /></div>';
             $price_data = $item->activeDetail?->price_data;
+            $orderUrl = route("admin.orders.show", ["order" => $item->id]);
+            $productLabel = $item->product_data["name"] . ' / ' . @$price_data["duration"] . ' ' . convertDurationText(@$price_data["duration_unit"]);
             if ($showAllList) {
                 $data[] = [
                     $checkbox,
                     "<span data-id='" . $item->id . "' class='badge badge-sm badge-light-primary'>#" . $item->id . "</span>",
                     "<a href='" . route("admin.users.show", ["user" => $item->user_id]) . "'>" . $item->user_name . "</a>",
-                    '<span class="badge badge-light-primary">' . $item->product_data["name"] . ' / ' . @$price_data["duration"] . ' ' . convertDurationText(@$price_data["duration_unit"]) . '</span> ',
+                    "<a href='" . $orderUrl . "' class='badge badge-light-primary text-hover-dark'>" . $productLabel . "</a>",
                     "<span class='badge badge-secondary badge-lg'>" . showBalance(@$price_data["price_with_vat"], true) . "</span>",
                     "<span class='badge badge-secondary'>" . $item->created_at->format(defaultDateFormat()) . "</span>",
                     $item->drawDeliveryStatus(),
-                    "<a href='" . route("admin.orders.show", ["order" => $item->id]) . "' class='btn btn-light-primary btn-sm'>" . __("view") . "</a>
+                    "<a href='" . $orderUrl . "' class='btn btn-light-primary btn-sm'>" . __("view") . "</a>
 <a href='javascript:void(0)' class='btn btn-light-danger btn-sm deleteBtn'>" . __("delete") . "</a>"
                 ];
             } else {
                 $data[] = [
                     $checkbox,
                     "<span data-id='" . $item->id . "' class='badge badge-sm badge-light-primary'>#" . $item->id . "</span>",
-                    '<span class="badge badge-light-primary">' . $item->product_data["name"] . ' / ' . @$price_data["duration"] . ' ' . convertDurationText(@$price_data["duration_unit"]) . '</span> ',
+                    "<a href='" . $orderUrl . "' class='badge badge-light-primary text-hover-dark'>" . $productLabel . "</a>",
                     "<span class='badge badge-secondary badge-lg'>" . showBalance(@$price_data["price_with_vat"], true) . "</span>",
                     "<span class='badge badge-secondary'>" . $item->created_at->format(defaultDateFormat()) . "</span>",
                     $item->drawStatus(),
-                    "<a href='" . route("admin.orders.show", ["order" => $item->id]) . "' class='btn btn-light-primary btn-sm'>" . __("view") . "</a>
+                    "<a href='" . $orderUrl . "' class='btn btn-light-primary btn-sm'>" . __("view") . "</a>
 <a href='javascript:void(0)' class='btn btn-light-danger btn-sm deleteBtn'>" . __("delete") . "</a>"
                 ];
             }

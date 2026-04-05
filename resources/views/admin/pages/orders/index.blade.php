@@ -1,6 +1,21 @@
 @extends("admin.template")
 @section("title", 'Siparişler')
-@section("css") @endsection
+@section("css")
+<style>
+@media (max-width: 768px) {
+    #ordersTable th.col-hide-mobile,
+    #ordersTable td.col-hide-mobile { display: none !important; }
+    #ordersTable { font-size: 13px; }
+    #ordersTable .badge { font-size: 11px; padding: 4px 6px; }
+    #ordersTable .btn-sm { font-size: 11px; padding: 4px 8px; }
+    .card-header { flex-direction: column; align-items: flex-start !important; gap: 10px; }
+    .card-toolbar { width: 100%; }
+    .card-toolbar .d-flex { flex-wrap: wrap; gap: 5px; }
+    #orderBulkBar { flex-wrap: wrap; }
+    #header-nav { gap: 4px !important; font-size: 13px; }
+}
+</style>
+@endsection
 @section("description", "")
 @section("keywords", "")
 @section("master")
@@ -91,18 +106,18 @@
                         <table id="ordersTable" class="table align-middle table-row-dashed fs-6 gy-5">
                             <thead>
                             <tr class="text-start text-gray-500 fw-bold fs-6 gs-0">
-                                <th class="w-10px pe-2">
+                                <th class="w-10px pe-2 col-hide-mobile">
                                     <div class="form-check form-check-sm form-check-custom form-check-solid">
                                         <input class="form-check-input" type="checkbox" id="orderCheckAll" />
                                     </div>
                                 </th>
                                 <th class="m-w-50">#</th>
-                                <th class="min-w-50px">{{__("customer")}}</th>
-                                <th class="min-w-125px">{{__("product")}}</th>
-                                <th class="min-w-125px">{{__("amount")}}</th>
-                                <th class="min-w-125px">{{__("date")}}</th>
-                                <th class="min-w-125px">Teslimat Durumu</th>
-                                <th class="min-w-125px">{{__("action")}}</th>
+                                <th>{{__("customer")}}</th>
+                                <th>{{__("product")}}</th>
+                                <th class="col-hide-mobile">{{__("amount")}}</th>
+                                <th class="col-hide-mobile">{{__("date")}}</th>
+                                <th>Teslimat</th>
+                                <th class="col-hide-mobile">{{__("action")}}</th>
                             </tr>
                             </thead>
                             <tbody class="fw-semibold text-gray-600">
@@ -336,11 +351,13 @@
                 $('.createOrderBtn').click();
             },200)
             @endif
+            var isMobile = window.innerWidth <= 768;
             var t = $("#ordersTable").DataTable({
                 order: [],
                 columnDefs: [
                     { orderable: false, targets: [0, 7] },
-                    { orderable: true, targets: [1, 2, 3, 4, 5, 6] }
+                    { orderable: true, targets: [1, 2, 3, 4, 5, 6] },
+                    { className: 'col-hide-mobile', targets: [0, 4, 5, 7] }
                 ],
                 "processing": true,
                 "serverSide": true,
