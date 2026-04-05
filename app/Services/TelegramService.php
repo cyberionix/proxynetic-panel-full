@@ -60,7 +60,10 @@ class TelegramService
     {
         $userName = $ticket->user ? $ticket->user->full_name : 'Bilinmiyor';
         $priority = $ticket->priority ?? '-';
-        $message  = strip_tags($ticket->message ?? '');
+        $firstMsg = $ticket->relationLoaded('messages')
+            ? $ticket->messages->last()
+            : $ticket->messages()->oldest()->first();
+        $message  = $firstMsg ? strip_tags($firstMsg->message ?? '') : '';
         $adminUrl = url('/netAdmin/supports/' . $ticket->id);
 
         $productLine = '';
