@@ -853,6 +853,7 @@
                                                         <option value="product_category">Ürün Kategorisine Göre</option>
                                                         <option value="product">Belirli Ürünü Alanlara</option>
                                                         <option value="active_orders">Aktif Siparişi Olanlara</option>
+                                                        <option value="no_service">Hizmeti Olmayanlara</option>
                                                         <option value="custom">Manuel Seçim</option>
                                                     </select>
                                                 </div>

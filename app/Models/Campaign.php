@@ -59,6 +59,12 @@ class Campaign extends Model
                 });
                 break;
 
+            case 'no_service':
+                $query->whereDoesntHave('orders', function ($q) {
+                    $q->whereIn('status', ['ACTIVE', 'PENDING']);
+                });
+                break;
+
             case 'custom':
                 if (!empty($filters['user_ids'])) {
                     $query->whereIn('id', $filters['user_ids']);
@@ -100,6 +106,7 @@ class Campaign extends Model
             'product_category' => 'Ürün Kategorisi',
             'product' => 'Belirli Ürün',
             'active_orders' => 'Aktif Siparişi Olanlar',
+            'no_service' => 'Hizmeti Olmayanlar',
             'custom' => 'Manuel Seçim',
             default => ucfirst($type),
         };
