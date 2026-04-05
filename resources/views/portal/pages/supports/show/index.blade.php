@@ -215,6 +215,12 @@
                                 we designed everything ourselves.
                             </p>
                             <!--end::Desc-->
+                            <div class="d-none text-end mt-2" data-np-message="seen-status">
+                                <span class="text-success fs-8 fw-semibold">
+                                    <i class="fa fa-check-double text-success fs-8 me-1"></i>Görüldü
+                                    <span class="text-muted ms-1" data-np-message="seen-time"></span>
+                                </span>
+                            </div>
                         </div>
                         <!--end::Body-->
                     </div>
@@ -280,7 +286,17 @@
                     if (item.file) {
                         msgHtml += '<div class="mt-3"><a href="/' + item.file + '" target="_blank"><img src="/' + item.file + '" class="rounded border" style="max-width:300px;max-height:200px;cursor:pointer" /></a></div>';
                     }
-                    itemTemplate.find("[data-np-message='message']").html(msgHtml)
+                    itemTemplate.find("[data-np-message='message']").html(msgHtml);
+
+                    if (!isAdmin && !isAutoReply && item.seen_at) {
+                        let seenTime = moment(item.seen_at).format("DD/MM/YYYY HH:mm:ss");
+                        itemTemplate.find("[data-np-message='seen-time']").text(seenTime);
+                        itemTemplate.find("[data-np-message='seen-status']").removeClass("d-none");
+                    } else {
+                        itemTemplate.find("[data-np-message='seen-status']").addClass("d-none");
+                        itemTemplate.find("[data-np-message='seen-time']").text("");
+                    }
+
                     $("[data-np-message='items']").append($("[data-np-message='item-template']").html());
                 });
             };

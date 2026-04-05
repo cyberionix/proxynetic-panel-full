@@ -18,6 +18,7 @@ class SupportMessage extends Model
     protected $guarded = [];
     protected $casts = [
         'is_auto_reply' => 'boolean',
+        'seen_at' => 'datetime',
     ];
     protected static function boot()
     {

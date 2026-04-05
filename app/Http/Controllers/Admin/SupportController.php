@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SmsLog;
 use App\Models\Support;
+use App\Models\SupportMessage;
 use App\Services\SupportAutoReplyService;
 use App\Traits\AjaxResponses;
 use Illuminate\Http\Request;
@@ -147,6 +148,13 @@ class SupportController extends Controller
     public function find(Support $support)
     {
         SupportAutoReplyService::processPendingAutoReplies();
+
+        SupportMessage::where('support_id', $support->id)
+            ->whereNull('admin_id')
+            ->where('is_auto_reply', false)
+            ->whereNull('seen_at')
+            ->update(['seen_at' => now()]);
+
         $support->load("messages");
         return $this->successResponse("", ["data" => $support]);
     }
@@ -293,6 +301,12 @@ class SupportController extends Controller
 
     public function pollMessages(Support $support)
     {
+        SupportMessage::where('support_id', $support->id)
+            ->whereNull('admin_id')
+            ->where('is_auto_reply', false)
+            ->whereNull('seen_at')
+            ->update(['seen_at' => now()]);
+
         $support->load('messages');
         $lastMessageId = $support->messages->first()?->id ?? 0;
         $isUserTyping = Cache::get("support_typing_user_{$support->id}");

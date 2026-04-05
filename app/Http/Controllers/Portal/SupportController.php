@@ -125,6 +125,12 @@ class SupportController extends Controller
     public function find(Support $support)
     {
         SupportAutoReplyService::processPendingAutoReplies();
+
+        SupportMessage::where('support_id', $support->id)
+            ->whereNotNull('admin_id')
+            ->whereNull('seen_at')
+            ->update(['seen_at' => now()]);
+
         $support->load("messages");
         return $this->successResponse("", ["data" => $support]);
     }
@@ -169,6 +175,11 @@ class SupportController extends Controller
 
     public function pollMessages(Support $support)
     {
+        SupportMessage::where('support_id', $support->id)
+            ->whereNotNull('admin_id')
+            ->whereNull('seen_at')
+            ->update(['seen_at' => now()]);
+
         $support->load('messages');
         $lastMessageId = $support->messages->first()?->id ?? 0;
         $isAdminTyping = Cache::get("support_typing_admin_{$support->id}");
