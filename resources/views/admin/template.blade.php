@@ -224,8 +224,12 @@
 <script>
 (function(){
     var storageKey = 'admin_last_ticket_id';
-    var lastTicketId = parseInt(localStorage.getItem(storageKey)) || 0;
-    var firstPoll = true;
+    var suppressNext = true;
+    var polling = false;
+
+    function readLastId() {
+        return parseInt(localStorage.getItem(storageKey)) || 0;
+    }
 
     function playTicketSound() {
         try {
@@ -247,14 +251,20 @@
     }
 
     function pollNewTickets() {
+        if (polling || document.hidden) return;
+        polling = true;
+
+        var lastTicketId = readLastId();
+
         $.ajax({
             url: "{{ route('admin.supports.newTicketsPoll') }}",
             type: 'GET',
             data: { last_id: lastTicketId },
             dataType: 'json',
             success: function(res) {
-                if (res.max_id && res.max_id > lastTicketId) {
-                    if (!firstPoll && res.tickets && res.tickets.length > 0) {
+                var freshId = readLastId();
+                if (res.max_id && res.max_id > freshId) {
+                    if (!suppressNext && res.tickets && res.tickets.length > 0) {
                         res.tickets.forEach(function(ticket) {
                             toastr.options = {
                                 closeButton: true,
@@ -273,13 +283,21 @@
                         });
                         playTicketSound();
                     }
-                    lastTicketId = res.max_id;
-                    localStorage.setItem(storageKey, lastTicketId);
+                    localStorage.setItem(storageKey, res.max_id);
                 }
-                firstPoll = false;
+                suppressNext = false;
+            },
+            complete: function() {
+                polling = false;
             }
         });
     }
+
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            suppressNext = true;
+        }
+    });
 
     $(document).ready(function() {
         pollNewTickets();
