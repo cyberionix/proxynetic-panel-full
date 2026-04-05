@@ -63,9 +63,21 @@ class TelegramService
         $message  = mb_substr(strip_tags($ticket->message ?? ''), 0, 200);
         $adminUrl = url('/netAdmin/supports/' . $ticket->id);
 
+        $productLine = '';
+        if ($ticket->order_id) {
+            $order = $ticket->relationLoaded('order') ? $ticket->order : $ticket->order()->first();
+            if ($order) {
+                $productName = $order->product_data['name'] ?? '';
+                if ($productName) {
+                    $productLine = "📦 Ürün: <b>{$productName}</b>\n";
+                }
+            }
+        }
+
         $text = "🎫 <b>Yeni Destek Talebi</b>\n\n"
             . "📋 Ticket No: <b>#{$ticket->id}</b>\n"
             . "👤 Kullanıcı: <b>{$userName}</b>\n"
+            . $productLine
             . "📌 Konu: <b>{$ticket->subject}</b>\n"
             . "⚡ Öncelik: <b>{$priority}</b>\n"
             . "💬 Mesaj: {$message}\n\n"
