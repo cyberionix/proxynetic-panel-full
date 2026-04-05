@@ -23,7 +23,7 @@
                         <!--begin::Top-->
                         <div class="row pb-10">
                             <!--begin::Logo-->
-                            <div class="col d-flex flex-center">
+                            <div class="col d-flex align-items-center">
                                 <img class="w-50 theme-light-show" alt="Logo" src="{{url(brand("logo_dark"))}}"/>
                                 <img class="w-50 theme-dark-show" alt="Logo" src="{{url(brand("logo"))}}"/>
                             </div>
