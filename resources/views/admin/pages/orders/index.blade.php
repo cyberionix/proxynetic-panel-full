@@ -3,16 +3,23 @@
 @section("css")
 <style>
 @media (max-width: 768px) {
-    #ordersTable th.col-hide-mobile,
-    #ordersTable td.col-hide-mobile { display: none !important; }
-    #ordersTable { font-size: 13px; }
-    #ordersTable .badge { font-size: 11px; padding: 4px 6px; }
-    #ordersTable .btn-sm { font-size: 11px; padding: 4px 8px; }
-    .card-header { flex-direction: column; align-items: flex-start !important; gap: 10px; }
+    #kt_app_content_container.container-xxl { max-width: 100% !important; padding-left: 10px !important; padding-right: 10px !important; }
+    .card { margin-left: 0; margin-right: 0; }
+    .card-body { padding-left: 10px !important; padding-right: 10px !important; }
+    .card-header { padding-left: 10px !important; padding-right: 10px !important; flex-direction: column; align-items: flex-start !important; gap: 10px; }
+    #header-nav { gap: 2px !important; font-size: 14px; width: 100%; }
+    #header-nav .nav-item { flex: 1; text-align: center; }
+    #header-nav .nav-link { padding-left: 4px !important; padding-right: 4px !important; white-space: nowrap; }
     .card-toolbar { width: 100%; }
     .card-toolbar .d-flex { flex-wrap: wrap; gap: 5px; }
     #orderBulkBar { flex-wrap: wrap; }
-    #header-nav { gap: 4px !important; font-size: 13px; }
+    #ordersTable th.col-hide-mobile,
+    #ordersTable td.col-hide-mobile { display: none !important; }
+    #ordersTable { font-size: 13px; width: 100% !important; }
+    #ordersTable .badge { font-size: 12px; padding: 5px 8px; }
+    #ordersTable .btn-sm { font-size: 12px; padding: 5px 10px; }
+    .table-responsive { overflow-x: hidden; }
+    .card.mb-5.mb-xl-10 { margin-bottom: 8px !important; }
 }
 </style>
 @endsection
@@ -374,7 +381,18 @@
                 KTMenu.createInstances();
                 $('#orderCheckAll').prop('checked', false);
                 orderUpdateBulk();
+                if (window.innerWidth <= 768) {
+                    $('#ordersTable tbody tr').css('cursor', 'pointer');
+                }
             });
+
+            if (window.innerWidth <= 768) {
+                $(document).on('click', '#ordersTable tbody td', function(e) {
+                    if ($(e.target).is('a, button, input') || $(e.target).closest('a, button, .form-check').length) return;
+                    var link = $(this).closest('tr').find('a.badge').attr('href');
+                    if (link) window.location.href = link;
+                });
+            }
 
             function orderGetIds() {
                 var ids = [];
