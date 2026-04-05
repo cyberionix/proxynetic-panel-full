@@ -14,8 +14,8 @@
         <!--end::Sidebar mobile toggle-->
         <!--begin::Mobile logo-->
         <div class="d-flex align-items-center flex-grow-1 flex-lg-grow-0">
-            <a href="index.html" class="d-lg-none">
-                <img alt="Logo" src="{{url(brand("logo"))}}" class="h-30px"/>
+            <a href="{{ route('admin.dashboard') }}" class="d-lg-none">
+                <img alt="Logo" src="{{url(brand("logo_dark"))}}" class="h-30px"/>
             </a>
         </div>
         <!--end::Mobile logo-->
