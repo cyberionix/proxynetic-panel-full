@@ -484,9 +484,6 @@ class SystemController extends Controller
                 'renew_days_before_daily' => max(0, (int) ($ai['renew_days_before_daily'] ?? 1)),
                 'reminder_days_before' => max(1, (int) ($ai['reminder_days_before'] ?? 3)),
                 'stop_service_on_unpaid' => (bool) ($ai['stop_service_on_unpaid'] ?? false),
-                'renew_run_time' => $this->sanitizeTime($ai['renew_run_time'] ?? '10:00'),
-                'reminder_run_time' => $this->sanitizeTime($ai['reminder_run_time'] ?? '10:00'),
-                'stop_service_run_time' => $this->sanitizeTime($ai['stop_service_run_time'] ?? '02:00'),
             ];
 
             file_put_contents(

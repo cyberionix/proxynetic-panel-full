@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use App\Notifications\UpcomingInvoicePaymentNotification;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class InvoicesWithUpcomingDueDates extends Command
@@ -49,6 +50,9 @@ class InvoicesWithUpcomingDueDates extends Command
         $invoices = Invoice::whereStatus("PENDING")->whereDate("due_date", "=", Carbon::now()->addDays($day))->get();
         $count = 0;
         foreach ($invoices as $invoice) {
+            $cacheKey = 'invoice_reminder_sent_' . $invoice->id . '_' . Carbon::today()->format('Y-m-d');
+            if (Cache::has($cacheKey)) continue;
+
             $invoice->user->notify(new UpcomingInvoicePaymentNotification($invoice));
             \App\Services\NotificationTemplateService::send('invoice_reminder', $invoice->user, [
                 'fatura_no' => $invoice->invoice_number ?? $invoice->id,
@@ -56,6 +60,7 @@ class InvoicesWithUpcomingDueDates extends Command
                 'son_odeme_tarihi' => $invoice->due_date?->format('d/m/Y') ?? '',
                 'fatura_url' => url('/invoices/' . $invoice->id),
             ]);
+            Cache::put($cacheKey, true, now()->endOfDay());
             $count++;
         }
         Log::info('END_INVOICE_WITH_UPCOMING_DUE_DATES', ['invoice_count' => $count]);

@@ -386,33 +386,13 @@
                                 <hr class="my-5">
                                 <div class="d-flex align-items-center mb-4">
                                     <i class="fa fa-clock text-warning fs-3 me-3"></i>
-                                    <h5 class="mb-0 fw-bold">Çalışma Saatleri</h5>
+                                    <h5 class="mb-0 fw-bold">Çalışma Frekansı</h5>
                                 </div>
-                                <p class="text-gray-600 mb-5">Otomatik görevlerin her gün hangi saatte çalışacağını ayarlayın. Değişiklik kaydedildiğinde anında geçerli olur.</p>
-
-                                <div class="row">
-                                    <div class="col-md-4 mb-5">
-                                        <label class="form-label fw-semibold required">Yenileme Faturası Oluşturma</label>
-                                        <input type="time" name="auto_invoice[renew_run_time]"
-                                               class="form-control form-control-solid"
-                                               value="{{ $autoInvoiceSettings['renew_run_time'] ?? '10:00' }}" />
-                                        <div class="form-text text-gray-500">Otomatik yenileme faturaları bu saatte oluşturulur.</div>
-                                    </div>
-
-                                    <div class="col-md-4 mb-5">
-                                        <label class="form-label fw-semibold required">Ödeme Hatırlatma</label>
-                                        <input type="time" name="auto_invoice[reminder_run_time]"
-                                               class="form-control form-control-solid"
-                                               value="{{ $autoInvoiceSettings['reminder_run_time'] ?? '10:00' }}" />
-                                        <div class="form-text text-gray-500">Yaklaşan fatura hatırlatmaları bu saatte gönderilir.</div>
-                                    </div>
-
-                                    <div class="col-md-4 mb-5">
-                                        <label class="form-label fw-semibold required">Hizmet Durdurma Kontrolü</label>
-                                        <input type="time" name="auto_invoice[stop_service_run_time]"
-                                               class="form-control form-control-solid"
-                                               value="{{ $autoInvoiceSettings['stop_service_run_time'] ?? '02:00' }}" />
-                                        <div class="form-text text-gray-500">Ödenmemiş faturalarda hizmet durdurma bu saatte çalışır.</div>
+                                <div class="alert alert-light-info border border-info border-dashed d-flex align-items-center p-5">
+                                    <i class="fa fa-info-circle text-info fs-3 me-3"></i>
+                                    <div>
+                                        <span class="fw-bold d-block mb-1">Tüm otomatik görevler her 5 dakikada bir kontrol edilir.</span>
+                                        <span class="text-gray-600">Yenileme faturası oluşturma, ödeme hatırlatma ve hizmet durdurma işlemleri sürekli kontrol edilir. Aynı sipariş/fatura için mükerrer işlem yapılmaz.</span>
                                     </div>
                                 </div>
                             </div>

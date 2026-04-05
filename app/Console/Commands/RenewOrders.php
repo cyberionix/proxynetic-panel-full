@@ -87,10 +87,25 @@ class RenewOrders extends Command
             Log::error('CRON_RENEW_ORDERS', ['order_id' => $order->id, "error" => $e->getMessage()]);
         }
     }
+    private function hasExistingRenewInvoice($orderId): bool
+    {
+        return InvoiceItem::where('type', 'RENEW')
+            ->where('order_id', $orderId)
+            ->whereHas('invoice', function ($q) {
+                $q->where('status', 'PENDING');
+            })
+            ->exists();
+    }
+
     function processOrders($orders, $durationUnit = null)
     {
         if ($orders) {
             foreach ($orders as $order) {
+                if ($this->hasExistingRenewInvoice($order->id)) {
+                    Log::info('CRON_RENEW_ORDERS_SKIPPED', ['order_id' => $order->id, 'reason' => 'existing_pending_renew']);
+                    continue;
+                }
+
                 if (!$priceData = $order->activeDetail->price) continue;
                 $priceData = $order->activeDetail->price->toArray();
                 if ($durationUnit) {
