@@ -96,8 +96,24 @@ class SupportAutoReplyService
                     $support = Support::withoutGlobalScope('for_user')->find($item->support_id);
 
                     if ($rule && $support) {
-                        static::sendAutoReply($rule, $support);
-                        $sent++;
+                        if ($rule->skip_if_admin_replied) {
+                            $hasAdminReply = SupportMessage::where('support_id', $support->id)
+                                ->where('is_auto_reply', false)
+                                ->whereNotNull('admin_id')
+                                ->exists();
+                            if ($hasAdminReply) {
+                                Log::info('AutoReply atlandı: admin zaten yanıt vermiş', [
+                                    'rule_id' => $rule->id,
+                                    'support_id' => $support->id,
+                                ]);
+                            } else {
+                                static::sendAutoReply($rule, $support);
+                                $sent++;
+                            }
+                        } else {
+                            static::sendAutoReply($rule, $support);
+                            $sent++;
+                        }
                     }
 
                     DB::table('support_pending_auto_replies')
