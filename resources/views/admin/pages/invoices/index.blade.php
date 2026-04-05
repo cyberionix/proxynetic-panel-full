@@ -14,35 +14,44 @@
                 <!--begin::Navbar-->
                 <div class="card mb-5 mb-xl-10">
                     <div class="card-body py-0">
-                        <!--begin:::Tabs-->
                         <ul id="header-nav"
-                            class="nav nav-stretch nav-line-tabs nav-line-tabs-2x border-transparent fs-5 fw-bold mt-3 gap-8">
-                            <!--begin:::Tab item-->
+                            class="nav nav-stretch nav-line-tabs nav-line-tabs-2x border-transparent fs-5 fw-bold mt-3 gap-2">
                             <li class="nav-item">
                                 <a class="nav-link text-active-primary pb-4 statusTab active"
-                                   data-bs-toggle="tab"
-                                   data-key=""
-                                   href="javascript:void(0);">{{__("all")}}</a>
+                                   data-bs-toggle="tab" data-key="" href="javascript:void(0);">
+                                    <i class="fa fa-list-ul me-2 fs-6"></i>Tümü
+                                    <span class="badge badge-light-dark badge-sm ms-2 tab-count" data-status="all"></span>
+                                </a>
                             </li>
-                            <!--end:::Tab item-->
-                            <!--begin:::Tab item-->
                             <li class="nav-item">
-                                <a class="nav-link text-active-primary pb-4 statusTab"
-                                   data-bs-toggle="tab"
-                                   data-key="PENDING"
-                                   href="javascript:void(0);">Bekliyor</a>
+                                <a class="nav-link text-active-danger pb-4 statusTab"
+                                   data-bs-toggle="tab" data-key="PENDING" href="javascript:void(0);">
+                                    <i class="fa fa-clock me-2 fs-6"></i>Bekliyor
+                                    <span class="badge badge-light-danger badge-sm ms-2 tab-count" data-status="PENDING"></span>
+                                </a>
                             </li>
-                            <!--end:::Tab item-->
-                            <!--begin:::Tab item-->
                             <li class="nav-item">
-                                <a class="nav-link text-active-primary pb-4 statusTab"
-                                   data-bs-toggle="tab"
-                                   data-key="FORMALIZED"
-                                   href="javascript:void(0);">Resmileştirilmiş</a>
+                                <a class="nav-link text-active-success pb-4 statusTab"
+                                   data-bs-toggle="tab" data-key="PAID" href="javascript:void(0);">
+                                    <i class="fa fa-check-circle me-2 fs-6"></i>Ödendi
+                                    <span class="badge badge-light-success badge-sm ms-2 tab-count" data-status="PAID"></span>
+                                </a>
                             </li>
-                            <!--end:::Tab item-->
+                            <li class="nav-item">
+                                <a class="nav-link text-active-secondary pb-4 statusTab"
+                                   data-bs-toggle="tab" data-key="CANCELLED" href="javascript:void(0);">
+                                    <i class="fa fa-ban me-2 fs-6"></i>İptal
+                                    <span class="badge badge-light-secondary badge-sm ms-2 tab-count" data-status="CANCELLED"></span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-active-info pb-4 statusTab"
+                                   data-bs-toggle="tab" data-key="FORMALIZED" href="javascript:void(0);">
+                                    <i class="fa fa-file-invoice me-2 fs-6"></i>Resmileştirilmiş
+                                    <span class="badge badge-light-info badge-sm ms-2 tab-count" data-status="FORMALIZED"></span>
+                                </a>
+                            </li>
                         </ul>
-                        <!--end:::Tabs-->
                     </div>
                 </div>
                 <!--end::Navbar-->
@@ -109,24 +118,8 @@
             var t = $("#invoiceTable").DataTable({
                 order: [],
                 columnDefs: [
-                    {
-                        orderable: !0, targets: 0
-                    },
-                    {
-                        orderable: !0, targets: 1
-                    },
-                    {
-                        orderable: !0, targets: 2
-                    },
-                    {
-                        orderable: !0, targets: 3
-                    },
-                    {
-                        orderable: !0, targets: 4
-                    },
-                    {
-                        orderable: !1, targets: 5
-                    }
+                    { orderable: true, targets: [0,1,2,3,4] },
+                    { orderable: false, targets: 5 }
                 ],
                 "processing": true,
                 "serverSide": true,
@@ -143,12 +136,24 @@
                 KTMenu.createInstances();
             });
 
+            function loadTabCounts() {
+                $.get("{{ route('admin.invoices.statusCounts') }}", function(data) {
+                    $('[data-status="all"]').text(data.total || 0);
+                    $('[data-status="PENDING"]').text(data.pending || 0);
+                    $('[data-status="PAID"]').text(data.paid || 0);
+                    $('[data-status="CANCELLED"]').text(data.cancelled || 0);
+                    $('[data-status="FORMALIZED"]').text(data.formalized || 0);
+                });
+            }
+            loadTabCounts();
+
             document.querySelector('[data-table-action="search"]').addEventListener("keyup", (function (e) {
                 t.search(e.target.value).draw();
             }));
 
             $(document).on("click", ".statusTab", function () {
                 t.draw();
+                loadTabCounts();
             })
 
             $(document).on("submit", "#userForm", function (e) {

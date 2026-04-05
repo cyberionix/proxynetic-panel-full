@@ -209,6 +209,7 @@ dd($data->is_proxy || $data->is_vpn);
             Route::get('/create', [InvoiceController::class, "create"])->name("create");
             Route::post('/store', [InvoiceController::class, "store"])->name("store");
             Route::post('/ajax', [InvoiceController::class, "ajax"])->name("ajax");
+            Route::get('/status-counts', [InvoiceController::class, "statusCounts"])->name("statusCounts");
             Route::get('/{invoice}', [InvoiceController::class, "show"])->name("show");
             Route::post('/update/{invoice}', [InvoiceController::class, "update"])->name("update");
             Route::post('/delete/{invoice}', [InvoiceController::class, "delete"])->name("delete");

@@ -355,6 +355,19 @@ class InvoiceController extends Controller
         }
     }
 
+    public function statusCounts()
+    {
+        $counts = Invoice::selectRaw("
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = 'PAID' THEN 1 ELSE 0 END) as paid,
+            SUM(CASE WHEN status = 'CANCELLED' THEN 1 ELSE 0 END) as cancelled,
+            SUM(CASE WHEN formalized_at IS NOT NULL THEN 1 ELSE 0 END) as formalized
+        ")->first();
+
+        return response()->json($counts);
+    }
+
     public function ajax(Request $request)
     {
         $whereSearch = "invoices.deleted_at IS NULL";
@@ -399,10 +412,15 @@ class InvoiceController extends Controller
             }
         }
 
-//        $status = $request->status;
-//        if ($status) {
-//            $whereSearch .= " AND balance_activities.status = '{$status}' ";
-//        }
+        $status = $request->status;
+        if ($status) {
+            if ($status === 'FORMALIZED') {
+                $whereSearch .= " AND invoices.formalized_at IS NOT NULL";
+            } else {
+                $safeStatus = preg_replace('/[^A-Z_]/', '', $status);
+                $whereSearch .= " AND invoices.status = '{$safeStatus}'";
+            }
+        }
 
         $start = $request->start ?? 0;
         $length = $request->length == -1 ? 10 : $request->length;
