@@ -186,6 +186,7 @@ class RenewOrders extends Command
             ->whereDeliveryStatus("DELIVERED")
             ->whereStatus("ACTIVE")
             ->whereDate('end_date', Carbon::now()->addDays($monthlyDays)->format("Y-m-d"))
+            ->whereDate('created_at', '<', Carbon::today())
             ->get();
 
         $this->processOrders($orders1);
@@ -194,6 +195,7 @@ class RenewOrders extends Command
             ->whereDeliveryStatus("DELIVERED")
             ->whereStatus("ACTIVE")
             ->whereDate('end_date', Carbon::now()->addDays($weeklyDays)->format("Y-m-d"))
+            ->whereDate('created_at', '<', Carbon::today())
             ->get();
 
         $this->processOrders($orders2, "WEEKLY");
@@ -204,6 +206,7 @@ class RenewOrders extends Command
                 ->whereDeliveryStatus("DELIVERED")
                 ->whereStatus("ACTIVE")
                 ->whereDate('end_date', Carbon::now()->addDays($dailyDays)->format("Y-m-d"))
+                ->whereDate('created_at', '<', Carbon::today())
                 ->get();
 
             $this->processOrders($orders3, "DAILY");
