@@ -53,6 +53,11 @@ class SupportMessage extends Model
                     } else {
                         AdminNotificationService::supportMessageCreated($model->support);
                         SupportAutoReplyService::handleEvent('CUSTOMER_REPLIED', $model->support);
+                        try {
+                            (new \App\Services\TelegramService())->sendCustomerReplyNotification($model->support, $model->message);
+                        } catch (\Throwable $e) {
+                            Log::error('SUPPORT_REPLY_TELEGRAM_FAIL', ['id' => $model->support_id, 'error' => $e->getMessage()]);
+                        }
                     }
                 }
             } catch (\Throwable $e) {

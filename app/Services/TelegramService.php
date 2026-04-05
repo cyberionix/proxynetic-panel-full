@@ -86,6 +86,26 @@ class TelegramService
         return $this->sendMessage($text);
     }
 
+    public function sendCustomerReplyNotification($ticket, string $messageText): bool
+    {
+        $userName = $ticket->user ? $ticket->user->full_name : 'Bilinmiyor';
+        $message  = strip_tags($messageText);
+        $adminUrl = url('/netAdmin/supports/' . $ticket->id);
+
+        if (mb_strlen($message) > 300) {
+            $message = mb_substr($message, 0, 300) . '…';
+        }
+
+        $text = "💬 <b>Müşteri Yanıtı</b>\n\n"
+            . "📋 Ticket No: <b>#{$ticket->id}</b>\n"
+            . "👤 Kullanıcı: <b>{$userName}</b>\n"
+            . "📌 Konu: <b>{$ticket->subject}</b>\n"
+            . "💬 Mesaj: {$message}\n\n"
+            . "🔗 <a href=\"{$adminUrl}\">Panelde Görüntüle</a>";
+
+        return $this->sendMessage($text);
+    }
+
     public function getUpdates(): array
     {
         if ($this->token === '') {
