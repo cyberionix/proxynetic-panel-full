@@ -110,6 +110,31 @@
                     </div>
                 </div>
             </div>
+            @if($support->order)
+            <div class="mb-9">
+                <div class="border border-dashed border-gray-300 rounded p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="symbol symbol-40px me-3">
+                            <div class="symbol-label bg-light-primary">
+                                <i class="fa fa-box text-primary fs-5"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <span class="text-gray-800 fw-bold fs-6 d-block">{{ $support->order->product_data['name'] ?? '-' }}</span>
+                            <span class="text-muted fw-semibold fs-7">
+                                Sipariş #{{ $support->order->id }}
+                                @if(!empty($support->order->product_data['category']['name']))
+                                    &middot; {{ $support->order->product_data['category']['name'] }}
+                                @endif
+                                @if($support->order->end_date)
+                                    &middot; Bitiş: {{ $support->order->end_date->format('d.m.Y') }}
+                                @endif
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
             <!--begin::Support Information-->
             <!--begin::Send Message-->
             <div class="mb-9">

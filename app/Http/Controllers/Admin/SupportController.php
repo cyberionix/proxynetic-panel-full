@@ -28,12 +28,14 @@ class SupportController extends Controller
 
         $whereSearch = 'supports.deleted_at IS NULL ';
         $showAllList = $request->boolean('showAllList', true);
+        $productNameExpr = "JSON_UNQUOTE(JSON_EXTRACT(orders.product_data, '$.name'))";
         if ($showAllList) {
             $searchableColumns = [
                 'supports.id',
+                'supports.id',
                 $userFullNameExpr,
                 'supports.subject',
-                'supports.department',
+                $productNameExpr,
                 'supports.updated_at',
                 'supports.status',
                 'supports.id',
@@ -86,6 +88,7 @@ class SupportController extends Controller
                     DB::raw($userFullNameExpr.' as user_name'),
                 )
                 ->leftJoin('users', 'users.id', '=', 'supports.user_id')
+                ->leftJoin('orders', 'orders.id', '=', 'supports.order_id')
                 ->whereRaw($whereSearch)
                 ->orderByRaw($orderBy);
         };
