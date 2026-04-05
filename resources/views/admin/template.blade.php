@@ -223,8 +223,9 @@
 
 <script>
 (function(){
-    var lastTicketId = 0;
-    var initialized = false;
+    var storageKey = 'admin_last_ticket_id';
+    var lastTicketId = parseInt(localStorage.getItem(storageKey)) || 0;
+    var firstPoll = true;
 
     function playTicketSound() {
         try {
@@ -252,29 +253,30 @@
             data: { last_id: lastTicketId },
             dataType: 'json',
             success: function(res) {
-                if (res.tickets && res.tickets.length > 0 && initialized) {
-                    res.tickets.forEach(function(ticket) {
-                        toastr.options = {
-                            closeButton: true,
-                            progressBar: true,
-                            positionClass: 'toastr-top-right',
-                            timeOut: 5000,
-                            extendedTimeOut: 3000,
-                            onclick: function() {
-                                window.location.href = ticket.url;
-                            }
-                        };
-                        toastr.info(
-                            '<div style="cursor:pointer"><strong>' + ticket.user + '</strong><br>' + ticket.subject + '</div>',
-                            '<i class="fa fa-headset me-2"></i>Yeni Destek Talebi #' + ticket.id
-                        );
-                    });
-                    playTicketSound();
-                }
-                if (res.max_id) {
+                if (res.max_id && res.max_id > lastTicketId) {
+                    if (!firstPoll && res.tickets && res.tickets.length > 0) {
+                        res.tickets.forEach(function(ticket) {
+                            toastr.options = {
+                                closeButton: true,
+                                progressBar: true,
+                                positionClass: 'toastr-top-right',
+                                timeOut: 5000,
+                                extendedTimeOut: 3000,
+                                onclick: function() {
+                                    window.location.href = ticket.url;
+                                }
+                            };
+                            toastr.info(
+                                '<div style="cursor:pointer"><strong>' + ticket.user + '</strong><br>' + ticket.subject + '</div>',
+                                '<i class="fa fa-headset me-2"></i>Yeni Destek Talebi #' + ticket.id
+                            );
+                        });
+                        playTicketSound();
+                    }
                     lastTicketId = res.max_id;
+                    localStorage.setItem(storageKey, lastTicketId);
                 }
-                initialized = true;
+                firstPoll = false;
             }
         });
     }
