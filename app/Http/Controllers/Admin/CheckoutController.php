@@ -189,7 +189,7 @@ class CheckoutController extends Controller
                 $checkout->user->notify($notification);
                 \App\Services\NotificationTemplateService::send('invoice_paid', $checkout->user, [
                     'fatura_no' => $checkout->invoice->invoice_number ?? $checkout->invoice->id,
-                    'tutar' => number_format($checkout->invoice->total ?? 0, 2, ',', '.'),
+                    'tutar' => number_format($checkout->invoice->total_price_with_vat ?? 0, 2, ',', '.'),
                     'fatura_url' => url('/invoices/' . $checkout->invoice->id),
                 ]);
             }

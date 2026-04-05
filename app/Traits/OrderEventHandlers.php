@@ -49,11 +49,13 @@ trait OrderEventHandlers
             }
 
             if ($order->isDirty('delivery_status') && $order->delivery_status === 'DELIVERED' && $order->user) {
-                NotificationTemplateService::send('order_confirmed', $order->user, [
-                    'siparis_no' => $order->id,
-                    'urun_adi' => $order->product?->name ?? ($order->product_data['name'] ?? ''),
-                    'siparis_url' => url('/my-products/' . $order->id),
-                ]);
+                if (!($order->isDirty('status') && $order->status === 'ACTIVE')) {
+                    NotificationTemplateService::send('order_confirmed', $order->user, [
+                        'siparis_no' => $order->id,
+                        'urun_adi' => $order->product?->name ?? ($order->product_data['name'] ?? ''),
+                        'siparis_url' => url('/my-products/' . $order->id),
+                    ]);
+                }
             }
         });
     }

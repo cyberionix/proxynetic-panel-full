@@ -21,12 +21,7 @@ class InvoiceCheckoutConfirmedNotification extends Notification implements Shoul
 
     public function via(object $notifiable): array
     {
-        $channels = ['database'];
-        if (config('services.sms.enabled', true) && $notifiable->accept_sms) {
-            $channels[] = 'sms';
-        }
-//        if ($notifiable->accept_email) $channels[] = 'mail';
-        return $channels;
+        return ['database'];
     }
 
     public function toSms($notifiable)
