@@ -47,6 +47,7 @@ class OrderController extends Controller
         if ($showAllList) {
             $searchableColumns = [
                 "orders.id",
+                "orders.id",
                 db_user_full_name_expr('users'),
                 "orders.id",
                 "orders.id",
@@ -55,6 +56,7 @@ class OrderController extends Controller
             ];
         } else {
             $searchableColumns = [
+                "orders.id",
                 "orders.id",
                 "orders.id",
                 "orders.id",
@@ -111,9 +113,11 @@ class OrderController extends Controller
 
         $data = [];
         foreach ($list as $item) {
+            $checkbox = '<div class="form-check form-check-sm form-check-custom form-check-solid"><input class="form-check-input bulk-check-order" type="checkbox" value="' . $item->id . '" /></div>';
             $price_data = $item->activeDetail?->price_data;
             if ($showAllList) {
                 $data[] = [
+                    $checkbox,
                     "<span data-id='" . $item->id . "' class='badge badge-sm badge-light-primary'>#" . $item->id . "</span>",
                     "<a href='" . route("admin.users.show", ["user" => $item->user_id]) . "'>" . $item->user_name . "</a>",
                     '<span class="badge badge-light-primary">' . $item->product_data["name"] . ' / ' . @$price_data["duration"] . ' ' . convertDurationText(@$price_data["duration_unit"]) . '</span> ',
@@ -125,6 +129,7 @@ class OrderController extends Controller
                 ];
             } else {
                 $data[] = [
+                    $checkbox,
                     "<span data-id='" . $item->id . "' class='badge badge-sm badge-light-primary'>#" . $item->id . "</span>",
                     '<span class="badge badge-light-primary">' . $item->product_data["name"] . ' / ' . @$price_data["duration"] . ' ' . convertDurationText(@$price_data["duration_unit"]) . '</span> ',
                     "<span class='badge badge-secondary badge-lg'>" . showBalance(@$price_data["price_with_vat"], true) . "</span>",
@@ -806,6 +811,39 @@ class OrderController extends Controller
         }
 
         return $this->errorResponse($result['message'] ?? 'Port güncelleme başarısız.');
+    }
+
+    public function bulkAction(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        $action = $request->input('action');
+
+        if (empty($ids) || !$action) {
+            return response()->json(['success' => false, 'message' => 'Geçersiz istek.']);
+        }
+
+        $orders = Order::whereIn('id', $ids)->get();
+        $count = 0;
+
+        foreach ($orders as $order) {
+            switch ($action) {
+                case 'mark_active':
+                    $order->update(['status' => 'ACTIVE']);
+                    $count++;
+                    break;
+                case 'mark_cancelled':
+                    $order->update(['status' => 'CANCELLED']);
+                    $count++;
+                    break;
+                case 'delete':
+                    $order->deleteServiceAndRevoke();
+                    $order->delete();
+                    $count++;
+                    break;
+            }
+        }
+
+        return response()->json(['success' => true, 'message' => "{$count} sipariş işlem gördü."]);
     }
 
     public function delete(Order $order)

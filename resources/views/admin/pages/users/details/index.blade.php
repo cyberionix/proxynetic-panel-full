@@ -632,24 +632,36 @@
                 </div>
             </div>
             <!--end::Navbar-->
-            <!--begin::Card-->
             <div class="card pt-4 mb-6 mb-xl-9">
-                <!--begin::Card header-->
                 <div class="card-header border-0">
-                    <!--begin::Card title-->
                     <div class="card-title">
                         <h2>{{__("orders")}}</h2>
                     </div>
-                    <!--end::Card title-->
+                    <div class="card-toolbar">
+                        <div id="orderBulkBar" class="d-none d-flex align-items-center gap-2">
+                            <span class="fw-semibold text-gray-700 me-1"><span id="orderSelectedCount">0</span> seçili</span>
+                            <button class="btn btn-sm btn-light-success order-bulk-btn" data-action="mark_active">
+                                <i class="fa fa-check me-1"></i>Aktif Yap
+                            </button>
+                            <button class="btn btn-sm btn-light-secondary order-bulk-btn" data-action="mark_cancelled">
+                                <i class="fa fa-ban me-1"></i>İptal Et
+                            </button>
+                            <button class="btn btn-sm btn-light-danger order-bulk-btn" data-action="delete">
+                                <i class="fa fa-trash me-1"></i>Sil
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <!--end::Card header-->
-                <!--begin::Card body-->
                 <div class="card-body py-0">
-                    <!--begin::Table-->
                     <table id="ordersTable"
                            class="table align-middle table-row-dashed fs-6 gy-5">
                         <thead>
                         <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+                            <th class="w-10px pe-2">
+                                <div class="form-check form-check-sm form-check-custom form-check-solid">
+                                    <input class="form-check-input" type="checkbox" id="orderCheckAll" />
+                                </div>
+                            </th>
                             <th class="m-w-50">#</th>
                             <th class="min-w-125px">{{__("product")}}</th>
                             <th class="min-w-125px">{{__("amount")}}</th>
@@ -661,16 +673,9 @@
                         <tbody class="fw-semibold text-gray-600">
 
                         </tbody>
-                        <!--end::Table body-->
                     </table>
-                    <!--end::Table-->
                 </div>
-                <!--end::Card body-->
             </div>
-            <!--end::Card-->
-            <!--begin::Modals-->
-
-            <!--end::Modals-->
         </div>
         <!--end:::Tab pane-->
         <!--begin:::Tab pane-->
@@ -2519,24 +2524,8 @@
             var ordersTable = $("#ordersTable").DataTable({
                 order: [],
                 columnDefs: [
-                    {
-                        orderable: !0, targets: 0
-                    },
-                    {
-                        orderable: !1, targets: 1
-                    },
-                    {
-                        orderable: !1, targets: 2
-                    },
-                    {
-                        orderable: !0, targets: 3
-                    },
-                    {
-                        orderable: !0, targets: 4
-                    },
-                    {
-                        orderable: !1, targets: 5
-                    }
+                    { orderable: false, targets: [0, 6] },
+                    { orderable: true, targets: [1, 2, 3, 4, 5] }
                 ],
                 "processing": true,
                 "serverSide": true,
@@ -2551,6 +2540,62 @@
                 },
             }).on("draw", function () {
                 KTMenu.createInstances();
+                $('#orderCheckAll').prop('checked', false);
+                orderUpdateBulk();
+            });
+
+            function orderGetIds() {
+                var ids = [];
+                $('#ordersTable .bulk-check-order:checked').each(function() { ids.push($(this).val()); });
+                return ids;
+            }
+            function orderUpdateBulk() {
+                var ids = orderGetIds();
+                $('#orderSelectedCount').text(ids.length);
+                ids.length > 0 ? $('#orderBulkBar').removeClass('d-none') : $('#orderBulkBar').addClass('d-none');
+            }
+            $(document).on('change', '#orderCheckAll', function() {
+                $('#ordersTable .bulk-check-order').prop('checked', $(this).is(':checked'));
+                orderUpdateBulk();
+            });
+            $(document).on('change', '#ordersTable .bulk-check-order', function() {
+                if (!$(this).is(':checked')) $('#orderCheckAll').prop('checked', false);
+                orderUpdateBulk();
+            });
+            $(document).on('click', '.order-bulk-btn', function() {
+                var action = $(this).data('action');
+                var ids = orderGetIds();
+                if (ids.length === 0) return;
+                var msgs = {
+                    'mark_active': ids.length + ' siparişi aktif olarak işaretlemek istediğinize emin misiniz?',
+                    'mark_cancelled': ids.length + ' siparişi iptal etmek istediğinize emin misiniz?',
+                    'delete': ids.length + ' siparişi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.'
+                };
+                Swal.fire({
+                    title: 'Toplu İşlem',
+                    text: msgs[action] || 'Emin misiniz?',
+                    icon: action === 'delete' ? 'warning' : 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, uygula',
+                    cancelButtonText: 'Vazgeç',
+                    confirmButtonColor: action === 'delete' ? '#dc3545' : '#3085d6',
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: "{{ route('admin.orders.bulkAction') }}",
+                            type: 'POST',
+                            data: { _token: "{{ csrf_token() }}", ids: ids, action: action },
+                            success: function(res) {
+                                if (res.success) {
+                                    Swal.fire({ title: 'Başarılı', text: res.message, icon: 'success', timer: 2000, showConfirmButton: false });
+                                    ordersTable.draw();
+                                } else {
+                                    Swal.fire({ title: 'Hata', text: res.message, icon: 'error' });
+                                }
+                            }
+                        });
+                    }
+                });
             });
 
             $(document).on("click", ".orderStatusTab", function () {

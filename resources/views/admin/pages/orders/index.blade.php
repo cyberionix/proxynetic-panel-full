@@ -54,13 +54,9 @@
                     </div>
                 </div>
                 <!--end::Navbar-->
-                <!--begin::Card-->
                 <div class="card">
-                    <!--begin::Card header-->
                     <div class="card-header border-0 pt-6">
-                        <!--begin::Card title-->
                         <div class="card-title">
-                            <!--begin::Search-->
                             <div class="d-flex align-items-center position-relative my-1">
                                 <i class="ki-duotone ki-magnifier fs-3 position-absolute ms-5">
                                     <span class="path1"></span>
@@ -70,30 +66,36 @@
                                        class="form-control  w-250px ps-13"
                                        placeholder="{{__("search_in_table")}}"/>
                             </div>
-                            <!--end::Search-->
                         </div>
-                        <!--begin::Card title-->
-                        <!--begin::Card toolbar-->
                         <div class="card-toolbar">
-                            <!--begin::Toolbar-->
+                            <div id="orderBulkBar" class="d-none d-flex align-items-center gap-2 me-4">
+                                <span class="fw-semibold text-gray-700 me-1"><span id="orderSelectedCount">0</span> seçili</span>
+                                <button class="btn btn-sm btn-light-success order-bulk-btn" data-action="mark_active">
+                                    <i class="fa fa-check me-1"></i>Aktif Yap
+                                </button>
+                                <button class="btn btn-sm btn-light-secondary order-bulk-btn" data-action="mark_cancelled">
+                                    <i class="fa fa-ban me-1"></i>İptal Et
+                                </button>
+                                <button class="btn btn-sm btn-light-danger order-bulk-btn" data-action="delete">
+                                    <i class="fa fa-trash me-1"></i>Sil
+                                </button>
+                            </div>
                             <div class="d-flex justify-content-end">
-                                <!--begin::Add customer-->
                                 <button class="btn btn-primary createOrderBtn"><i
                                         class="fa fa-plus fs-5"></i> {{__("create_:name", ["name" => __("order")])}}
                                 </button>
-                                <!--end::Add customer-->
                             </div>
-                            <!--end::Toolbar-->
                         </div>
-                        <!--end::Card toolbar-->
                     </div>
-                    <!--end::Card header-->
-                    <!--begin::Card body-->
                     <div class="card-body pt-0">
-                        <!--begin::Table-->
                         <table id="ordersTable" class="table align-middle table-row-dashed fs-6 gy-5">
                             <thead>
                             <tr class="text-start text-gray-500 fw-bold fs-6 gs-0">
+                                <th class="w-10px pe-2">
+                                    <div class="form-check form-check-sm form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="checkbox" id="orderCheckAll" />
+                                    </div>
+                                </th>
                                 <th class="m-w-50">#</th>
                                 <th class="min-w-50px">{{__("customer")}}</th>
                                 <th class="min-w-125px">{{__("product")}}</th>
@@ -106,13 +108,9 @@
                             <tbody class="fw-semibold text-gray-600">
 
                             </tbody>
-                            <!--end::Table body-->
                         </table>
-                        <!--end::Table-->
                     </div>
-                    <!--end::Card body-->
                 </div>
-                <!--end::Card-->
             </div>
             <!--end::Content container-->
         </div>
@@ -283,7 +281,7 @@
     <script>
         $(document).ready(function () {
             $(document).on("click", ".deleteBtn", function () {
-                let id = $(this).closest("tr").find("td:first span").attr("data-id"),
+                let id = $(this).closest("tr").find("span[data-id]").attr("data-id"),
                     url = `{{ route('admin.orders.delete', ['order' => '__placeholder__']) }}`;
                 url = url.replace('__placeholder__', id);
 
@@ -341,27 +339,8 @@
             var t = $("#ordersTable").DataTable({
                 order: [],
                 columnDefs: [
-                    {
-                        orderable: !0, targets: 0
-                    },
-                    {
-                        orderable: !0, targets: 1
-                    },
-                    {
-                        orderable: !1, targets: 2
-                    },
-                    {
-                        orderable: !1, targets: 3
-                    },
-                    {
-                        orderable: !0, targets: 4
-                    },
-                    {
-                        orderable: !0, targets: 5
-                    },
-                    {
-                        orderable: !1, targets: 6
-                    }
+                    { orderable: false, targets: [0, 7] },
+                    { orderable: true, targets: [1, 2, 3, 4, 5, 6] }
                 ],
                 "processing": true,
                 "serverSide": true,
@@ -376,7 +355,64 @@
                 },
             }).on("draw", function () {
                 KTMenu.createInstances();
+                $('#orderCheckAll').prop('checked', false);
+                orderUpdateBulk();
             });
+
+            function orderGetIds() {
+                var ids = [];
+                $('#ordersTable .bulk-check-order:checked').each(function() { ids.push($(this).val()); });
+                return ids;
+            }
+            function orderUpdateBulk() {
+                var ids = orderGetIds();
+                $('#orderSelectedCount').text(ids.length);
+                ids.length > 0 ? $('#orderBulkBar').removeClass('d-none') : $('#orderBulkBar').addClass('d-none');
+            }
+            $(document).on('change', '#orderCheckAll', function() {
+                $('#ordersTable .bulk-check-order').prop('checked', $(this).is(':checked'));
+                orderUpdateBulk();
+            });
+            $(document).on('change', '#ordersTable .bulk-check-order', function() {
+                if (!$(this).is(':checked')) $('#orderCheckAll').prop('checked', false);
+                orderUpdateBulk();
+            });
+            $(document).on('click', '.order-bulk-btn', function() {
+                var action = $(this).data('action');
+                var ids = orderGetIds();
+                if (ids.length === 0) return;
+                var msgs = {
+                    'mark_active': ids.length + ' siparişi aktif olarak işaretlemek istediğinize emin misiniz?',
+                    'mark_cancelled': ids.length + ' siparişi iptal etmek istediğinize emin misiniz?',
+                    'delete': ids.length + ' siparişi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.'
+                };
+                Swal.fire({
+                    title: 'Toplu İşlem',
+                    text: msgs[action] || 'Emin misiniz?',
+                    icon: action === 'delete' ? 'warning' : 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, uygula',
+                    cancelButtonText: 'Vazgeç',
+                    confirmButtonColor: action === 'delete' ? '#dc3545' : '#3085d6',
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: "{{ route('admin.orders.bulkAction') }}",
+                            type: 'POST',
+                            data: { _token: "{{ csrf_token() }}", ids: ids, action: action },
+                            success: function(res) {
+                                if (res.success) {
+                                    Swal.fire({ title: 'Başarılı', text: res.message, icon: 'success', timer: 2000, showConfirmButton: false });
+                                    t.draw();
+                                } else {
+                                    Swal.fire({ title: 'Hata', text: res.message, icon: 'error' });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
             document.querySelector('[data-table-action="search"]').addEventListener("keyup", (function (e) {
                 t.search(e.target.value).draw();
             }));
