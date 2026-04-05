@@ -52,7 +52,12 @@ class NotificationTemplateService
                 return;
             }
 
-            Mail::html($htmlContent, function ($message) use ($user, $subject) {
+            $wrappedHtml = view('emails.notification_wrapper', [
+                'content' => $htmlContent,
+                'subject' => $subject,
+            ])->render();
+
+            Mail::html($wrappedHtml, function ($message) use ($user, $subject) {
                 $message->to($user->email)
                     ->subject($subject);
             });
