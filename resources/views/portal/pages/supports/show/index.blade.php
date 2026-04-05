@@ -112,25 +112,38 @@
             </div>
             @if($support->order)
             <div class="mb-9">
-                <div class="border border-dashed border-gray-300 rounded p-4">
+                <div class="border border-dashed border-gray-300 rounded p-4 bg-light-primary bg-opacity-25">
                     <div class="d-flex align-items-center">
-                        <div class="symbol symbol-40px me-3">
-                            <div class="symbol-label bg-light-primary">
-                                <i class="fa fa-box text-primary fs-5"></i>
+                        <div class="symbol symbol-45px me-4">
+                            <div class="symbol-label bg-primary">
+                                <i class="fa fa-box text-white fs-4"></i>
                             </div>
                         </div>
                         <div class="flex-grow-1">
-                            <span class="text-gray-800 fw-bold fs-6 d-block">{{ $support->order->product_data['name'] ?? '-' }}</span>
-                            <span class="text-muted fw-semibold fs-7">
-                                Sipariş #{{ $support->order->id }}
+                            <a href="{{ route('portal.orders.show', ['order' => $support->order->id]) }}"
+                               class="text-gray-900 fw-bold fs-5 text-hover-primary d-block mb-1">
+                                {{ $support->order->product_data['name'] ?? '-' }}
+                            </a>
+                            <div class="d-flex align-items-center flex-wrap gap-2">
+                                <span class="badge badge-light-primary badge-sm fw-semibold">
+                                    <i class="fa fa-hashtag fs-9 text-primary me-1"></i>Sipariş #{{ $support->order->id }}
+                                </span>
                                 @if(!empty($support->order->product_data['category']['name']))
-                                    &middot; {{ $support->order->product_data['category']['name'] }}
+                                <span class="badge badge-light-info badge-sm fw-semibold">
+                                    <i class="fa fa-tag fs-9 text-info me-1"></i>{{ $support->order->product_data['category']['name'] }}
+                                </span>
                                 @endif
                                 @if($support->order->end_date)
-                                    &middot; Bitiş: {{ $support->order->end_date->format('d.m.Y') }}
+                                <span class="badge badge-light-warning badge-sm fw-semibold">
+                                    <i class="fa fa-calendar-alt fs-9 text-warning me-1"></i>Bitiş: {{ $support->order->end_date->format('d.m.Y') }}
+                                </span>
                                 @endif
-                            </span>
+                            </div>
                         </div>
+                        <a href="{{ route('portal.orders.show', ['order' => $support->order->id]) }}"
+                           class="btn btn-sm btn-light-primary fw-semibold">
+                            <i class="fa fa-external-link-alt fs-7 me-1"></i>Ürüne Git
+                        </a>
                     </div>
                 </div>
             </div>
