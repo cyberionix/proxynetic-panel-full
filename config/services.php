@@ -105,4 +105,10 @@ return [
 
     'localtonet_v4' => $localtonetV4Panel,
 
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN', ''),
+        'chat_id'   => env('TELEGRAM_CHAT_ID', ''),
+        'enabled'   => env('TELEGRAM_ENABLED', false),
+    ],
+
 ];

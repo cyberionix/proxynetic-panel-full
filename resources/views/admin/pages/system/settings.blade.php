@@ -72,6 +72,11 @@
                         <i class="fa fa-bullhorn me-2"></i>Kampanya Gönderimi
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link pb-4" data-bs-toggle="tab" href="#system_settings_telegram_tab">
+                        <i class="fa fa-paper-plane me-2"></i>Telegram
+                    </a>
+                </li>
             </ul>
 
             <div class="tab-content" id="systemSettingsTabs">
@@ -1205,6 +1210,80 @@
                     </div>
                 </div>
             </div>
+
+                {{-- Telegram Tab --}}
+                <div class="tab-pane fade" id="system_settings_telegram_tab" role="tabpanel">
+                    <form id="telegramSettingsForm">
+                        @csrf
+                        <div class="w-75 mx-auto">
+                            <div class="d-flex align-items-center mb-6">
+                                <i class="fa fa-paper-plane fs-2 text-info me-3"></i>
+                                <div>
+                                    <h3 class="fw-bold mb-0">Telegram Bildirim Ayarları</h3>
+                                    <span class="text-muted fs-7">Yeni destek talebi oluşturulduğunda Telegram üzerinden anlık bildirim alın</span>
+                                </div>
+                            </div>
+
+                            <div class="separator my-5"></div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold required">Bot Token</label>
+                                    <div class="text-muted fs-8 mb-1">@BotFather ile oluşturduğunuz bot token</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="password" name="telegram_bot_token" class="form-control form-control-solid"
+                                           value="{{ config('services.telegram.bot_token') }}"
+                                           placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold required">Chat ID</label>
+                                    <div class="text-muted fs-8 mb-1">Bildirimlerin gönderileceği chat ID</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="input-group">
+                                        <input type="text" name="telegram_chat_id" class="form-control form-control-solid"
+                                               value="{{ config('services.telegram.chat_id') }}"
+                                               placeholder="123456789" id="telegramChatIdInput">
+                                        <button type="button" class="btn btn-light-info" id="telegramFindChatId" title="Bot'a /start gönderdikten sonra tıklayın">
+                                            <i class="fa fa-search me-1"></i>Chat ID Bul
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Bildirimler</label>
+                                    <div class="text-muted fs-8 mb-1">Telegram bildirimlerini aktif/pasif yapın</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="form-check form-switch form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="checkbox" name="telegram_enabled" id="telegramEnabled"
+                                               value="1" {{ config('services.telegram.enabled') ? 'checked' : '' }}>
+                                        <label class="form-check-label fw-semibold" for="telegramEnabled">Aktif</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="separator my-5"></div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-light-primary" id="telegramTestBtn">
+                                    <i class="fa fa-paper-plane me-1"></i>Test Mesajı Gönder
+                                </button>
+                                <button type="submit" class="btn btn-primary" id="telegramSaveBtn">
+                                    <span class="indicator-label"><i class="fa fa-save me-1"></i>Kaydet</span>
+                                    <span class="indicator-progress">Kaydediliyor...<span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
         </div>
         <!--end::Card body-->
     </div>
@@ -2228,6 +2307,77 @@
                     error: function(){ toastr.error('Silme hatası'); }
                 });
             });
-        })
+        });
+
+        // Telegram Settings
+        $('#telegramSettingsForm').on('submit', function(e){
+            e.preventDefault();
+            var btn = $('#telegramSaveBtn');
+            btn.attr('data-kt-indicator', 'on').prop('disabled', true);
+            $.ajax({
+                url: '{{ route("admin.telegramSave") }}',
+                type: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function(res){
+                    if(res.success) toastr.success(res.message);
+                    else toastr.error(res.message || 'Hata');
+                },
+                error: function(xhr){
+                    toastr.error(xhr.responseJSON?.message || 'Kaydetme hatası');
+                },
+                complete: function(){
+                    btn.removeAttr('data-kt-indicator').prop('disabled', false);
+                }
+            });
+        });
+
+        $('#telegramTestBtn').on('click', function(){
+            var btn = $(this);
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Gönderiliyor...');
+            var form = $('#telegramSettingsForm');
+            $.ajax({
+                url: '{{ route("admin.telegramTest") }}',
+                type: 'POST',
+                data: form.serialize(),
+                dataType: 'json',
+                success: function(res){
+                    if(res.success) toastr.success(res.message);
+                    else toastr.error(res.message);
+                },
+                error: function(xhr){
+                    toastr.error(xhr.responseJSON?.message || 'Bağlantı hatası');
+                },
+                complete: function(){
+                    btn.prop('disabled', false).html('<i class="fa fa-paper-plane me-1"></i>Test Mesajı Gönder');
+                }
+            });
+        });
+
+        $('#telegramFindChatId').on('click', function(){
+            var btn = $(this);
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Aranıyor...');
+            var token = $('input[name="telegram_bot_token"]').val();
+            $.ajax({
+                url: '{{ route("admin.telegramFindChatId") }}',
+                type: 'POST',
+                data: { _token: '{{ csrf_token() }}', telegram_bot_token: token },
+                dataType: 'json',
+                success: function(res){
+                    if(res.success){
+                        $('#telegramChatIdInput').val(res.chat_id);
+                        toastr.success('Chat ID bulundu: ' + res.chat_id);
+                    } else {
+                        toastr.warning(res.message);
+                    }
+                },
+                error: function(xhr){
+                    toastr.error(xhr.responseJSON?.message || 'Bağlantı hatası');
+                },
+                complete: function(){
+                    btn.prop('disabled', false).html('<i class="fa fa-search me-1"></i>Chat ID Bul');
+                }
+            });
+        });
     </script>
 @endsection

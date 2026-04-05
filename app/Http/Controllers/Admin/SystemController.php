@@ -1181,4 +1181,117 @@ class SystemController extends Controller
         }
         return [];
     }
+
+    public function saveTelegramSettings(Request $request)
+    {
+        try {
+            $envPath = base_path('.env');
+            $envContent = file_get_contents($envPath);
+
+            $vars = [
+                'TELEGRAM_BOT_TOKEN' => $request->input('telegram_bot_token', ''),
+                'TELEGRAM_CHAT_ID'   => $request->input('telegram_chat_id', ''),
+                'TELEGRAM_ENABLED'   => $request->has('telegram_enabled') ? 'true' : 'false',
+            ];
+
+            foreach ($vars as $key => $value) {
+                if (preg_match("/^{$key}=.*/m", $envContent)) {
+                    $envContent = preg_replace("/^{$key}=.*/m", "{$key}={$value}", $envContent);
+                } else {
+                    $envContent .= "\n{$key}={$value}";
+                }
+            }
+
+            file_put_contents($envPath, $envContent);
+
+            Artisan::call('config:clear');
+            Artisan::call('config:cache');
+
+            return response()->json(['success' => true, 'message' => 'Telegram ayarları kaydedildi.']);
+        } catch (\Throwable $e) {
+            Log::error('TELEGRAM_SETTINGS_SAVE_FAIL', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Hata: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function testTelegram(Request $request)
+    {
+        try {
+            $token = $request->input('telegram_bot_token', config('services.telegram.bot_token', ''));
+            $chatId = $request->input('telegram_chat_id', config('services.telegram.chat_id', ''));
+
+            if (empty($token) || empty($chatId)) {
+                return response()->json(['success' => false, 'message' => 'Bot Token ve Chat ID gereklidir.']);
+            }
+
+            $text = "✅ <b>Test Bildirimi</b>\n\n"
+                . "Telegram bildirim sistemi başarıyla çalışıyor.\n"
+                . "📅 Tarih: " . now()->format('d/m/Y H:i:s');
+
+            $response = \Illuminate\Support\Facades\Http::timeout(10)->post(
+                "https://api.telegram.org/bot{$token}/sendMessage",
+                [
+                    'chat_id'    => $chatId,
+                    'text'       => $text,
+                    'parse_mode' => 'HTML',
+                ]
+            );
+
+            if ($response->successful()) {
+                return response()->json(['success' => true, 'message' => 'Test mesajı başarıyla gönderildi!']);
+            }
+
+            $body = $response->json();
+            return response()->json(['success' => false, 'message' => 'Telegram hatası: ' . ($body['description'] ?? 'Bilinmeyen hata')]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Hata: ' . $e->getMessage()]);
+        }
+    }
+
+    public function findTelegramChatId(Request $request)
+    {
+        try {
+            $token = $request->input('telegram_bot_token', config('services.telegram.bot_token', ''));
+
+            if (empty($token)) {
+                return response()->json(['success' => false, 'message' => 'Bot Token gereklidir.']);
+            }
+
+            $response = \Illuminate\Support\Facades\Http::timeout(10)->get(
+                "https://api.telegram.org/bot{$token}/getUpdates"
+            );
+
+            if (!$response->successful()) {
+                return response()->json(['success' => false, 'message' => 'API hatası: ' . $response->status()]);
+            }
+
+            $data = $response->json();
+            if (!($data['ok'] ?? false) || empty($data['result'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sonuç bulunamadı. Lütfen önce Telegram\'da botu açıp /start gönderin, sonra tekrar deneyin.',
+                ]);
+            }
+
+            $chatId = null;
+            foreach (array_reverse($data['result']) as $update) {
+                $msg = $update['message'] ?? null;
+                if ($msg && ($msg['chat']['type'] ?? '') === 'private') {
+                    $chatId = $msg['chat']['id'];
+                    break;
+                }
+            }
+
+            if (!$chatId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Private mesaj bulunamadı. Telegram\'da botu açıp /start gönderin.',
+                ]);
+            }
+
+            return response()->json(['success' => true, 'chat_id' => (string) $chatId]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Hata: ' . $e->getMessage()]);
+        }
+    }
 }
