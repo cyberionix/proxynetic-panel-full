@@ -453,7 +453,7 @@
                                             <td>
                                                 @if($rInv->user)
                                                     <a href="{{ route('admin.users.show', $rInv->user_id) }}" class="text-gray-800 text-hover-primary">
-                                                        {{ $rInv->user->name ?? '' }} {{ $rInv->user->surname ?? '' }}
+                                                        {{ $rInv->user->full_name ?? '' }}
                                                     </a>
                                                 @else
                                                     <span class="text-muted">Silinmiş</span>
