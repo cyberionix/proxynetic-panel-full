@@ -110,9 +110,16 @@
                 t.ajax.reload(null, false);
             }, 10000);
 
+            var supportFormSubmitting = false;
             $(document).on("submit", "#primarySupportForm", function (e) {
-                e.preventDefault()
-                let form = $(this);
+                e.preventDefault();
+                if (supportFormSubmitting) return;
+                supportFormSubmitting = true;
+
+                var form = $(this);
+                var submitBtn = form.find('button[type="submit"]');
+                submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Gönderiliyor...');
+                var fallbackUrl = "{{ route('portal.supports.index') }}";
 
                 $.ajax({
                     type: "POST",
@@ -122,30 +129,46 @@
                     contentType: false,
                     processData: false,
                     cache: false,
-                    complete: function (data, status) {
-                        var res = data.responseJSON;
+                    timeout: 30000,
+                    success: function (res) {
                         if (res && res.success === true) {
-                            var url = res.redirectUrl || "{{ route('portal.supports.index') }}";
+                            var url = (res.redirectUrl && res.redirectUrl !== 'undefined') ? res.redirectUrl : fallbackUrl;
                             Swal.fire({
                                 title: "{{__('success')}}",
-                                text: res?.message ?? "",
+                                text: res.message || "",
                                 icon: "success",
-                                showConfirmButton: 0,
-                                showCancelButton: 1,
+                                showConfirmButton: false,
+                                showCancelButton: true,
                                 cancelButtonText: "{{__('close')}}",
                             }).then(function() { window.location.href = url; });
                         } else {
+                            supportFormSubmitting = false;
+                            submitBtn.prop('disabled', false).text("{{__('submit')}}");
                             Swal.fire({
                                 title: "{{__('error')}}",
-                                text: res?.message ?? "{{__('form_has_errors')}}",
+                                text: res?.message || "{{__('form_has_errors')}}",
                                 icon: "error",
-                                showConfirmButton: 0,
-                                showCancelButton: 1,
+                                showConfirmButton: false,
+                                showCancelButton: true,
                                 cancelButtonText: "{{__('close')}}",
-                            })
+                            });
                         }
+                    },
+                    error: function (xhr) {
+                        supportFormSubmitting = false;
+                        submitBtn.prop('disabled', false).text("{{__('submit')}}");
+                        var msg = "{{__('form_has_errors')}}";
+                        try { msg = xhr.responseJSON?.message || msg; } catch(e) {}
+                        Swal.fire({
+                            title: "{{__('error')}}",
+                            text: msg,
+                            icon: "error",
+                            showConfirmButton: false,
+                            showCancelButton: true,
+                            cancelButtonText: "{{__('close')}}",
+                        });
                     }
-                })
+                });
             })
         })
     </script>
