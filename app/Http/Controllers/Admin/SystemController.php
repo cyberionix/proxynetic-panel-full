@@ -146,6 +146,21 @@ class SystemController extends Controller
         ]);
     }
 
+    private static array $jobDescriptions = [
+        'InvoiceCheckoutConfirmedNotification' => 'Fatura ödeme onayı bildirimi gönderiliyor',
+        'RenewOrderNotification' => 'Sipariş yenileme faturası bildirimi gönderiliyor',
+        'ResetPasswordNotification' => 'Şifre sıfırlama e-postası gönderiliyor',
+        'PhoneOTPNotification' => 'Telefon doğrulama kodu gönderiliyor',
+        'StopServiceOnUnpaidRenewInvoice' => 'Ödenmemiş fatura nedeniyle hizmet durdurma bildirimi',
+        'SupportAnsweredNotification' => 'Destek talebi yanıtlandı bildirimi gönderiliyor',
+        'SupportCreatedNotification' => 'Destek talebi oluşturuldu bildirimi gönderiliyor',
+        'UpcomingInvoicePaymentNotification' => 'Yaklaşan fatura ödeme hatırlatması gönderiliyor',
+        'ExampleNotify' => 'Test bildirimi',
+        'ProcessInvoiceItemsWhenCheckoutJob' => 'Ödeme sonrası fatura kalemleri işleniyor (sipariş oluşturma)',
+        'DeliverLocaltonetQueuedOrderJob' => 'Localtonet siparişi teslim ediliyor (proxy atama)',
+        'SendQueuedNotifications' => 'Kuyrukta bekleyen bildirimler gönderiliyor',
+    ];
+
     public function pendingJobsAjax()
     {
         $jobs = [];
@@ -156,12 +171,43 @@ class SystemController extends Controller
                     $payload = json_decode($row->payload, true);
                     $displayName = $payload['displayName'] ?? 'Bilinmeyen';
                     $shortName = class_basename($displayName);
+                    $description = self::$jobDescriptions[$shortName] ?? 'Kuyruk işi çalıştırılıyor';
+
+                    $detail = '';
+                    $commandData = null;
+                    if (isset($payload['data']['command'])) {
+                        try {
+                            $commandData = unserialize($payload['data']['command']);
+                        } catch (\Throwable $e) {}
+                    }
+
+                    if ($commandData) {
+                        if (method_exists($commandData, 'toArray')) {
+                            $arr = $commandData->toArray();
+                            if (isset($arr['invoice_id'])) $detail .= 'Fatura #' . $arr['invoice_id'];
+                            if (isset($arr['order_id'])) $detail .= ($detail ? ' | ' : '') . 'Sipariş #' . $arr['order_id'];
+                        }
+                        if (empty($detail) && isset($commandData->notifiables)) {
+                            try {
+                                $notifiables = $commandData->notifiables;
+                                if (is_iterable($notifiables)) {
+                                    foreach ($notifiables as $n) {
+                                        $name = trim(($n->name ?? '') . ' ' . ($n->surname ?? ''));
+                                        if ($name) { $detail = 'Kullanıcı: ' . $name . ' (#' . ($n->id ?? '') . ')'; break; }
+                                        if ($n->email ?? null) { $detail = $n->email; break; }
+                                    }
+                                }
+                            } catch (\Throwable $e) {}
+                        }
+                    }
 
                     $jobs[] = [
                         'id' => $row->id,
                         'queue' => $row->queue,
                         'job_name' => $shortName,
                         'full_name' => $displayName,
+                        'description' => $description,
+                        'detail' => $detail,
                         'attempts' => $row->attempts,
                         'created_at' => $row->created_at ? date('d.m.Y H:i:s', $row->created_at) : '-',
                         'available_at' => $row->available_at ? date('d.m.Y H:i:s', $row->available_at) : '-',

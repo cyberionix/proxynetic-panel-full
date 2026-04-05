@@ -996,12 +996,12 @@
                                 <table class="table table-row-bordered table-row-gray-200 align-middle gy-3 gs-3">
                                     <thead>
                                         <tr class="fw-bold text-muted bg-light">
-                                            <th class="ps-3 rounded-start">ID</th>
-                                            <th>İş Adı</th>
-                                            <th>Kuyruk</th>
-                                            <th>Deneme</th>
+                                            <th class="ps-3 rounded-start min-w-40px">ID</th>
+                                            <th class="min-w-200px">Açıklama</th>
+                                            <th>Detay</th>
+                                            <th class="text-center">Deneme</th>
                                             <th>Oluşturulma</th>
-                                            <th class="rounded-end">Durum</th>
+                                            <th class="rounded-end text-center">Durum</th>
                                         </tr>
                                     </thead>
                                     <tbody id="pendingJobsBody"></tbody>
@@ -2176,12 +2176,18 @@
                             ? '<span class="badge badge-light-warning">İşleniyor</span>'
                             : '<span class="badge badge-light-info">Bekliyor</span>';
                         html += '<tr>';
-                        html += '<td class="ps-3 fw-semibold">' + j.id + '</td>';
-                        html += '<td><span class="fw-semibold text-gray-800">' + j.job_name + '</span><br><span class="text-muted fs-8">' + j.full_name + '</span></td>';
-                        html += '<td><span class="badge badge-light-primary">' + j.queue + '</span></td>';
+                        html += '<td class="ps-3 fw-semibold text-gray-500">' + j.id + '</td>';
+                        html += '<td>';
+                        html += '<span class="fw-semibold text-gray-800 d-block">' + (j.description || j.job_name) + '</span>';
+                        html += '<span class="text-muted fs-8">' + j.job_name + '</span>';
+                        html += '</td>';
+                        html += '<td>';
+                        if(j.detail) html += '<span class="text-gray-700 fs-7">' + j.detail + '</span>';
+                        else html += '<span class="text-muted fs-8">-</span>';
+                        html += '</td>';
                         html += '<td class="text-center">' + j.attempts + '</td>';
-                        html += '<td class="text-gray-600 fs-7">' + j.created_at + '</td>';
-                        html += '<td>' + statusBadge + '</td>';
+                        html += '<td class="text-gray-600 fs-7 text-nowrap">' + j.created_at + '</td>';
+                        html += '<td class="text-center">' + statusBadge + '</td>';
                         html += '</tr>';
                     });
                     $('#pendingJobsBody').html(html);
