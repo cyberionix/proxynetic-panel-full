@@ -33,29 +33,45 @@ class Support extends Model
         });
 
         static::created(function ($model) {
-            AdminNotificationService::supportCreated($model);
-            SupportAutoReplyService::handleEvent('TICKET_CREATED', $model);
-            if ($model->user) {
-                NotificationTemplateService::send('support_created', $model->user, [
-                    'talep_no' => $model->id,
-                    'konu' => $model->subject ?? '',
-                    'talep_url' => url('/supports/show/' . $model->id),
-                ]);
+            try {
+                AdminNotificationService::supportCreated($model);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('SUPPORT_ADMIN_NOTIFY_FAIL', ['id' => $model->id, 'error' => $e->getMessage()]);
+            }
+            try {
+                SupportAutoReplyService::handleEvent('TICKET_CREATED', $model);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('SUPPORT_AUTO_REPLY_FAIL', ['id' => $model->id, 'error' => $e->getMessage()]);
+            }
+            try {
+                if ($model->user) {
+                    NotificationTemplateService::send('support_created', $model->user, [
+                        'talep_no' => $model->id,
+                        'konu' => $model->subject ?? '',
+                        'talep_url' => url('/supports/show/' . $model->id),
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('SUPPORT_USER_NOTIFY_FAIL', ['id' => $model->id, 'error' => $e->getMessage()]);
             }
         });
 
         static::updated(function ($model) {
             if ($model->isDirty('status') && $model->user) {
-                $vars = [
-                    'talep_no' => $model->id,
-                    'konu' => $model->subject ?? '',
-                    'talep_url' => url('/supports/show/' . $model->id),
-                ];
-                if ($model->status === 'RESOLVED') {
-                    SupportAutoReplyService::handleEvent('TICKET_RESOLVED', $model);
-                    NotificationTemplateService::send('support_resolved', $model->user, $vars);
-                } elseif ($model->status === 'IN_PROGRESS' || $model->status === 'WAITING_FOR_AN_ANSWER') {
-                    NotificationTemplateService::send('support_in_progress', $model->user, $vars);
+                try {
+                    $vars = [
+                        'talep_no' => $model->id,
+                        'konu' => $model->subject ?? '',
+                        'talep_url' => url('/supports/show/' . $model->id),
+                    ];
+                    if ($model->status === 'RESOLVED') {
+                        SupportAutoReplyService::handleEvent('TICKET_RESOLVED', $model);
+                        NotificationTemplateService::send('support_resolved', $model->user, $vars);
+                    } elseif ($model->status === 'IN_PROGRESS' || $model->status === 'WAITING_FOR_AN_ANSWER') {
+                        NotificationTemplateService::send('support_in_progress', $model->user, $vars);
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('SUPPORT_STATUS_NOTIFY_FAIL', ['id' => $model->id, 'error' => $e->getMessage()]);
                 }
             }
         });

@@ -123,8 +123,9 @@
                     processData: false,
                     cache: false,
                     complete: function (data, status) {
-                        res = data.responseJSON;
+                        var res = data.responseJSON;
                         if (res && res.success === true) {
+                            var url = res.redirectUrl || "{{ route('portal.supports.index') }}";
                             Swal.fire({
                                 title: "{{__('success')}}",
                                 text: res?.message ?? "",
@@ -132,7 +133,7 @@
                                 showConfirmButton: 0,
                                 showCancelButton: 1,
                                 cancelButtonText: "{{__('close')}}",
-                            }).then((r) => window.location.href = res.redirectUrl);
+                            }).then(function() { window.location.href = url; });
                         } else {
                             Swal.fire({
                                 title: "{{__('error')}}",
