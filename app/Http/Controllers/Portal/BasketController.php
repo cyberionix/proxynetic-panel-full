@@ -68,7 +68,14 @@ class BasketController extends Controller
         $basket->coupon_code_text = $code->coupon_code;
 
         if($basket->save()){
-            return $this->successResponse('Tebrikler! İndirim başarıyla sepetinize uygulandı!');
+            $basket->load('couponCode', 'items.product.category', 'items.price');
+            $summary = $basket->basketSummary();
+            $discountText = '';
+            if ($summary['discount_amount'] > 0) {
+                $discountLabel = $code->type == 'PERCENT' ? '%' . intval($code->amount) : showBalance($code->amount, true);
+                $discountText = ' (' . $discountLabel . ' = ' . showBalance($summary['discount_amount'], true) . ' indirim)';
+            }
+            return $this->successResponse('Tebrikler! İndirim başarıyla sepetinize uygulandı!' . $discountText);
         }
         return $request->all();
     }
