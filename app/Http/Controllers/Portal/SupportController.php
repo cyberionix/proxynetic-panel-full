@@ -83,7 +83,8 @@ class SupportController extends Controller
             ];
         }
 
-        $latestUpdatedAt = $list->max('updated_at')?->timestamp ?? 0;
+        $latestUpdatedAt = Support::max('updated_at');
+        $latestUpdatedAt = $latestUpdatedAt ? strtotime($latestUpdatedAt) : 0;
 
         $response = array(
             'recordsTotal' => $countTotalRecords,
