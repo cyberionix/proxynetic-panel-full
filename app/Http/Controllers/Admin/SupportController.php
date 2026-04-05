@@ -256,6 +256,32 @@ class SupportController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function newTicketsPoll(Request $request)
+    {
+        $lastId = (int) $request->input('last_id', 0);
+
+        $tickets = Support::where('id', '>', $lastId)
+            ->with('user')
+            ->orderBy('id', 'asc')
+            ->limit(10)
+            ->get();
+
+        $data = $tickets->map(function ($t) {
+            return [
+                'id'      => $t->id,
+                'subject' => $t->subject,
+                'user'    => $t->user ? (($t->user->first_name ?? '') . ' ' . ($t->user->last_name ?? '')) : 'Bilinmeyen',
+                'url'     => route('admin.supports.show', $t->id),
+                'date'    => $t->created_at?->format('H:i'),
+            ];
+        });
+
+        return response()->json([
+            'tickets' => $data,
+            'max_id'  => $tickets->isNotEmpty() ? $tickets->last()->id : $lastId,
+        ]);
+    }
+
     public function pollMessages(Support $support)
     {
         $support->load('messages');

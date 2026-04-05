@@ -220,6 +220,72 @@
 </script>
 
 <script src="{{assetAdmin('')}}/js/custom.js"></script>
+
+<script>
+(function(){
+    var lastTicketId = 0;
+    var initialized = false;
+
+    function playTicketSound() {
+        try {
+            var ctx = new (window.AudioContext || window.webkitAudioContext)();
+            var t = ctx.currentTime;
+            [[830, 0, 0.12], [1050, 0.13, 0.12], [1320, 0.26, 0.18]].forEach(function(n) {
+                var osc = ctx.createOscillator();
+                var gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = n[0];
+                gain.gain.setValueAtTime(0.18, t + n[1]);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + n[1] + n[2]);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(t + n[1]);
+                osc.stop(t + n[1] + n[2] + 0.05);
+            });
+        } catch(e) {}
+    }
+
+    function pollNewTickets() {
+        $.ajax({
+            url: "{{ route('admin.supports.newTicketsPoll') }}",
+            type: 'GET',
+            data: { last_id: lastTicketId },
+            dataType: 'json',
+            success: function(res) {
+                if (res.tickets && res.tickets.length > 0 && initialized) {
+                    res.tickets.forEach(function(ticket) {
+                        toastr.options = {
+                            closeButton: true,
+                            progressBar: true,
+                            positionClass: 'toastr-top-right',
+                            timeOut: 5000,
+                            extendedTimeOut: 3000,
+                            onclick: function() {
+                                window.location.href = ticket.url;
+                            }
+                        };
+                        toastr.info(
+                            '<div style="cursor:pointer"><strong>' + ticket.user + '</strong><br>' + ticket.subject + '</div>',
+                            '<i class="fa fa-headset me-2"></i>Yeni Destek Talebi #' + ticket.id
+                        );
+                    });
+                    playTicketSound();
+                }
+                if (res.max_id) {
+                    lastTicketId = res.max_id;
+                }
+                initialized = true;
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        pollNewTickets();
+        setInterval(pollNewTickets, 15000);
+    });
+})();
+</script>
+
 <!--end::Custom Javascript-->
 @yield("js")
 @stack("js")

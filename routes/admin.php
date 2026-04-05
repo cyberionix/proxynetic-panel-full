@@ -319,6 +319,7 @@ dd($data->is_proxy || $data->is_vpn);
             Route::get('/', [SupportController::class, 'index'])->name('index');
             Route::post('/ajax', [SupportController::class, 'ajax'])->name('ajax');
             Route::post('/bulk-action', [SupportController::class, 'bulkAction'])->name('bulkAction');
+            Route::get('/new-tickets-poll', [SupportController::class, 'newTicketsPoll'])->name('newTicketsPoll');
 
             Route::group(['prefix' => 'templates', 'as' => 'templates.'], function () {
                 Route::get('/', [SupportTemplateController::class, 'index'])->name('index');
