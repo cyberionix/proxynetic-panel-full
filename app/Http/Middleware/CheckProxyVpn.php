@@ -18,6 +18,10 @@ class CheckProxyVpn
             return $next($request);
         }
 
+        if (Auth::guard('admin')->check()) {
+            return $next($request);
+        }
+
         $ipAddress = $request->ip();
 
         if (!filter_var($ipAddress, FILTER_VALIDATE_IP)) {
@@ -25,7 +29,7 @@ class CheckProxyVpn
         }
 
         $isPost = $request->getMethod() === 'POST';
-        $user = Auth::user();
+        $user = Auth::guard('web')->user();
         $userVpnBlocked = $user && $user->security && $user->security->is_cant_vpn == 1;
 
         if (!$isPost && !$userVpnBlocked) {
@@ -41,8 +45,8 @@ class CheckProxyVpn
         $isHosting = ($ipData->traits->user_type ?? '') === 'hosting';
 
         if ($isPost && $isHosting) {
-            if (Auth::check()) {
-                Auth::logout();
+            if (Auth::guard('web')->check()) {
+                Auth::guard('web')->logout();
             }
             return response([
                 'success' => false,
@@ -51,9 +55,7 @@ class CheckProxyVpn
         }
 
         if ($userVpnBlocked && $isHosting) {
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+            Auth::guard('web')->logout();
 
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([
