@@ -484,6 +484,9 @@ class SystemController extends Controller
                 'renew_days_before_daily' => max(0, (int) ($ai['renew_days_before_daily'] ?? 1)),
                 'reminder_days_before' => max(1, (int) ($ai['reminder_days_before'] ?? 3)),
                 'stop_service_on_unpaid' => (bool) ($ai['stop_service_on_unpaid'] ?? false),
+                'renew_run_time' => $this->sanitizeTime($ai['renew_run_time'] ?? '10:00'),
+                'reminder_run_time' => $this->sanitizeTime($ai['reminder_run_time'] ?? '10:00'),
+                'stop_service_run_time' => $this->sanitizeTime($ai['stop_service_run_time'] ?? '02:00'),
             ];
 
             file_put_contents(
@@ -528,6 +531,14 @@ class SystemController extends Controller
         return redirect()->route('admin.settings')->with('form_success', 'Değişiklikler başarıyla kaydedildi.');
     }
 
+    private function sanitizeTime(string $time): string
+    {
+        if (preg_match('/^([01]?\d|2[0-3]):([0-5]\d)$/', $time)) {
+            return $time;
+        }
+        return '10:00';
+    }
+
     private function loadAutoInvoiceSettings(): array
     {
         $path = config_path('auto_invoice_settings.php');
@@ -544,6 +555,9 @@ class SystemController extends Controller
             'renew_days_before_daily' => 1,
             'reminder_days_before' => 3,
             'stop_service_on_unpaid' => true,
+            'renew_run_time' => '10:00',
+            'reminder_run_time' => '10:00',
+            'stop_service_run_time' => '02:00',
         ];
     }
 

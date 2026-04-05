@@ -382,6 +382,39 @@
                                         <div class="form-text text-gray-500">Son ödeme tarihinden kaç gün önce hatırlatma gönderilsin?</div>
                                     </div>
                                 </div>
+
+                                <hr class="my-5">
+                                <div class="d-flex align-items-center mb-4">
+                                    <i class="fa fa-clock text-warning fs-3 me-3"></i>
+                                    <h5 class="mb-0 fw-bold">Çalışma Saatleri</h5>
+                                </div>
+                                <p class="text-gray-600 mb-5">Otomatik görevlerin her gün hangi saatte çalışacağını ayarlayın. Değişiklik kaydedildiğinde anında geçerli olur.</p>
+
+                                <div class="row">
+                                    <div class="col-md-4 mb-5">
+                                        <label class="form-label fw-semibold required">Yenileme Faturası Oluşturma</label>
+                                        <input type="time" name="auto_invoice[renew_run_time]"
+                                               class="form-control form-control-solid"
+                                               value="{{ $autoInvoiceSettings['renew_run_time'] ?? '10:00' }}" />
+                                        <div class="form-text text-gray-500">Otomatik yenileme faturaları bu saatte oluşturulur.</div>
+                                    </div>
+
+                                    <div class="col-md-4 mb-5">
+                                        <label class="form-label fw-semibold required">Ödeme Hatırlatma</label>
+                                        <input type="time" name="auto_invoice[reminder_run_time]"
+                                               class="form-control form-control-solid"
+                                               value="{{ $autoInvoiceSettings['reminder_run_time'] ?? '10:00' }}" />
+                                        <div class="form-text text-gray-500">Yaklaşan fatura hatırlatmaları bu saatte gönderilir.</div>
+                                    </div>
+
+                                    <div class="col-md-4 mb-5">
+                                        <label class="form-label fw-semibold required">Hizmet Durdurma Kontrolü</label>
+                                        <input type="time" name="auto_invoice[stop_service_run_time]"
+                                               class="form-control form-control-solid"
+                                               value="{{ $autoInvoiceSettings['stop_service_run_time'] ?? '02:00' }}" />
+                                        <div class="form-text text-gray-500">Ödenmemiş faturalarda hizmet durdurma bu saatte çalışır.</div>
+                                    </div>
+                                </div>
                             </div>
 
                             <button type="submit" class="btn btn-success">Değişiklikleri Kaydet</button>
