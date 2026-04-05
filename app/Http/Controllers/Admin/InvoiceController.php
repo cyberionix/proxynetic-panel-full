@@ -563,7 +563,7 @@ class InvoiceController extends Controller
         if ($invoice->user) {
             \App\Services\NotificationTemplateService::send('invoice_formalized', $invoice->user, [
                 'fatura_no' => $invoice->invoice_number ?? $invoice->id,
-                'tutar' => number_format($invoice->total ?? 0, 2, ',', '.'),
+                'tutar' => number_format($invoice->total_price_with_vat ?? 0, 2, ',', '.'),
                 'fatura_url' => url('/invoices/' . $invoice->id),
             ]);
         }
@@ -585,7 +585,7 @@ class InvoiceController extends Controller
         if ($invoice->user) {
             $vars = [
                 'fatura_no' => $invoice->invoice_number ?? $invoice->id,
-                'tutar' => number_format($invoice->total ?? 0, 2, ',', '.'),
+                'tutar' => number_format($invoice->total_price_with_vat ?? 0, 2, ',', '.'),
                 'fatura_url' => url('/invoices/' . $invoice->id),
             ];
             if ($newStatus === 'CANCELLED') {

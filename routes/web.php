@@ -194,7 +194,7 @@ Route::post('/callback-paytr/64a3e520cf', function (Illuminate\Http\Request $req
             $checkout->user->notify($paytrNotify);
             \App\Services\NotificationTemplateService::send('invoice_paid', $checkout->user, [
                 'fatura_no' => $invoice->invoice_number ?? $invoice->id,
-                'tutar' => number_format($invoice->total ?? 0, 2, ',', '.'),
+                'tutar' => number_format($invoice->total_price_with_vat ?? 0, 2, ',', '.'),
                 'fatura_url' => url('/invoices/' . $invoice->id),
             ]);
         } else {

@@ -54,12 +54,6 @@ class InvoicesWithUpcomingDueDates extends Command
             if (Cache::has($cacheKey)) continue;
 
             $invoice->user->notify(new UpcomingInvoicePaymentNotification($invoice));
-            \App\Services\NotificationTemplateService::send('invoice_reminder', $invoice->user, [
-                'fatura_no' => $invoice->invoice_number ?? $invoice->id,
-                'tutar' => number_format($invoice->total ?? 0, 2, ',', '.'),
-                'son_odeme_tarihi' => $invoice->due_date?->format('d/m/Y') ?? '',
-                'fatura_url' => url('/invoices/' . $invoice->id),
-            ]);
             Cache::put($cacheKey, true, now()->endOfDay());
             $count++;
         }

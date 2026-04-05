@@ -39,6 +39,7 @@ class RenewOrders extends Command
             $priceData['total_vat'] = ($priceData['price'] * $order->product->vat_percent) / 100;
             $priceData['price_with_vat'] = $priceData['price'] + $priceData['total_vat'];
 
+            Invoice::$skipCreatedNotification = true;
             $invoice = Invoice::create([
                 "invoice_number" => Invoice::generateInvoiceNumber(),
                 "invoice_date" => Carbon::now(),
@@ -49,6 +50,7 @@ class RenewOrders extends Command
                 "total_price_with_vat" => $priceData['price_with_vat'],
                 "user_id" => $order->user_id,
             ]);
+            Invoice::$skipCreatedNotification = false;
 
             $orderDetail = OrderDetail::create([
                 "order_id" => $order->id,
@@ -83,6 +85,7 @@ class RenewOrders extends Command
             DB::commit();
             Log::info('CRON_RENEW_ORDERS', ["invoice_id" => $invoice->id, "order_id" => $order->id, "order_item_id" => $orderDetail->id]);
         } catch (\Exception $e) {
+            Invoice::$skipCreatedNotification = false;
             DB::rollback();
             Log::error('CRON_RENEW_ORDERS', ['order_id' => $order->id, "error" => $e->getMessage()]);
         }

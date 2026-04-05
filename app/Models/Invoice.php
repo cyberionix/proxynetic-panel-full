@@ -14,6 +14,8 @@ class Invoice extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public static $skipCreatedNotification = false;
+
     protected $guarded = [];
     protected $casts = [
         "invoice_address" => "json",
@@ -27,10 +29,11 @@ class Invoice extends Model
     {
         parent::boot();
         static::created(function ($invoice) {
+            if (static::$skipCreatedNotification) return;
             if ($invoice->user && $invoice->status === 'PENDING') {
                 \App\Services\NotificationTemplateService::send('invoice_created', $invoice->user, [
                     'fatura_no' => $invoice->invoice_number ?? $invoice->id,
-                    'tutar' => number_format($invoice->total ?? 0, 2, ',', '.'),
+                    'tutar' => number_format($invoice->total_price_with_vat ?? 0, 2, ',', '.'),
                     'son_odeme_tarihi' => $invoice->due_date?->format('d/m/Y') ?? '',
                     'fatura_url' => url('/invoices/' . $invoice->id),
                 ]);
