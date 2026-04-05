@@ -92,9 +92,13 @@ class SystemController extends Controller
             return true;
         }
 
-        $result = @shell_exec("supervisorctl status proxynetic-worker:* 2>/dev/null");
-        if ($result && stripos($result, 'RUNNING') !== false) {
-            return true;
+        $pidFile = storage_path('framework/queue-worker.pid');
+        if (file_exists($pidFile)) {
+            $pid = (int) trim(file_get_contents($pidFile));
+            if ($pid > 0 && file_exists("/proc/{$pid}")) {
+                return true;
+            }
+            @unlink($pidFile);
         }
 
         return false;
@@ -265,25 +269,35 @@ class SystemController extends Controller
                 return $this->successResponse('Kuyruk İşçisi zaten çalışıyor.');
             }
 
+            $pidFile = storage_path('framework/queue-worker.pid');
+
             if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
-                $result = @shell_exec('supervisorctl start proxynetic-worker:* 2>&1');
-                if ($result && stripos($result, 'ERROR') === false) {
-                    return $this->successResponse('Kuyruk İşçisi başlatıldı (supervisor).');
+                $php = '/opt/plesk/php/8.3/bin/php';
+                $artisan = base_path('artisan');
+                $logFile = storage_path('logs/worker.log');
+
+                $cmd = "nohup {$php} {$artisan} queue:work --sleep=3 --tries=3 --timeout=90 >> {$logFile} 2>&1 & echo $!";
+                $pid = trim((string) @shell_exec($cmd));
+
+                if ($pid && is_numeric($pid)) {
+                    file_put_contents($pidFile, $pid);
+                    return $this->successResponse("Kuyruk İşçisi başlatıldı (PID: {$pid}).");
                 }
 
-                $php = PHP_BINARY ?: '/opt/plesk/php/8.3/bin/php';
-                $artisan = base_path('artisan');
-                $logFile = storage_path('logs/queue-worker.log');
-                $cmd = "nohup {$php} {$artisan} queue:work database --sleep=3 --tries=3 --max-time=3600 >> {$logFile} 2>&1 &";
-                @shell_exec($cmd);
+                $output = [];
+                @exec($cmd, $output);
+                $pid = trim(implode('', $output));
+                if ($pid && is_numeric($pid)) {
+                    file_put_contents($pidFile, $pid);
+                }
                 return $this->successResponse('Kuyruk İşçisi başlatıldı.');
             } else {
                 $php = PHP_BINARY ?: 'php';
                 $artisan = base_path('artisan');
-                $logFile = storage_path('logs/queue-worker.log');
+                $logFile = storage_path('logs/worker.log');
                 $baseDir = base_path();
                 $batFile = storage_path('framework/queue-worker.bat');
-                $cmd = "\"{$php}\" \"{$artisan}\" queue:work database --sleep=3 --tries=3 --max-time=3600";
+                $cmd = "\"{$php}\" \"{$artisan}\" queue:work --sleep=3 --tries=3 --timeout=90";
                 $batContent = "@echo off\r\ncd /d \"{$baseDir}\"\r\n{$cmd} > \"{$logFile}\" 2>&1\r\n";
                 file_put_contents($batFile, $batContent);
                 $desc = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
@@ -314,16 +328,28 @@ class SystemController extends Controller
         }
 
         if ($type === 'queue') {
+            $pidFile = storage_path('framework/queue-worker.pid');
+            $killed = false;
+
             if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
-                $result = @shell_exec('supervisorctl stop proxynetic-worker:* 2>&1');
-                if ($result && stripos($result, 'stopped') !== false) {
-                    return $this->successResponse('Kuyruk İşçisi durduruldu (supervisor).');
+                if (file_exists($pidFile)) {
+                    $pid = (int) trim(file_get_contents($pidFile));
+                    if ($pid > 0) {
+                        @exec("kill {$pid} 2>/dev/null");
+                        $killed = true;
+                    }
+                    @unlink($pidFile);
                 }
 
-                @shell_exec("pkill -f 'queue:work' 2>/dev/null");
+                @exec("pkill -f 'queue:work' 2>/dev/null");
+                $killed = true;
+
+                Artisan::call('queue:restart');
+
                 return $this->successResponse('Kuyruk İşçisi durduruldu.');
             } else {
                 @shell_exec("wmic process where \"CommandLine like '%queue:work%' and not CommandLine like '%wmic%'\" call terminate 2>NUL");
+                if (file_exists($pidFile)) @unlink($pidFile);
                 return $this->successResponse('Kuyruk İşçisi durduruldu.');
             }
         }
