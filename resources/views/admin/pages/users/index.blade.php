@@ -92,7 +92,7 @@
                     <th class="min-w-125px col-hide-mobile">{{__("last_login_ip")}}</th>
                     <th class="min-w-125px col-hide-mobile">{{__("customer_group")}}</th>
                     <th class="min-w-125px col-hide-mobile">{{__("last_seen_at")}}</th>
-                    <th class="min-w-125px col-hide-mobile"></th>
+                    <th class="min-w-125px"></th>
                 </tr>
                 </thead>
                 <tbody class="fw-semibold text-gray-600">
@@ -123,7 +123,7 @@
                 columnDefs: [
                     { orderable: true, targets: [0, 1, 2, 3, 4, 5] },
                     { orderable: false, targets: [6] },
-                    { className: 'col-hide-mobile', targets: [3, 4, 5, 6] }
+                    { className: 'col-hide-mobile', targets: [3, 4, 5] }
                 ],
                 "processing": true,
                 "serverSide": true,
