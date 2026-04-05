@@ -7,6 +7,14 @@
             filter: blur(3px);
             pointer-events: none;
         }
+        @media (max-width: 768px) {
+            .table th.min-w-125px,
+            .table th.min-w-70px { min-width: auto !important; }
+            .table .btn-sm { font-size: 11px; padding: 4px 8px; white-space: nowrap; }
+            .table { font-size: 13px; }
+            .card-header { flex-direction: column; gap: 8px; }
+            .card-toolbar .btn-sm { font-size: 12px; }
+        }
     </style>
 @endsection
 @section("description", "")

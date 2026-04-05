@@ -6,6 +6,13 @@
         .phoneArea .iti {
             width: 100%;
         }
+        @media (max-width: 768px) {
+            #usersTable th.col-hide-mobile,
+            #usersTable td.col-hide-mobile { display: none !important; }
+            #usersTable { font-size: 13px; }
+            #usersTable th { min-width: auto !important; }
+            .card-header { flex-direction: column; align-items: flex-start !important; gap: 10px; }
+        }
     </style>
 @endsection
 @section("description", "")
@@ -73,9 +80,9 @@
                     <th class="m-w-50">#</th>
                     <th class="min-w-125px">{{__("name")}} {{__("surname")}}</th>
                     <th class="min-w-125px">{{__("email")}}</th>
-                    <th class="min-w-125px">{{__("last_login_ip")}}</th>
-                    <th class="min-w-125px">{{__("customer_group")}}</th>
-                    <th class="min-w-125px">{{__("last_seen_at")}}</th>
+                    <th class="min-w-125px col-hide-mobile">{{__("last_login_ip")}}</th>
+                    <th class="min-w-125px col-hide-mobile">{{__("customer_group")}}</th>
+                    <th class="min-w-125px col-hide-mobile">{{__("last_seen_at")}}</th>
                     <th class="min-w-125px"></th>
                 </tr>
                 </thead>
@@ -105,27 +112,9 @@
             var t = $("#usersTable").DataTable({
                 order: [],
                 columnDefs: [
-                    {
-                        orderable: !0, targets: 0
-                    },
-                    {
-                        orderable: !0, targets: 1
-                    },
-                    {
-                        orderable: !0, targets: 2
-                    },
-                    {
-                        orderable: !0, targets: 3
-                    },
-                    {
-                        orderable: !0, targets: 4
-                    },
-                    {
-                        orderable: !0, targets: 5
-                    },
-                    {
-                        orderable: !1, targets: 5
-                    }
+                    { orderable: true, targets: [0, 1, 2, 3, 4, 5] },
+                    { orderable: false, targets: [6] },
+                    { className: 'col-hide-mobile', targets: [3, 4, 5] }
                 ],
                 "processing": true,
                 "serverSide": true,
