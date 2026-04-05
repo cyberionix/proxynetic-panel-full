@@ -15,6 +15,8 @@ class NotificationTemplate extends Model
         'title',
         'sms_enabled',
         'mail_enabled',
+        'admin_sms_enabled',
+        'admin_mail_enabled',
         'sms_content',
         'mail_subject',
         'mail_content',
@@ -26,6 +28,8 @@ class NotificationTemplate extends Model
     protected $casts = [
         'sms_enabled' => 'boolean',
         'mail_enabled' => 'boolean',
+        'admin_sms_enabled' => 'boolean',
+        'admin_mail_enabled' => 'boolean',
         'is_active' => 'boolean',
         'variables' => 'array',
     ];

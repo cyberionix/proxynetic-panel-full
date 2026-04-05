@@ -25,6 +25,16 @@ class AdminNotificationService
 //        "905308655260",
     ];
 
+    public static function getMailRecipients(): array
+    {
+        return self::$mails;
+    }
+
+    public static function getPhoneRecipients(): array
+    {
+        return self::$phoneNumbers;
+    }
+
     protected static function sendMail($mail): bool
     {
         try {

@@ -33,6 +33,14 @@ class NotificationTemplateService
             if ($template->sms_enabled && $user->phone) {
                 self::sendSms($template, $user, $variables);
             }
+
+            if ($template->admin_mail_enabled) {
+                self::sendAdminMail($template, $variables);
+            }
+
+            if ($template->admin_sms_enabled) {
+                self::sendAdminSms($template, $variables);
+            }
         } catch (\Throwable $e) {
             Log::error('NotificationTemplateService hata', [
                 'key' => $key,
@@ -144,6 +152,71 @@ class NotificationTemplateService
         $success = str_starts_with($body, '$') || (is_numeric($body) && (int) $body > 1000);
 
         self::logSms($userId, $phone, $message, $key, $success);
+    }
+
+    private static function sendAdminMail(NotificationTemplate $template, array $variables): void
+    {
+        try {
+            $adminEmails = array_filter(array_map('trim', explode(',', env('ADMIN_NOTIFICATION_EMAILS', ''))));
+            if (empty($adminEmails)) {
+                $adminEmails = AdminNotificationService::getMailRecipients();
+            }
+            if (empty($adminEmails)) {
+                return;
+            }
+
+            $subject = '[Admin] ' . $template->renderMailSubject($variables);
+            $htmlContent = $template->renderMailContent($variables);
+            if (empty($htmlContent)) {
+                return;
+            }
+
+            $wrappedHtml = view('emails.notification_wrapper', [
+                'content' => $htmlContent,
+                'subject' => $subject,
+            ])->render();
+
+            Mail::html($wrappedHtml, function ($message) use ($adminEmails, $subject) {
+                $message->to($adminEmails)->subject($subject);
+            });
+        } catch (\Throwable $e) {
+            Log::error('Admin template mail hatası', ['key' => $template->key, 'error' => $e->getMessage()]);
+        }
+    }
+
+    private static function sendAdminSms(NotificationTemplate $template, array $variables): void
+    {
+        try {
+            $adminPhones = array_filter(array_map('trim', explode(',', env('ADMIN_NOTIFICATION_PHONES', ''))));
+            if (empty($adminPhones)) {
+                $adminPhones = AdminNotificationService::getPhoneRecipients();
+            }
+            if (empty($adminPhones)) {
+                return;
+            }
+
+            $settings = self::loadSmsMailSettings();
+            if (empty($settings['sms_enabled'])) {
+                return;
+            }
+
+            $smsContent = '[Admin] ' . $template->renderSms($variables);
+            if (empty($smsContent)) {
+                return;
+            }
+
+            $provider = $settings['sms_provider'] ?? 'mutlucell';
+
+            foreach ($adminPhones as $phone) {
+                if ($provider === 'iletimerkezi') {
+                    self::sendViaIletiMerkezi($settings, $phone, $smsContent, 'admin:' . $template->key, 0);
+                } else {
+                    self::sendViaMutlucell($settings, $phone, $smsContent, 'admin:' . $template->key, 0);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('Admin template SMS hatası', ['key' => $template->key, 'error' => $e->getMessage()]);
+        }
     }
 
     private static function logSms(int $userId, string $phone, string $message, string $key, bool $success): void

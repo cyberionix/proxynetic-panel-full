@@ -1454,11 +1454,12 @@
                         <div class="row">
                             {{-- Durum ve Kanallar --}}
                             <div class="col-12 mb-5">
-                                <div class="d-flex gap-6">
+                                <div class="d-flex flex-wrap gap-5">
                                     <div class="form-check form-switch form-check-custom form-check-solid">
                                         <input class="form-check-input" type="checkbox" name="is_active" id="tplIsActive" value="1"/>
                                         <label class="form-check-label fw-semibold" for="tplIsActive">Şablon Aktif</label>
                                     </div>
+                                    <div class="separator-vertical border-gray-300 mx-1 d-none d-sm-block" style="height:24px"></div>
                                     <div class="form-check form-switch form-check-custom form-check-solid">
                                         <input class="form-check-input" type="checkbox" name="sms_enabled" id="tplSmsEnabled" value="1"/>
                                         <label class="form-check-label fw-semibold" for="tplSmsEnabled">SMS Gönderimi</label>
@@ -1466,6 +1467,15 @@
                                     <div class="form-check form-switch form-check-custom form-check-solid">
                                         <input class="form-check-input" type="checkbox" name="mail_enabled" id="tplMailEnabled" value="1"/>
                                         <label class="form-check-label fw-semibold" for="tplMailEnabled">E-Posta Gönderimi</label>
+                                    </div>
+                                    <div class="separator-vertical border-gray-300 mx-1 d-none d-sm-block" style="height:24px"></div>
+                                    <div class="form-check form-switch form-check-custom form-check-solid">
+                                        <input class="form-check-input bg-warning" type="checkbox" name="admin_sms_enabled" id="tplAdminSmsEnabled" value="1"/>
+                                        <label class="form-check-label fw-semibold text-warning" for="tplAdminSmsEnabled">Admin SMS</label>
+                                    </div>
+                                    <div class="form-check form-switch form-check-custom form-check-solid">
+                                        <input class="form-check-input bg-warning" type="checkbox" name="admin_mail_enabled" id="tplAdminMailEnabled" value="1"/>
+                                        <label class="form-check-label fw-semibold text-warning" for="tplAdminMailEnabled">Admin E-Posta</label>
                                     </div>
                                 </div>
                             </div>
@@ -1629,6 +1639,8 @@
                             $('#tplIsActive').prop('checked', d.is_active);
                             $('#tplSmsEnabled').prop('checked', d.sms_enabled);
                             $('#tplMailEnabled').prop('checked', d.mail_enabled);
+                            $('#tplAdminSmsEnabled').prop('checked', d.admin_sms_enabled);
+                            $('#tplAdminMailEnabled').prop('checked', d.admin_mail_enabled);
                             $('#tplSmsContent').val(d.sms_content || '');
                             $('#tplMailSubject').val(d.mail_subject || '');
 
@@ -1682,6 +1694,8 @@
                     is_active: $('#tplIsActive').is(':checked') ? 1 : 0,
                     sms_enabled: $('#tplSmsEnabled').is(':checked') ? 1 : 0,
                     mail_enabled: $('#tplMailEnabled').is(':checked') ? 1 : 0,
+                    admin_sms_enabled: $('#tplAdminSmsEnabled').is(':checked') ? 1 : 0,
+                    admin_mail_enabled: $('#tplAdminMailEnabled').is(':checked') ? 1 : 0,
                     sms_content: $('#tplSmsContent').val(),
                     mail_subject: $('#tplMailSubject').val(),
                     mail_content: $('#tplMailContent').val(),

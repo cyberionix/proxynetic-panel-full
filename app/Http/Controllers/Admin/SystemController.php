@@ -900,6 +900,8 @@ class SystemController extends Controller
         $template->update([
             'sms_enabled' => $request->boolean('sms_enabled'),
             'mail_enabled' => $request->boolean('mail_enabled'),
+            'admin_sms_enabled' => $request->boolean('admin_sms_enabled'),
+            'admin_mail_enabled' => $request->boolean('admin_mail_enabled'),
             'sms_content' => $request->input('sms_content', ''),
             'mail_subject' => $request->input('mail_subject', ''),
             'mail_content' => $request->input('mail_content', ''),
