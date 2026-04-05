@@ -542,6 +542,7 @@ class SystemController extends Controller
         }
 
         Artisan::call('config:clear');
+        Artisan::call('config:cache');
 
         return redirect()->route('admin.settings')->with('form_success', 'Değişiklikler başarıyla kaydedildi.');
     }
