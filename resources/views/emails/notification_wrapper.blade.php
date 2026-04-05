@@ -28,7 +28,7 @@
                 <tr>
                     <td style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%);padding:28px 32px;text-align:center;">
                         <a href="{{ url('/') }}" target="_blank" style="text-decoration:none;">
-                            <img src="{{ url(brand('logo_dark') ?: brand('logo')) }}" alt="{{ brand('name') }}" style="height:44px;max-width:200px;" />
+                            <img src="{{ url(brand('logo') ?: brand('logo_dark')) }}" alt="{{ brand('name') }}" style="height:44px;max-width:200px;" />
                         </a>
                     </td>
                 </tr>
