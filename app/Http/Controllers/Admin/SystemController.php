@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\NotificationTemplate;
 use App\Models\Order;
 use App\Models\Price;
@@ -125,7 +127,14 @@ class SystemController extends Controller
         $productCategories = ProductCategory::orderBy('name')->get();
         $products = Product::orderBy('name')->get(['id', 'name', 'category_id']);
 
-        return view('admin.pages.system.settings', compact('urls', 'test_product', 'test_product_price', 'localtonetHttpVerify', 'systemStatus', 'smsMailConfig', 'notificationTemplates', 'campaigns', 'userGroups', 'productCategories', 'products'));
+        $autoInvoiceSettings = $this->loadAutoInvoiceSettings();
+        $renewInvoices = Invoice::whereHas('items', function ($q) {
+            $q->where('type', 'RENEW');
+        })->with(['items' => function ($q) {
+            $q->where('type', 'RENEW');
+        }, 'user'])->orderByDesc('created_at')->limit(100)->get();
+
+        return view('admin.pages.system.settings', compact('urls', 'test_product', 'test_product_price', 'localtonetHttpVerify', 'systemStatus', 'smsMailConfig', 'notificationTemplates', 'campaigns', 'userGroups', 'productCategories', 'products', 'autoInvoiceSettings', 'renewInvoices'));
     }
 
     public function systemStatusAjax()
@@ -392,6 +401,23 @@ class SystemController extends Controller
             '<?php return ' . var_export(['http_verify' => $localtonetHttpVerify], true) . ';'
         );
 
+        if ($request->has('auto_invoice')) {
+            $ai = $request->input('auto_invoice');
+            $autoInvoiceData = [
+                'auto_renew_enabled' => (bool) ($ai['auto_renew_enabled'] ?? false),
+                'renew_days_before_monthly' => max(1, (int) ($ai['renew_days_before_monthly'] ?? 7)),
+                'renew_days_before_weekly' => max(1, (int) ($ai['renew_days_before_weekly'] ?? 2)),
+                'renew_days_before_daily' => max(0, (int) ($ai['renew_days_before_daily'] ?? 1)),
+                'reminder_days_before' => max(1, (int) ($ai['reminder_days_before'] ?? 3)),
+                'stop_service_on_unpaid' => (bool) ($ai['stop_service_on_unpaid'] ?? false),
+            ];
+
+            file_put_contents(
+                config_path('auto_invoice_settings.php'),
+                '<?php return ' . var_export($autoInvoiceData, true) . ';'
+            );
+        }
+
         if ($request->has('sms_mail')) {
             $smsMail = $request->input('sms_mail');
             $smsMailData = [
@@ -426,6 +452,25 @@ class SystemController extends Controller
         Artisan::call('config:clear');
 
         return redirect()->route('admin.settings')->with('form_success', 'Değişiklikler başarıyla kaydedildi.');
+    }
+
+    private function loadAutoInvoiceSettings(): array
+    {
+        $path = config_path('auto_invoice_settings.php');
+        if (is_file($path)) {
+            $data = require $path;
+            if (is_array($data)) {
+                return $data;
+            }
+        }
+        return [
+            'auto_renew_enabled' => true,
+            'renew_days_before_monthly' => 7,
+            'renew_days_before_weekly' => 2,
+            'renew_days_before_daily' => 1,
+            'reminder_days_before' => 3,
+            'stop_service_on_unpaid' => true,
+        ];
     }
 
     private function getSmsMailConfig(): array

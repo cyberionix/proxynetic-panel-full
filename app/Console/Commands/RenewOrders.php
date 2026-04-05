@@ -113,33 +113,61 @@ class RenewOrders extends Command
             }
         }
     }
+    private function loadAutoInvoiceSettings(): array
+    {
+        $path = config_path('auto_invoice_settings.php');
+        if (is_file($path)) {
+            $data = require $path;
+            if (is_array($data)) {
+                return $data;
+            }
+        }
+        return [];
+    }
+
     public function handle()
     {
         Log::info('START_CRON_RENEW_ORDERS');
 
-        /** Günlük ve Haftalıklar Hariç **/
+        $settings = $this->loadAutoInvoiceSettings();
+        $enabled = (bool) ($settings['auto_renew_enabled'] ?? true);
+        if (!$enabled) {
+            Log::info('CRON_RENEW_ORDERS_DISABLED');
+            return;
+        }
 
-        $remainingDay = 7;
+        $monthlyDays = (int) ($settings['renew_days_before_monthly'] ?? 7);
+        $weeklyDays = (int) ($settings['renew_days_before_weekly'] ?? 2);
+        $dailyDays = (int) ($settings['renew_days_before_daily'] ?? 1);
+
         $orders1 = Order::with("activeDetail")
             ->whereDeliveryStatus("DELIVERED")
             ->whereStatus("ACTIVE")
-            ->whereDate('end_date', Carbon::now()->addDays($remainingDay)->format("Y-m-d"))
+            ->whereDate('end_date', Carbon::now()->addDays($monthlyDays)->format("Y-m-d"))
             ->get();
 
         $this->processOrders($orders1);
 
-        /** Haftalıklar İçin **/
-        $remainingDay = 2;
         $orders2 = Order::with("activeDetail")
             ->whereDeliveryStatus("DELIVERED")
             ->whereStatus("ACTIVE")
-            ->whereDate('end_date', Carbon::now()->addDays($remainingDay)->format("Y-m-d"))
+            ->whereDate('end_date', Carbon::now()->addDays($weeklyDays)->format("Y-m-d"))
             ->get();
 
         $this->processOrders($orders2, "WEEKLY");
 
+        $orders3 = collect();
+        if ($dailyDays > 0) {
+            $orders3 = Order::with("activeDetail")
+                ->whereDeliveryStatus("DELIVERED")
+                ->whereStatus("ACTIVE")
+                ->whereDate('end_date', Carbon::now()->addDays($dailyDays)->format("Y-m-d"))
+                ->get();
 
-        $orderCount = count($orders1) + count($orders2);
+            $this->processOrders($orders3, "DAILY");
+        }
+
+        $orderCount = count($orders1) + count($orders2) + count($orders3);
         Log::info('END_CRON_RENEW_ORDERS', ["order_count" => $orderCount]);
     }
 

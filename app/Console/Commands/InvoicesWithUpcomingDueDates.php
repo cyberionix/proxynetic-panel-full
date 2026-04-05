@@ -27,11 +27,24 @@ class InvoicesWithUpcomingDueDates extends Command
     /**
      * Execute the console command.
      */
+    private function loadAutoInvoiceSettings(): array
+    {
+        $path = config_path('auto_invoice_settings.php');
+        if (is_file($path)) {
+            $data = require $path;
+            if (is_array($data)) {
+                return $data;
+            }
+        }
+        return [];
+    }
+
     public function handle()
     {
         Log::info('START_INVOICE_WITH_UPCOMING_DUE_DATES');
 
-        $day = 3;
+        $settings = $this->loadAutoInvoiceSettings();
+        $day = (int) ($settings['reminder_days_before'] ?? 3);
 
         $invoices = Invoice::whereStatus("PENDING")->whereDate("due_date", "=", Carbon::now()->addDays($day))->get();
         $count = 0;

@@ -30,9 +30,28 @@ class StopServiceOnUnpaidRenewInvoices extends Command
     /**
      * Execute the console command.
      */
+    private function loadAutoInvoiceSettings(): array
+    {
+        $path = config_path('auto_invoice_settings.php');
+        if (is_file($path)) {
+            $data = require $path;
+            if (is_array($data)) {
+                return $data;
+            }
+        }
+        return [];
+    }
+
     public function handle()
     {
         Log::info('START_STOP_SERVICE_ON_UNPAID_RENEW_INVOICES');
+
+        $settings = $this->loadAutoInvoiceSettings();
+        $stopEnabled = (bool) ($settings['stop_service_on_unpaid'] ?? true);
+        if (!$stopEnabled) {
+            Log::info('STOP_SERVICE_ON_UNPAID_DISABLED');
+            return;
+        }
 
 
 

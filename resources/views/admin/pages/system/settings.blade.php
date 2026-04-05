@@ -315,9 +315,173 @@
                                     </div>
                                 </div>
                             </div>
+                            <hr class="my-8">
+                            <div class="w-100">
+                                <div class="d-flex align-items-center mb-5">
+                                    <i class="fa fa-file-invoice text-primary fs-2 me-3"></i>
+                                    <h3 class="mb-0 fw-bold">Otomatik Fatura Ayarları</h3>
+                                </div>
+                                <p class="text-gray-600 mb-6">Sipariş bitiş tarihi yaklaşan müşteriler için yenileme faturası otomatik oluşturulur. Aşağıdan süreleri ve davranışı ayarlayabilirsiniz.</p>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-5">
+                                        <label class="form-label fw-semibold">Otomatik Yenileme Faturası</label>
+                                        <div class="form-check form-switch form-check-custom form-check-solid mt-2">
+                                            <input type="hidden" name="auto_invoice[auto_renew_enabled]" value="0" />
+                                            <input class="form-check-input" type="checkbox" name="auto_invoice[auto_renew_enabled]" value="1"
+                                                   id="autoRenewEnabledSwitch" {{ ($autoInvoiceSettings['auto_renew_enabled'] ?? true) ? 'checked' : '' }}/>
+                                            <label class="form-check-label" for="autoRenewEnabledSwitch">Aktif</label>
+                                        </div>
+                                        <div class="form-text text-gray-500 mt-1">Kapatıldığında otomatik yenileme faturası oluşturulmaz.</div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-5">
+                                        <label class="form-label fw-semibold">Ödenmemiş Faturada Hizmet Durdurma</label>
+                                        <div class="form-check form-switch form-check-custom form-check-solid mt-2">
+                                            <input type="hidden" name="auto_invoice[stop_service_on_unpaid]" value="0" />
+                                            <input class="form-check-input" type="checkbox" name="auto_invoice[stop_service_on_unpaid]" value="1"
+                                                   id="stopServiceUnpaidSwitch" {{ ($autoInvoiceSettings['stop_service_on_unpaid'] ?? true) ? 'checked' : '' }}/>
+                                            <label class="form-check-label" for="stopServiceUnpaidSwitch">Aktif</label>
+                                        </div>
+                                        <div class="form-text text-gray-500 mt-1">Son ödeme tarihinde ödenmemişse hizmet otomatik durdurulur.</div>
+                                    </div>
+                                </div>
+
+                                <div class="row mt-3">
+                                    <div class="col-md-4 mb-5">
+                                        <label class="form-label fw-semibold required">Aylık/Yıllık Siparişler İçin (gün önce)</label>
+                                        <input type="number" name="auto_invoice[renew_days_before_monthly]" min="1" max="30"
+                                               class="form-control form-control-solid"
+                                               value="{{ $autoInvoiceSettings['renew_days_before_monthly'] ?? 7 }}" />
+                                        <div class="form-text text-gray-500">Bitiş tarihinden kaç gün önce fatura oluşturulsun?</div>
+                                    </div>
+
+                                    <div class="col-md-4 mb-5">
+                                        <label class="form-label fw-semibold required">Haftalık Siparişler İçin (gün önce)</label>
+                                        <input type="number" name="auto_invoice[renew_days_before_weekly]" min="1" max="7"
+                                               class="form-control form-control-solid"
+                                               value="{{ $autoInvoiceSettings['renew_days_before_weekly'] ?? 2 }}" />
+                                        <div class="form-text text-gray-500">Haftalık siparişlerde kaç gün önce?</div>
+                                    </div>
+
+                                    <div class="col-md-4 mb-5">
+                                        <label class="form-label fw-semibold required">Günlük Siparişler İçin (gün önce)</label>
+                                        <input type="number" name="auto_invoice[renew_days_before_daily]" min="0" max="3"
+                                               class="form-control form-control-solid"
+                                               value="{{ $autoInvoiceSettings['renew_days_before_daily'] ?? 1 }}" />
+                                        <div class="form-text text-gray-500">0 = günlük siparişlerde fatura oluşturulmaz.</div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-4 mb-5">
+                                        <label class="form-label fw-semibold required">Hatırlatma Süresi (gün önce)</label>
+                                        <input type="number" name="auto_invoice[reminder_days_before]" min="1" max="14"
+                                               class="form-control form-control-solid"
+                                               value="{{ $autoInvoiceSettings['reminder_days_before'] ?? 3 }}" />
+                                        <div class="form-text text-gray-500">Son ödeme tarihinden kaç gün önce hatırlatma gönderilsin?</div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <button type="submit" class="btn btn-success">Değişiklikleri Kaydet</button>
                         </div>
                     </form>
+
+                    <hr class="my-10">
+
+                    <div class="w-75 mx-auto">
+                        <div class="d-flex align-items-center justify-content-between mb-5">
+                            <div class="d-flex align-items-center">
+                                <i class="fa fa-list-alt text-info fs-2 me-3"></i>
+                                <h3 class="mb-0 fw-bold">Otomatik Oluşturulan Yenileme Faturaları</h3>
+                            </div>
+                            <span class="badge badge-light-info fs-7">Son 100 kayıt</span>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-row-bordered table-row-gray-200 align-middle gy-4 gs-4">
+                                <thead>
+                                    <tr class="fw-bold text-muted bg-light">
+                                        <th class="ps-4 rounded-start">#</th>
+                                        <th>Fatura No</th>
+                                        <th>Müşteri</th>
+                                        <th>Ürün/Hizmet</th>
+                                        <th class="text-end">Tutar</th>
+                                        <th>Son Ödeme</th>
+                                        <th>Durum</th>
+                                        <th class="text-center rounded-end">Tarih</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($renewInvoices as $rInv)
+                                        @php
+                                            $renewItem = $rInv->items->first();
+                                            $statusColors = [
+                                                'PENDING' => 'warning',
+                                                'PAID' => 'success',
+                                                'CANCELLED' => 'danger',
+                                                'REFUNDED' => 'info',
+                                            ];
+                                            $statusLabels = [
+                                                'PENDING' => 'Bekliyor',
+                                                'PAID' => 'Ödendi',
+                                                'CANCELLED' => 'İptal',
+                                                'REFUNDED' => 'İade',
+                                            ];
+                                        @endphp
+                                        <tr>
+                                            <td class="ps-4">{{ $rInv->id }}</td>
+                                            <td>
+                                                <a href="{{ route('admin.invoices.show', $rInv->id) }}" class="text-primary fw-semibold text-hover-dark">
+                                                    {{ $rInv->invoice_number ?? '-' }}
+                                                </a>
+                                            </td>
+                                            <td>
+                                                @if($rInv->user)
+                                                    <a href="{{ route('admin.users.show', $rInv->user_id) }}" class="text-gray-800 text-hover-primary">
+                                                        {{ $rInv->user->name ?? '' }} {{ $rInv->user->surname ?? '' }}
+                                                    </a>
+                                                @else
+                                                    <span class="text-muted">Silinmiş</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <span class="text-gray-700 fs-7">{{ $renewItem->name ?? '-' }}</span>
+                                            </td>
+                                            <td class="text-end fw-bold">
+                                                {{ number_format($rInv->total_price_with_vat ?? 0, 2, ',', '.') }} ₺
+                                            </td>
+                                            <td>
+                                                @if($rInv->due_date)
+                                                    <span class="{{ $rInv->due_date->isPast() && $rInv->status === 'PENDING' ? 'text-danger fw-bold' : 'text-gray-700' }}">
+                                                        {{ $rInv->due_date->format('d.m.Y') }}
+                                                    </span>
+                                                @else
+                                                    -
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-light-{{ $statusColors[$rInv->status] ?? 'secondary' }} fw-semibold">
+                                                    {{ $statusLabels[$rInv->status] ?? $rInv->status }}
+                                                </span>
+                                            </td>
+                                            <td class="text-center text-gray-600 fs-7">
+                                                {{ $rInv->created_at?->format('d.m.Y H:i') ?? '-' }}
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted py-8">
+                                                <i class="fa fa-inbox fs-1 text-gray-300 d-block mb-2"></i>
+                                                Henüz otomatik yenileme faturası oluşturulmamış.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="tab-pane fade" id="system_settings_localtonet_tab" role="tabpanel">
