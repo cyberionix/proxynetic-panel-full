@@ -910,7 +910,7 @@
                                                 <div class="card-title"><i class="fa fa-sms text-success me-2"></i>SMS İçeriği</div>
                                             </div>
                                             <div class="card-body pt-2">
-                                                <textarea name="sms_content" id="campSmsContent" class="form-control form-control-solid" rows="4" placeholder="Merhaba {{ad}}, kampanya mesajınız..."></textarea>
+                                                <textarea name="sms_content" id="campSmsContent" class="form-control form-control-solid" rows="4" placeholder="Merhaba @{{ad}}, kampanya mesajınız..."></textarea>
                                                 <div class="mt-2">
                                                     <span class="text-muted fs-8">Kullanılabilir değişkenler: </span>
                                                     <span class="badge badge-light-info cursor-pointer campVar" data-var="ad">@{{ad}}</span>
@@ -1783,7 +1783,8 @@
             $('#campaignModal').on('hidden.bs.modal', function(){ destroyCampaignTinyMCE(); });
 
             $(document).on('click', '.campVar', function(){
-                var varName = '{{' + $(this).data('var') + '}}';
+                var v = $(this).data('var');
+                var varName = String.fromCharCode(123,123) + v + String.fromCharCode(125,125);
                 navigator.clipboard.writeText(varName);
                 toastr.info('Değişken kopyalandı: ' + varName);
             });
