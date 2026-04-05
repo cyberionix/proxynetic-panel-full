@@ -134,7 +134,7 @@
                                         {{ ($systemStatus['queue_worker_running'] ?? false) ? 'Çalışıyor' : 'Durdu' }}
                                     </span>
                                     <span class="text-muted fs-7">Kuyruk İşçisi (Queue)</span>
-                                    <span class="fs-6 fw-bold text-primary mt-1" id="queuePendingText">{{ $systemStatus['queue_pending'] }} bekleyen</span>
+                                    <a href="javascript:;" class="fs-6 fw-bold text-primary mt-1 text-hover-dark text-decoration-underline" id="queuePendingText" data-bs-toggle="modal" data-bs-target="#pendingJobsModal">{{ $systemStatus['queue_pending'] }} bekleyen</a>
                                     <div class="mt-3" id="queueBtnArea">
                                         @if($systemStatus['queue_worker_running'] ?? false)
                                             <button type="button" class="btn btn-sm btn-light-danger processBtn" data-type="queue" data-action="stop">
@@ -975,6 +975,46 @@
             <!--end::Tab content-->
 
             {{-- Kampanya Oluşturma/Düzenleme Modal --}}
+            <div class="modal fade" id="pendingJobsModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">
+                                <i class="fa fa-clock text-primary me-2"></i>Bekleyen Kuyruk İşleri
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body py-5">
+                            <div id="pendingJobsLoading" class="text-center py-10">
+                                <span class="spinner-border spinner-border-sm text-primary me-2"></span> Yükleniyor...
+                            </div>
+                            <div id="pendingJobsEmpty" class="text-center py-10 d-none">
+                                <i class="fa fa-check-circle text-success fs-1 d-block mb-3"></i>
+                                <span class="text-muted fs-5">Bekleyen iş bulunmuyor.</span>
+                            </div>
+                            <div class="table-responsive d-none" id="pendingJobsTableWrap">
+                                <table class="table table-row-bordered table-row-gray-200 align-middle gy-3 gs-3">
+                                    <thead>
+                                        <tr class="fw-bold text-muted bg-light">
+                                            <th class="ps-3 rounded-start">ID</th>
+                                            <th>İş Adı</th>
+                                            <th>Kuyruk</th>
+                                            <th>Deneme</th>
+                                            <th>Oluşturulma</th>
+                                            <th class="rounded-end">Durum</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pendingJobsBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Kapat</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="modal fade" id="campaignModal" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-xl modal-dialog-scrollable">
                     <div class="modal-content">
@@ -1806,7 +1846,7 @@
                             $('#queueDot').html(qr
                                 ? '<span class="bullet bullet-dot bg-success h-15px w-15px animation-blink"></span>'
                                 : '<span class="bullet bullet-dot bg-danger h-15px w-15px"></span>');
-                            $('#queuePendingText').text(d.queue_pending + ' bekleyen');
+                            $('#queuePendingText').text(d.queue_pending + ' bekleyen').attr('data-count', d.queue_pending);
                             $('#queueBtnArea').html(qr
                                 ? '<button type="button" class="btn btn-sm btn-light-danger processBtn" data-type="queue" data-action="stop"><i class="fa fa-stop me-1"></i>Durdur</button>'
                                 : '<button type="button" class="btn btn-sm btn-light-success processBtn" data-type="queue" data-action="start"><i class="fa fa-play me-1"></i>Başlat</button>');
@@ -2115,6 +2155,40 @@
                         else toastr.error(res.message || 'Hata');
                     },
                     error: function(){ toastr.error('Kopyalama hatası'); }
+                });
+            });
+
+            $('#pendingJobsModal').on('show.bs.modal', function(){
+                $('#pendingJobsLoading').removeClass('d-none');
+                $('#pendingJobsEmpty').addClass('d-none');
+                $('#pendingJobsTableWrap').addClass('d-none');
+                $('#pendingJobsBody').empty();
+
+                $.get('/netAdmin/pending-jobs-ajax', function(res){
+                    $('#pendingJobsLoading').addClass('d-none');
+                    if(!res.success || !res.jobs || res.jobs.length === 0){
+                        $('#pendingJobsEmpty').removeClass('d-none');
+                        return;
+                    }
+                    var html = '';
+                    res.jobs.forEach(function(j){
+                        var statusBadge = j.reserved_at
+                            ? '<span class="badge badge-light-warning">İşleniyor</span>'
+                            : '<span class="badge badge-light-info">Bekliyor</span>';
+                        html += '<tr>';
+                        html += '<td class="ps-3 fw-semibold">' + j.id + '</td>';
+                        html += '<td><span class="fw-semibold text-gray-800">' + j.job_name + '</span><br><span class="text-muted fs-8">' + j.full_name + '</span></td>';
+                        html += '<td><span class="badge badge-light-primary">' + j.queue + '</span></td>';
+                        html += '<td class="text-center">' + j.attempts + '</td>';
+                        html += '<td class="text-gray-600 fs-7">' + j.created_at + '</td>';
+                        html += '<td>' + statusBadge + '</td>';
+                        html += '</tr>';
+                    });
+                    $('#pendingJobsBody').html(html);
+                    $('#pendingJobsTableWrap').removeClass('d-none');
+                }).fail(function(){
+                    $('#pendingJobsLoading').addClass('d-none');
+                    $('#pendingJobsEmpty').removeClass('d-none').find('span').text('Veriler yüklenirken hata oluştu.');
                 });
             });
 

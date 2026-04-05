@@ -146,6 +146,34 @@ class SystemController extends Controller
         ]);
     }
 
+    public function pendingJobsAjax()
+    {
+        $jobs = [];
+        try {
+            if (\Schema::hasTable('jobs')) {
+                $rows = DB::table('jobs')->orderByDesc('id')->limit(50)->get();
+                foreach ($rows as $row) {
+                    $payload = json_decode($row->payload, true);
+                    $displayName = $payload['displayName'] ?? 'Bilinmeyen';
+                    $shortName = class_basename($displayName);
+
+                    $jobs[] = [
+                        'id' => $row->id,
+                        'queue' => $row->queue,
+                        'job_name' => $shortName,
+                        'full_name' => $displayName,
+                        'attempts' => $row->attempts,
+                        'created_at' => $row->created_at ? date('d.m.Y H:i:s', $row->created_at) : '-',
+                        'available_at' => $row->available_at ? date('d.m.Y H:i:s', $row->available_at) : '-',
+                        'reserved_at' => $row->reserved_at ? date('d.m.Y H:i:s', $row->reserved_at) : null,
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        return response()->json(['success' => true, 'jobs' => $jobs]);
+    }
+
     public function startProcess(Request $request)
     {
         $type = $request->input('type');
