@@ -129,7 +129,8 @@ class SupportController extends Controller
             }
         }
 
-        $latestUpdatedAt = $list->max('updated_at')?->timestamp ?? 0;
+        $latestUpdatedAt = Support::withoutGlobalScope('for_user')->max('updated_at');
+        $latestUpdatedAt = $latestUpdatedAt ? strtotime($latestUpdatedAt) : 0;
         $totalTickets = Support::withoutGlobalScope('for_user')->count();
 
         return response()->json([
