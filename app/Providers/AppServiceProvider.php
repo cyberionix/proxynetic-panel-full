@@ -96,7 +96,8 @@ class AppServiceProvider extends ServiceProvider
         view()->composer(['portal.static.sidebar', 'portal.static.__sidebar'], function ($view) {
             $portalActiveSupportCount = 0;
             if (auth()->check()) {
-                $portalActiveSupportCount = Support::query()
+                $portalActiveSupportCount = Support::withoutGlobalScope('for_user')
+                    ->where('user_id', auth()->id())
                     ->where('status', '!=', 'RESOLVED')
                     ->count();
             }
@@ -106,8 +107,7 @@ class AppServiceProvider extends ServiceProvider
         view()->composer('admin.static.sidebar', function ($view) {
             $adminPendingSupportCount = 0;
             if (auth()->guard('admin')->check()) {
-                // Dashboard "Bekleyen Destek Talepleri" ile aynı: yanıt bekleyen talepler (WAITING_FOR_AN_ANSWER)
-                $adminPendingSupportCount = Support::query()
+                $adminPendingSupportCount = Support::withoutGlobalScope('for_user')
                     ->where('status', 'WAITING_FOR_AN_ANSWER')
                     ->count();
             }
