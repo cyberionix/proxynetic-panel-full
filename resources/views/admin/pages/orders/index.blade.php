@@ -3,23 +3,28 @@
 @section("css")
 <style>
 @media (max-width: 768px) {
-    #kt_app_content_container.container-xxl { max-width: 100% !important; padding-left: 10px !important; padding-right: 10px !important; }
+    #kt_app_content_container.container-xxl { max-width: 100% !important; padding-left: 5px !important; padding-right: 5px !important; }
     .card { margin-left: 0; margin-right: 0; }
-    .card-body { padding-left: 10px !important; padding-right: 10px !important; }
-    .card-header { padding-left: 10px !important; padding-right: 10px !important; flex-direction: column; align-items: flex-start !important; gap: 10px; }
-    #header-nav { gap: 2px !important; font-size: 14px; width: 100%; }
+    .card-body { padding-left: 6px !important; padding-right: 6px !important; }
+    .card-header { padding-left: 8px !important; padding-right: 8px !important; flex-direction: column; align-items: flex-start !important; gap: 6px; }
+    #header-nav { gap: 0 !important; font-size: 11px; width: 100%; }
     #header-nav .nav-item { flex: 1; text-align: center; }
-    #header-nav .nav-link { padding-left: 4px !important; padding-right: 4px !important; white-space: nowrap; }
+    #header-nav .nav-link { padding: 6px 2px !important; white-space: nowrap; font-size: 11px; }
     .card-toolbar { width: 100%; }
-    .card-toolbar .d-flex { flex-wrap: wrap; gap: 5px; }
+    .card-toolbar .d-flex { flex-wrap: wrap; gap: 4px; }
+    .card-toolbar .btn { font-size: 11px; padding: 4px 8px; }
     #orderBulkBar { flex-wrap: wrap; }
     #ordersTable th.col-hide-mobile,
     #ordersTable td.col-hide-mobile { display: none !important; }
-    #ordersTable { font-size: 13px; width: 100% !important; }
-    #ordersTable .badge { font-size: 12px; padding: 5px 8px; }
-    #ordersTable .btn-sm { font-size: 12px; padding: 5px 10px; }
+    #ordersTable { font-size: 11px; width: 100% !important; }
+    #ordersTable th { font-size: 10px; padding: 4px 3px !important; min-width: auto !important; }
+    #ordersTable td { padding: 5px 3px !important; }
+    #ordersTable .badge { font-size: 10px; padding: 3px 5px; }
+    #ordersTable .btn-sm { font-size: 10px; padding: 3px 6px; }
     .table-responsive { overflow-x: hidden; }
-    .card.mb-5.mb-xl-10 { margin-bottom: 8px !important; }
+    .card.mb-5.mb-xl-10 { margin-bottom: 6px !important; }
+    .card-body .py-0 { padding: 0 !important; }
+    [data-table-action="search"] { font-size: 12px; width: 100% !important; }
 }
 </style>
 @endsection
