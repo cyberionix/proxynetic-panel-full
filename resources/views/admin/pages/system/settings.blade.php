@@ -47,7 +47,12 @@
         <div class="card-body pt-0">
             <ul class="nav nav-stretch nav-line-tabs nav-line-tabs-2x border-transparent fs-5 fw-bold gap-5 mb-8">
                 <li class="nav-item">
-                    <a class="nav-link pb-4 active" data-bs-toggle="tab" href="#system_status_tab">
+                    <a class="nav-link pb-4 active" data-bs-toggle="tab" href="#system_settings_site_tab">
+                        <i class="fa fa-globe me-2 text-primary"></i>Site Ayarları
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link pb-4" data-bs-toggle="tab" href="#system_status_tab">
                         <i class="fa fa-heartbeat me-2 text-danger"></i>Sistem Durumu
                     </a>
                 </li>
@@ -80,8 +85,141 @@
             </ul>
 
             <div class="tab-content" id="systemSettingsTabs">
+                {{-- Site Ayarları Tab --}}
+                <div class="tab-pane fade show active" id="system_settings_site_tab" role="tabpanel">
+                    <div class="mb-6">
+                        <h3 class="fw-bold mb-1">Site Ayarları</h3>
+                        <span class="text-muted fs-7">Sitenizin temel bilgilerini ve görsellerini buradan yönetin.</span>
+                    </div>
+                    <form id="siteSettingsForm">
+                        <div class="row g-6">
+                            <div class="col-md-6">
+                                <div class="card card-flush border border-dashed h-100">
+                                    <div class="card-header pt-5 pb-0">
+                                        <h4 class="card-title fw-bold fs-5"><i class="fa fa-info-circle text-primary me-2"></i>Genel Bilgiler</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-5">
+                                            <label class="form-label fw-semibold required">Site Adı</label>
+                                            <input type="text" name="brand_name" class="form-control" value="{{ brand('name') }}" placeholder="Proxynetic" />
+                                        </div>
+                                        <div class="mb-5">
+                                            <label class="form-label fw-semibold">Müşteri Paneli Başlığı</label>
+                                            <input type="text" name="brand_clientarea_title" class="form-control" value="{{ brand('clientarea_title') }}" placeholder="Müşteri Paneli" />
+                                        </div>
+                                        <div class="mb-5">
+                                            <label class="form-label fw-semibold">Site URL</label>
+                                            <input type="url" name="brand_base_url" class="form-control" value="{{ brand('base_url') }}" placeholder="https://my.proxynetic.com" />
+                                        </div>
+                                        <div class="mb-0">
+                                            <label class="form-label fw-semibold">Web Sitesi</label>
+                                            <input type="url" name="brand_website" class="form-control" value="{{ brand('contact_info.website') }}" placeholder="https://www.proxynetic.com" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card card-flush border border-dashed h-100">
+                                    <div class="card-header pt-5 pb-0">
+                                        <h4 class="card-title fw-bold fs-5"><i class="fa fa-image text-info me-2"></i>Görseller</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-5">
+                                            <label class="form-label fw-semibold">Logo (Açık Tema)</label>
+                                            <input type="text" name="brand_logo" class="form-control" value="{{ brand('logo') }}" placeholder="assets/images/logo/logo.png" />
+                                            @if(brand('logo'))
+                                            <div class="mt-2 p-3 bg-white border rounded text-center">
+                                                <img src="{{ url(brand('logo')) }}" alt="Logo" style="max-height:50px" />
+                                            </div>
+                                            @endif
+                                        </div>
+                                        <div class="mb-5">
+                                            <label class="form-label fw-semibold">Logo (Koyu Tema)</label>
+                                            <input type="text" name="brand_logo_dark" class="form-control" value="{{ brand('logo_dark') }}" placeholder="assets/images/logo/logo-dark.png" />
+                                            @if(brand('logo_dark'))
+                                            <div class="mt-2 p-3 bg-dark border rounded text-center">
+                                                <img src="{{ url(brand('logo_dark')) }}" alt="Logo Dark" style="max-height:50px" />
+                                            </div>
+                                            @endif
+                                        </div>
+                                        <div class="mb-0">
+                                            <label class="form-label fw-semibold">Favicon</label>
+                                            <input type="text" name="brand_favicon" class="form-control" value="{{ brand('favicon') }}" placeholder="assets/images/brand/favicon.ico" />
+                                            @if(brand('favicon'))
+                                            <div class="mt-2 d-flex align-items-center">
+                                                <img src="{{ url(brand('favicon')) }}" alt="Favicon" style="max-height:32px" class="me-2" />
+                                                <span class="text-muted fs-8">Mevcut favicon</span>
+                                            </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card card-flush border border-dashed h-100">
+                                    <div class="card-header pt-5 pb-0">
+                                        <h4 class="card-title fw-bold fs-5"><i class="fa fa-address-book text-success me-2"></i>İletişim Bilgileri</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-5">
+                                            <label class="form-label fw-semibold">Telefon</label>
+                                            <input type="text" name="brand_phone" class="form-control" value="{{ brand('contact_info.phone_number') }}" placeholder="0501 123 1212" />
+                                        </div>
+                                        <div class="mb-5">
+                                            <label class="form-label fw-semibold">E-posta</label>
+                                            <input type="email" name="brand_email" class="form-control" value="{{ brand('contact_info.email') }}" placeholder="info@sirket.com" />
+                                        </div>
+                                        <div class="mb-5">
+                                            <label class="form-label fw-semibold">Adres Satır 1</label>
+                                            <input type="text" name="brand_address1" class="form-control" value="{{ brand('contact_info.address_line_1') }}" />
+                                        </div>
+                                        <div class="mb-0">
+                                            <label class="form-label fw-semibold">Adres Satır 2</label>
+                                            <input type="text" name="brand_address2" class="form-control" value="{{ brand('contact_info.address_line_2') }}" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card card-flush border border-dashed h-100">
+                                    <div class="card-header pt-5 pb-0">
+                                        <h4 class="card-title fw-bold fs-5"><i class="fab fa-telegram text-info me-2"></i>Sosyal Medya</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-4">
+                                            <label class="form-label fw-semibold"><i class="fab fa-facebook text-primary me-1"></i>Facebook</label>
+                                            <input type="url" name="brand_facebook" class="form-control form-control-sm" value="{{ brand('social_media.facebook') }}" />
+                                        </div>
+                                        <div class="mb-4">
+                                            <label class="form-label fw-semibold"><i class="fab fa-twitter text-info me-1"></i>Twitter / X</label>
+                                            <input type="url" name="brand_twitter" class="form-control form-control-sm" value="{{ brand('social_media.twitter') }}" />
+                                        </div>
+                                        <div class="mb-4">
+                                            <label class="form-label fw-semibold"><i class="fab fa-instagram text-danger me-1"></i>Instagram</label>
+                                            <input type="url" name="brand_instagram" class="form-control form-control-sm" value="{{ brand('social_media.instagram') }}" />
+                                        </div>
+                                        <div class="mb-4">
+                                            <label class="form-label fw-semibold"><i class="fab fa-linkedin text-primary me-1"></i>LinkedIn</label>
+                                            <input type="url" name="brand_linkedin" class="form-control form-control-sm" value="{{ brand('social_media.linkedin') }}" />
+                                        </div>
+                                        <div class="mb-0">
+                                            <label class="form-label fw-semibold"><i class="fab fa-youtube text-danger me-1"></i>YouTube</label>
+                                            <input type="url" name="brand_youtube" class="form-control form-control-sm" value="{{ brand('social_media.youtube') }}" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end mt-8">
+                            <button type="submit" class="btn btn-primary" id="saveSiteSettingsBtn">
+                                <i class="fa fa-save me-2"></i>Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
                 {{-- Sistem Durumu Tab --}}
-                <div class="tab-pane fade show active" id="system_status_tab" role="tabpanel">
+                <div class="tab-pane fade" id="system_status_tab" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-6">
                         <div>
                             <h3 class="fw-bold mb-1">Otomatik Sistemler</h3>
@@ -2376,6 +2514,35 @@
                 },
                 complete: function(){
                     btn.prop('disabled', false).html('<i class="fa fa-search me-1"></i>Chat ID Bul');
+                }
+            });
+        });
+
+        // === Site Settings ===
+        $(document).on('submit', '#siteSettingsForm', function(e){
+            e.preventDefault();
+            var btn = $('#saveSiteSettingsBtn');
+            $.ajax({
+                url: "{{ route('admin.siteSave') }}",
+                type: 'POST',
+                data: $(this).serialize() + '&_token={{ csrf_token() }}',
+                dataType: 'json',
+                beforeSend: function(){
+                    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Kaydediliyor...');
+                },
+                success: function(res){
+                    if(res.success){
+                        toastr.success(res.message, 'Başarılı');
+                    } else {
+                        toastr.error(res.message || 'Bir hata oluştu.', 'Hata');
+                    }
+                },
+                error: function(xhr){
+                    var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Sunucu hatası.';
+                    toastr.error(msg, 'Hata');
+                },
+                complete: function(){
+                    btn.prop('disabled', false).html('<i class="fa fa-save me-2"></i>Kaydet');
                 }
             });
         });

@@ -65,6 +65,7 @@ Route::group(['prefix' => 'netAdmin', 'as' => 'admin.'], function () {
         Route::get('/notification-template/{id}', [SystemController::class, 'getNotificationTemplate'])->name('getNotificationTemplate');
         Route::post('/notification-template/{id}', [SystemController::class, 'updateNotificationTemplate'])->name('updateNotificationTemplate');
         Route::post('/notification-template/{id}/toggle', [SystemController::class, 'toggleNotificationTemplate'])->name('toggleNotificationTemplate');
+        Route::post('/site-settings/save', [SystemController::class, 'saveSiteSettings'])->name('siteSave');
         Route::post('/telegram/save', [SystemController::class, 'saveTelegramSettings'])->name('telegramSave');
         Route::post('/telegram/test', [SystemController::class, 'testTelegram'])->name('telegramTest');
         Route::post('/telegram/find-chat-id', [SystemController::class, 'findTelegramChatId'])->name('telegramFindChatId');

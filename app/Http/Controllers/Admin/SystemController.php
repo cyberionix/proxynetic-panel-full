@@ -1182,6 +1182,52 @@ class SystemController extends Controller
         return [];
     }
 
+    public function saveSiteSettings(Request $request)
+    {
+        try {
+            $envPath = base_path('.env');
+            $envContent = file_get_contents($envPath);
+
+            $vars = [
+                'BRAND_NAME'           => $request->input('brand_name', ''),
+                'BRAND_CUSTOMER_PANEL_TITLE' => $request->input('brand_clientarea_title', ''),
+                'BASE_APP_URL'         => $request->input('brand_base_url', ''),
+                'BRAND_LOGO_PATH'      => $request->input('brand_logo', ''),
+                'BRAND_LOGO_DARK'      => $request->input('brand_logo_dark', ''),
+                'BRAND_FAVICON'        => $request->input('brand_favicon', ''),
+                'BRAND_INFO_PHONE_NUMBER' => $request->input('brand_phone', ''),
+                'BRAND_INFO_EMAIL'     => $request->input('brand_email', ''),
+                'BRAND_ADDRESS_LINE_1' => $request->input('brand_address1', ''),
+                'BRAND_ADDRESS_LINE_2' => $request->input('brand_address2', ''),
+                'BRAND_WEBSITE'        => $request->input('brand_website', ''),
+                'BRAND_FACEBOOK'       => $request->input('brand_facebook', ''),
+                'BRAND_TWITTER'        => $request->input('brand_twitter', ''),
+                'BRAND_INSTAGRAM'      => $request->input('brand_instagram', ''),
+                'BRAND_LINKEDIN'       => $request->input('brand_linkedin', ''),
+                'BRAND_YOUTUBE'        => $request->input('brand_youtube', ''),
+            ];
+
+            foreach ($vars as $key => $value) {
+                $escaped = str_contains($value, ' ') ? '"' . $value . '"' : $value;
+                if (preg_match("/^{$key}=.*/m", $envContent)) {
+                    $envContent = preg_replace("/^{$key}=.*/m", "{$key}={$escaped}", $envContent);
+                } else {
+                    $envContent .= "\n{$key}={$escaped}";
+                }
+            }
+
+            file_put_contents($envPath, $envContent);
+
+            Artisan::call('config:clear');
+            Artisan::call('config:cache');
+
+            return response()->json(['success' => true, 'message' => 'Site ayarları başarıyla kaydedildi.']);
+        } catch (\Throwable $e) {
+            Log::error('SITE_SETTINGS_SAVE_FAIL', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Hata: ' . $e->getMessage()], 500);
+        }
+    }
+
     public function saveTelegramSettings(Request $request)
     {
         try {
