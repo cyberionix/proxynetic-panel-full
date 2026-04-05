@@ -275,20 +275,19 @@ class SystemController extends Controller
                 $php = '/opt/plesk/php/8.3/bin/php';
                 $artisan = base_path('artisan');
                 $logFile = storage_path('logs/worker.log');
+                $baseDir = base_path();
 
-                $cmd = "nohup {$php} {$artisan} queue:work --sleep=3 --tries=3 --timeout=90 >> {$logFile} 2>&1 & echo $!";
-                $pid = trim((string) @shell_exec($cmd));
+                $shellScript = storage_path('framework/start-queue-worker.sh');
+                $scriptContent = "#!/bin/bash\ncd {$baseDir}\nnohup {$php} {$artisan} queue:work --sleep=3 --tries=3 --timeout=90 >> {$logFile} 2>&1 &\necho \$! > {$pidFile}\n";
+                file_put_contents($shellScript, $scriptContent);
+                chmod($shellScript, 0755);
 
-                if ($pid && is_numeric($pid)) {
-                    file_put_contents($pidFile, $pid);
+                @exec("bash {$shellScript} 2>/dev/null");
+
+                usleep(500000);
+                if (file_exists($pidFile)) {
+                    $pid = trim(file_get_contents($pidFile));
                     return $this->successResponse("Kuyruk İşçisi başlatıldı (PID: {$pid}).");
-                }
-
-                $output = [];
-                @exec($cmd, $output);
-                $pid = trim(implode('', $output));
-                if ($pid && is_numeric($pid)) {
-                    file_put_contents($pidFile, $pid);
                 }
                 return $this->successResponse('Kuyruk İşçisi başlatıldı.');
             } else {
@@ -329,22 +328,27 @@ class SystemController extends Controller
 
         if ($type === 'queue') {
             $pidFile = storage_path('framework/queue-worker.pid');
-            $killed = false;
 
             if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
+                Artisan::call('queue:restart');
+
                 if (file_exists($pidFile)) {
                     $pid = (int) trim(file_get_contents($pidFile));
                     if ($pid > 0) {
                         @exec("kill {$pid} 2>/dev/null");
-                        $killed = true;
+                        @exec("kill -9 {$pid} 2>/dev/null");
                     }
                     @unlink($pidFile);
                 }
 
                 @exec("pkill -f 'queue:work' 2>/dev/null");
-                $killed = true;
 
-                Artisan::call('queue:restart');
+                usleep(500000);
+
+                if (static::isQueueWorkerRunning()) {
+                    @exec("pkill -9 -f 'queue:work' 2>/dev/null");
+                    usleep(300000);
+                }
 
                 return $this->successResponse('Kuyruk İşçisi durduruldu.');
             } else {
