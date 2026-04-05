@@ -333,24 +333,12 @@ class SystemController extends Controller
                 Artisan::call('queue:restart');
 
                 if (file_exists($pidFile)) {
-                    $pid = (int) trim(file_get_contents($pidFile));
-                    if ($pid > 0) {
-                        @exec("kill {$pid} 2>/dev/null");
-                        @exec("kill -9 {$pid} 2>/dev/null");
-                    }
                     @unlink($pidFile);
                 }
 
-                @exec("pkill -f 'queue:work' 2>/dev/null");
+                file_put_contents(storage_path('framework/queue-stop-signal'), time());
 
-                usleep(500000);
-
-                if (static::isQueueWorkerRunning()) {
-                    @exec("pkill -9 -f 'queue:work' 2>/dev/null");
-                    usleep(300000);
-                }
-
-                return $this->successResponse('Kuyruk İşçisi durduruldu.');
+                return $this->successResponse('Kuyruk İşçisi durdurma sinyali gönderildi. Mevcut işi tamamladıktan sonra duracak.');
             } else {
                 @shell_exec("wmic process where \"CommandLine like '%queue:work%' and not CommandLine like '%wmic%'\" call terminate 2>NUL");
                 if (file_exists($pidFile)) @unlink($pidFile);

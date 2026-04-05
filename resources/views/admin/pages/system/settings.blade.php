@@ -1930,8 +1930,9 @@
                     success: function(res){
                         if(res.success){
                             toastr.success(res.message);
-                            setTimeout(refreshStatus, 1500);
-                            setTimeout(refreshStatus, 4000);
+                            setTimeout(refreshStatus, 2000);
+                            setTimeout(refreshStatus, 6000);
+                            setTimeout(refreshStatus, 12000);
                         } else {
                             toastr.error(res.message || 'Hata oluştu');
                         }
@@ -1940,7 +1941,7 @@
                         toastr.error('İşlem sırasında hata oluştu');
                     },
                     complete: function(){
-                        setTimeout(function(){ btn.prop('disabled', false); }, 2000);
+                        setTimeout(function(){ btn.prop('disabled', false); }, 3000);
                     }
                 });
             });
