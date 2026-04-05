@@ -440,8 +440,10 @@ class InvoiceController extends Controller
 
         $data = [];
         foreach ($list as $item) {
+            $checkbox = '<div class="form-check form-check-sm form-check-custom form-check-solid"><input class="form-check-input bulk-check" type="checkbox" value="' . $item->id . '" /></div>';
             if ($showAllList) {
                 $data[] = [
+                    $checkbox,
                     "<span data-id='" . $item->id . "' class='badge badge-sm badge-light-primary'>#" . $item->invoice_number . "</span>",
                     "<a href='" . route("admin.users.show", ["user" => $item->user_id]) . "'>" . $item->user_name . "</a>",
                     "<span class='badge badge-secondary'>" . convertDate($item->invoice_date) . "</span>",
@@ -451,6 +453,7 @@ class InvoiceController extends Controller
                 ];
             } else {
                 $data[] = [
+                    $checkbox,
                     "<span data-id='" . $item->id . "' class='badge badge-sm badge-light-primary'>#" . $item->invoice_number . "</span>",
                     "<span class='badge badge-secondary'>" . convertDate($item->invoice_date) . "</span>",
                     "<span class='badge badge-secondary badge-lg'>" . showBalance($item->total_price_with_vat, true) . "</span>",
@@ -466,6 +469,60 @@ class InvoiceController extends Controller
             'data'            => $data
         );
         echo json_encode($response);
+    }
+
+    public function bulkAction(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        $action = $request->input('action');
+
+        if (empty($ids) || !$action) {
+            return response()->json(['success' => false, 'message' => 'Geçersiz istek.']);
+        }
+
+        $invoices = Invoice::whereIn('id', $ids)->get();
+
+        if ($invoices->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'Fatura bulunamadı.']);
+        }
+
+        $count = 0;
+        switch ($action) {
+            case 'mark_paid':
+                foreach ($invoices as $invoice) {
+                    if ($invoice->status !== 'PAID') {
+                        $invoice->update(['status' => 'PAID']);
+                        $count++;
+                    }
+                }
+                return response()->json(['success' => true, 'message' => "{$count} fatura ödendi olarak işaretlendi."]);
+
+            case 'mark_pending':
+                foreach ($invoices as $invoice) {
+                    if ($invoice->status !== 'PENDING') {
+                        $invoice->update(['status' => 'PENDING']);
+                        $count++;
+                    }
+                }
+                return response()->json(['success' => true, 'message' => "{$count} fatura bekliyor olarak işaretlendi."]);
+
+            case 'mark_cancelled':
+                foreach ($invoices as $invoice) {
+                    if ($invoice->status !== 'CANCELLED') {
+                        $invoice->update(['status' => 'CANCELLED']);
+                        $count++;
+                    }
+                }
+                return response()->json(['success' => true, 'message' => "{$count} fatura iptal edildi."]);
+
+            case 'delete':
+                $count = count($ids);
+                Invoice::whereIn('id', $ids)->delete();
+                return response()->json(['success' => true, 'message' => "{$count} fatura silindi."]);
+
+            default:
+                return response()->json(['success' => false, 'message' => 'Geçersiz işlem.']);
+        }
     }
 
     public function show(Invoice $invoice)

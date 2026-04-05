@@ -59,22 +59,33 @@
                 <div class="card">
                     <!--begin::Card header-->
                     <div class="card-header border-0 pt-6">
-                        <!--begin::Card title-->
                         <div class="card-title">
-                            <!--begin::Search-->
                             <div class="d-flex align-items-center position-relative my-1">
                                 <i class="ki-duotone ki-magnifier fs-3 position-absolute ms-5">
                                     <span class="path1"></span>
                                     <span class="path2"></span>
                                 </i>
                                 <input type="text" data-table-action="search"
-                                       class="form-control  w-250px ps-13"
+                                       class="form-control w-250px ps-13"
                                        placeholder="{{__("search_in_table")}}"/>
                             </div>
-                            <!--end::Search-->
                         </div>
-                        <!--begin::Card title-->
-                        <div class="card-toolbar">
+                        <div class="card-toolbar gap-3">
+                            <div id="bulkActionBar" class="d-none d-flex align-items-center gap-2">
+                                <span class="fw-semibold text-gray-700 me-1"><span id="selectedCount">0</span> seçili</span>
+                                <button class="btn btn-sm btn-light-success bulk-btn" data-action="mark_paid">
+                                    <i class="fa fa-check me-1"></i>Ödendi Yap
+                                </button>
+                                <button class="btn btn-sm btn-light-warning bulk-btn" data-action="mark_pending">
+                                    <i class="fa fa-clock me-1"></i>Bekliyor Yap
+                                </button>
+                                <button class="btn btn-sm btn-light-secondary bulk-btn" data-action="mark_cancelled">
+                                    <i class="fa fa-ban me-1"></i>İptal Et
+                                </button>
+                                <button class="btn btn-sm btn-light-danger bulk-btn" data-action="delete">
+                                    <i class="fa fa-trash me-1"></i>Sil
+                                </button>
+                            </div>
                             <a href="{{route("admin.invoices.create")}}" class="btn btn-primary btn-sm">
                                 <i class="fa fa-plus me-1"></i>Fatura Oluştur
                             </a>
@@ -83,10 +94,14 @@
                     <!--end::Card header-->
                     <!--begin::Card body-->
                     <div class="card-body pt-0">
-                        <!--begin::Table-->
                         <table id="invoiceTable" class="table align-middle table-row-dashed fs-6 gy-5">
                             <thead>
                             <tr class="text-start text-gray-500 fw-bold fs-6 gs-0">
+                                <th class="w-10px pe-2">
+                                    <div class="form-check form-check-sm form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="checkbox" id="checkAll" />
+                                    </div>
+                                </th>
                                 <th class="m-w-50">#</th>
                                 <th class="min-w-50px">{{__("customer")}}</th>
                                 <th class="min-w-125px">{{__("invoice_date")}}</th>
@@ -98,9 +113,7 @@
                             <tbody class="fw-semibold text-gray-600">
 
                             </tbody>
-                            <!--end::Table body-->
                         </table>
-                        <!--end::Table-->
                     </div>
                     <!--end::Card body-->
                 </div>
@@ -118,8 +131,8 @@
             var t = $("#invoiceTable").DataTable({
                 order: [],
                 columnDefs: [
-                    { orderable: true, targets: [0,1,2,3,4] },
-                    { orderable: false, targets: 5 }
+                    { orderable: false, targets: [0, 6] },
+                    { orderable: true, targets: [1,2,3,4,5] }
                 ],
                 "processing": true,
                 "serverSide": true,
@@ -134,6 +147,8 @@
                 },
             }).on("draw", function () {
                 KTMenu.createInstances();
+                $('#checkAll').prop('checked', false);
+                updateBulkBar();
             });
 
             function loadTabCounts() {
@@ -146,6 +161,72 @@
                 });
             }
             loadTabCounts();
+
+            function getSelectedIds() {
+                var ids = [];
+                $('.bulk-check:checked').each(function() { ids.push($(this).val()); });
+                return ids;
+            }
+
+            function updateBulkBar() {
+                var ids = getSelectedIds();
+                $('#selectedCount').text(ids.length);
+                if (ids.length > 0) {
+                    $('#bulkActionBar').removeClass('d-none');
+                } else {
+                    $('#bulkActionBar').addClass('d-none');
+                }
+            }
+
+            $(document).on('change', '#checkAll', function() {
+                $('.bulk-check').prop('checked', $(this).is(':checked'));
+                updateBulkBar();
+            });
+
+            $(document).on('change', '.bulk-check', function() {
+                if (!$(this).is(':checked')) $('#checkAll').prop('checked', false);
+                updateBulkBar();
+            });
+
+            $(document).on('click', '.bulk-btn', function() {
+                var action = $(this).data('action');
+                var ids = getSelectedIds();
+                if (ids.length === 0) return;
+
+                var messages = {
+                    'mark_paid': ids.length + ' faturayı ödendi olarak işaretlemek istediğinize emin misiniz?',
+                    'mark_pending': ids.length + ' faturayı bekliyor olarak işaretlemek istediğinize emin misiniz?',
+                    'mark_cancelled': ids.length + ' faturayı iptal etmek istediğinize emin misiniz?',
+                    'delete': ids.length + ' faturayı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.'
+                };
+
+                Swal.fire({
+                    title: 'Toplu İşlem',
+                    text: messages[action] || 'Emin misiniz?',
+                    icon: action === 'delete' ? 'warning' : 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, uygula',
+                    cancelButtonText: 'Vazgeç',
+                    confirmButtonColor: action === 'delete' ? '#dc3545' : '#3085d6',
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: "{{ route('admin.invoices.bulkAction') }}",
+                            type: 'POST',
+                            data: { _token: "{{ csrf_token() }}", ids: ids, action: action },
+                            success: function(res) {
+                                if (res.success) {
+                                    Swal.fire({ title: 'Başarılı', text: res.message, icon: 'success', timer: 2000, showConfirmButton: false });
+                                    t.draw();
+                                    loadTabCounts();
+                                } else {
+                                    Swal.fire({ title: 'Hata', text: res.message, icon: 'error' });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
 
             document.querySelector('[data-table-action="search"]').addEventListener("keyup", (function (e) {
                 t.search(e.target.value).draw();
