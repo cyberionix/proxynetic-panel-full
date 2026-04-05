@@ -6,47 +6,81 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckProxyVpn
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        if (App::environment('local')){
+        if (App::environment('local')) {
             return $next($request);
         }
-        if ($request->getMethod() != 'POST'){
-            return $next($request);
-        }
+
         $ipAddress = $request->ip();
 
         if (!filter_var($ipAddress, FILTER_VALIDATE_IP)) {
-            return abort(403,'Geçersiz IP adresi tespit edildi.');
+            return abort(403, 'Geçersiz IP adresi tespit edildi.');
         }
 
-//        $data = file_get_contents('https://api.ip2location.io/?key=08EAB2E6EF4B0ED4643F7B595031ED40&ip=' . $ipAddress);
-        $data = file_get_contents('https://api.findip.net/'.$ipAddress.'/?token=b4c93c670d0442a6a698fe91a28ba9df');
+        $isPost = $request->getMethod() === 'POST';
+        $user = Auth::user();
+        $userVpnBlocked = $user && $user->security && $user->security->is_cant_vpn == 1;
 
-        $data = json_decode($data);
+        if (!$isPost && !$userVpnBlocked) {
+            return $next($request);
+        }
 
-        $block = $data->traits->user_type == 'hosting';
+        $ipData = $this->getIpData($ipAddress);
 
-        if ($block){
-            if (Auth::check()){
+        if (!$ipData) {
+            return $next($request);
+        }
+
+        $isHosting = ($ipData->traits->user_type ?? '') === 'hosting';
+
+        if ($isPost && $isHosting) {
+            if (Auth::check()) {
                 Auth::logout();
             }
             return response([
                 'success' => false,
                 'message' => 'Proxy/VPN kullanımı tespit edildi. İşleme devam edemezsiniz.'
             ]);
+        }
 
+        if ($userVpnBlocked && $isHosting) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Proxy/VPN kullanımı tespit edildi. Oturumunuz sonlandırıldı.'
+                ], 403);
+            }
+
+            return redirect()->route('portal.auth.login')
+                ->withErrors(['vpn' => 'Proxy/VPN kullanımı tespit edildi. Bu hesap ile VPN/Proxy kullanarak giriş yapamazsınız.']);
         }
 
         return $next($request);
+    }
+
+    private function getIpData(string $ip): ?object
+    {
+        $cacheKey = 'vpn_check_ip_' . md5($ip);
+
+        return Cache::remember($cacheKey, 600, function () use ($ip) {
+            try {
+                $response = file_get_contents('https://api.findip.net/' . $ip . '/?token=b4c93c670d0442a6a698fe91a28ba9df');
+                return json_decode($response);
+            } catch (\Throwable $e) {
+                Log::warning('VPN_CHECK_API_FAIL', ['ip' => $ip, 'error' => $e->getMessage()]);
+                return null;
+            }
+        });
     }
 }
