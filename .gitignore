@@ -17,3 +17,6 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+/config/auto_invoice_settings.php
+/config/sms_mail_settings.php
+/config/localtonet_settings.php
