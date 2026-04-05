@@ -121,10 +121,11 @@ class UserController extends Controller
         </a>
     </div>
 </div>';
+            $userUrl = route("admin.users.show", ["user" => $item->id]);
             $data[] = [
                 "<span data-id='" . $item->id . "'>" . $item->id . "</span>",
-                "<a href='" . route("admin.users.show", ["user" => $item->id]) . "'>" . $item->full_name . "</a>",
-                $item->email,
+                "<a href='" . $userUrl . "'>" . $item->full_name . "</a>",
+                "<a href='" . $userUrl . "' class='text-gray-600 text-hover-primary'>" . $item->email . "</a>",
                 $item->lastLoginIp(),
                 $userGroup,
                 $lastSeenAt,

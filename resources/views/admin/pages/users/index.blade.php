@@ -7,11 +7,20 @@
             width: 100%;
         }
         @media (max-width: 768px) {
+            #kt_app_content_container.container-xxl { max-width: 100% !important; padding-left: 5px !important; padding-right: 5px !important; }
+            .card-body { padding-left: 6px !important; padding-right: 6px !important; }
+            .card-header { padding-left: 8px !important; padding-right: 8px !important; flex-direction: column; align-items: flex-start !important; gap: 6px; }
             #usersTable th.col-hide-mobile,
             #usersTable td.col-hide-mobile { display: none !important; }
-            #usersTable { font-size: 13px; }
-            #usersTable th { min-width: auto !important; }
-            .card-header { flex-direction: column; align-items: flex-start !important; gap: 10px; }
+            #usersTable { font-size: 11px; }
+            #usersTable th { min-width: auto !important; font-size: 10px; padding: 4px 3px !important; }
+            #usersTable td { padding: 5px 3px !important; word-break: break-all; }
+            #usersTable td a { font-size: 11px; }
+            #usersTable .badge { font-size: 10px; }
+            #usersTable .btn { font-size: 10px; padding: 3px 6px; }
+            .table-responsive { overflow-x: hidden; }
+            .table-filter-area { padding-left: 8px !important; padding-right: 8px !important; }
+            [data-table-action="search"] { font-size: 12px; width: 100% !important; }
         }
     </style>
 @endsection
@@ -83,7 +92,7 @@
                     <th class="min-w-125px col-hide-mobile">{{__("last_login_ip")}}</th>
                     <th class="min-w-125px col-hide-mobile">{{__("customer_group")}}</th>
                     <th class="min-w-125px col-hide-mobile">{{__("last_seen_at")}}</th>
-                    <th class="min-w-125px"></th>
+                    <th class="min-w-125px col-hide-mobile"></th>
                 </tr>
                 </thead>
                 <tbody class="fw-semibold text-gray-600">
@@ -114,7 +123,7 @@
                 columnDefs: [
                     { orderable: true, targets: [0, 1, 2, 3, 4, 5] },
                     { orderable: false, targets: [6] },
-                    { className: 'col-hide-mobile', targets: [3, 4, 5] }
+                    { className: 'col-hide-mobile', targets: [3, 4, 5, 6] }
                 ],
                 "processing": true,
                 "serverSide": true,
@@ -139,7 +148,18 @@
                 },
             }).on("draw", function () {
                 KTMenu.createInstances();
+                if (window.innerWidth <= 768) {
+                    $('#usersTable tbody tr').css('cursor', 'pointer');
+                }
             });
+
+            if (window.innerWidth <= 768) {
+                $(document).on('click', '#usersTable tbody td', function(e) {
+                    if ($(e.target).is('a, button, input') || $(e.target).closest('a, button, .form-check').length) return;
+                    var link = $(this).closest('tr').find('td a').first().attr('href');
+                    if (link) window.location.href = link;
+                });
+            }
 
             document.querySelector('[data-table-action="search"]').addEventListener("keyup", (function (e) {
                 t.search(e.target.value).draw();
