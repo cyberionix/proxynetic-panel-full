@@ -27,6 +27,11 @@ class InvoiceController extends Controller
 
         $whereSearch = "deleted_at IS NULL AND user_id = {$user->id} ";
 
+        $statusFilter = $request->input('status_filter', 'all');
+        if ($statusFilter && $statusFilter !== 'all') {
+            $whereSearch .= " AND status = '" . addslashes($statusFilter) . "' ";
+        }
+
         if (isset($request->order[0]["column"]) and isset($request->order[0]["dir"])) {
             $orderBy = $searchableColumns[$request->order[0]["column"]] . " " . $request->order[0]["dir"];
         } else {
