@@ -480,18 +480,21 @@ class SystemController extends Controller
             File::put($configPath, $newContent);
         }
 
-        $test_product = $request->test_product;
-
-        if (!isset($test_product['status'])) {
-            $test_product['status'] = 0;
+        if ($request->has('test_product')) {
+            $test_product = $request->test_product;
+            if (!isset($test_product['status'])) {
+                $test_product['status'] = 0;
+            }
+            file_put_contents(config_path('test_product.php'), '<?php return ' . var_export($test_product, true) . ';');
         }
-        file_put_contents(config_path('test_product.php'), '<?php return ' . var_export($test_product, true) . ';');
 
-        $localtonetHttpVerify = $request->boolean('localtonet_http_verify');
-        file_put_contents(
-            config_path('localtonet_settings.php'),
-            '<?php return ' . var_export(['http_verify' => $localtonetHttpVerify], true) . ';'
-        );
+        if ($request->has('localtonet_http_verify')) {
+            $localtonetHttpVerify = $request->boolean('localtonet_http_verify');
+            file_put_contents(
+                config_path('localtonet_settings.php'),
+                '<?php return ' . var_export(['http_verify' => $localtonetHttpVerify], true) . ';'
+            );
+        }
 
         if ($request->has('auto_invoice')) {
             $ai = $request->input('auto_invoice');
