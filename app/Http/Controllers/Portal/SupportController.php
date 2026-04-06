@@ -74,7 +74,7 @@ class SupportController extends Controller
         foreach ($list as $item) {
             $data[] = [
                 "<span data-id='" . $item->id . "' class='badge badge-sm badge-light-primary'>#" . $item->id . "</span>",
-                $item->subject,
+                "<a href='" . route("portal.supports.show", ["support" => $item->id]) . "' class='text-gray-800 text-hover-primary fw-bold'>" . e($item->subject) . "</a>",
                 $item->drawDepartment,
                 $item->updated_at->format(defaultDateTimeFormat()),
                 $item->drawStatusBadge(),
