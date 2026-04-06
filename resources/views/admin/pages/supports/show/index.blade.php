@@ -396,7 +396,7 @@
                         itemTemplate.find("[data-np-message='user-ip']").text("IP: " + item?.user_ip).attr("data-ip-lookup", item?.user_ip || "");
                         itemTemplate.find("[data-np-message='user-ip']").removeClass("d-none");
                     }
-                    let msgHtml = item.message;
+                    let msgHtml = (item.message || '').replace(/\n/g, '<br>');
                     if (item.file) {
                         msgHtml += '<div class="mt-3"><a href="/' + item.file + '" target="_blank"><img src="/' + item.file + '" class="rounded border" style="max-width:300px;max-height:200px;cursor:pointer" /></a></div>';
                     }
