@@ -3826,6 +3826,7 @@
                 Swal.fire({
                     icon: 'error',
                     title: 'Proxy Yanıt Vermiyor',
+                    width: '32rem',
                     html: '<div class="text-start">' +
                         '<div class="d-flex align-items-center mb-3"><span class="bullet bullet-dot bg-danger h-10px w-10px me-3"></span><span class="fw-bold fs-6 text-danger">Bağlantı Başarısız</span></div>' +
                         '<div class="bg-light-danger rounded p-3 mb-4"><span class="text-gray-700 fs-7">' + (errorMsg || 'Bağlantı kurulamadı.') + '</span></div>' +
