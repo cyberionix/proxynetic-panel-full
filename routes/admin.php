@@ -188,6 +188,7 @@ dd($data->is_proxy || $data->is_vpn);
                     Route::post('/device-restart-post', [OrderLocaltonetController::class, 'deviceRestartPost'])->name('deviceRestartPost');
                     Route::post('/get-ip-history', [OrderLocaltonetController::class, 'getIpHistory'])->name('getIpHistory');
                     Route::post('/admin-adjust-quota-duration', [OrderController::class, 'applyAdminLocaltonetQuotaAndDuration'])->name('adminAdjustQuotaDuration');
+                    Route::post('/proxy-check', [OrderLocaltonetController::class, 'proxyCheck'])->name('proxyCheck');
                 });
             });
             Route::get('/{order}', [OrderController::class, "show"])->name("show");

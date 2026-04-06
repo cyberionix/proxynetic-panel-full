@@ -129,6 +129,7 @@ Route::middleware(["logRequest", "updateLastSeen"])->group(function () {
                 Route::post('/lr-change-password/{order}', [OrderLocaltonetController::class, 'lrChangePassword'])->name('lrChangePassword');
                 Route::post('/lr-get-clients/{order}', [OrderLocaltonetController::class, 'lrGetClients'])->name('lrGetClients');
                 Route::post('/three-proxy-change-credentials/{order}', [OrderLocaltonetController::class, 'threeProxyChangeCredentials'])->name('threeProxyChangeCredentials');
+                Route::post('/proxy-check/{order}', [OrderLocaltonetController::class, 'proxyCheck'])->name('proxyCheck');
             });
 
             Route::group(['prefix' => 'pproxy', 'as' => 'pproxy.'], function () {

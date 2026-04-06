@@ -1065,4 +1065,95 @@ class OrderLocaltonetController extends Controller
 
         return $this->errorResponse($result['message'] ?? 'Güncelleme başarısız.');
     }
+
+    public function proxyCheck(Order $order): JsonResponse
+    {
+        $cacheKey = 'proxy_check_' . $order->id . '_' . (Auth::guard('admin')->check() ? 'admin' : Auth::id());
+        if (Cache::has($cacheKey)) {
+            $remaining = (int) ceil(Cache::get($cacheKey) - microtime(true));
+            return $this->errorResponse('Lütfen ' . max(1, $remaining) . ' saniye bekleyin.');
+        }
+        Cache::put($cacheKey, microtime(true) + 5, 10);
+
+        $proxyString = null;
+        $proxyType = 'http';
+
+        if ($order->isThreeProxyDelivery()) {
+            $list = $order->getThreeProxyDisplayList();
+            if (!empty($list)) {
+                $first = $list[0];
+                $ip = $first['ip'] ?? '';
+                $port = $first['http_port'] ?? '';
+                $user = $first['username'] ?? '';
+                $pass = $first['password'] ?? '';
+                if ($ip && $port) {
+                    $proxyString = "{$ip}:{$port}";
+                    if ($user && $pass) {
+                        $proxyString = "{$user}:{$pass}@{$ip}:{$port}";
+                    }
+                }
+            }
+        } elseif ($order->isLocaltonetLikeDelivery()) {
+            $proxyData = $order->getProxyLocaltonet();
+            $result = $proxyData['result'] ?? [];
+            if (!empty($result['serverIp']) && !empty($result['serverPort'])) {
+                $ip = $result['serverIp'];
+                $port = $result['serverPort'];
+                $proxyString = "{$ip}:{$port}";
+                if (!empty($result['authentication']['isActive'])) {
+                    $user = $result['authentication']['userName'] ?? '';
+                    $pass = $result['authentication']['password'] ?? '';
+                    if ($user && $pass) {
+                        $proxyString = "{$user}:{$pass}@{$ip}:{$port}";
+                    }
+                }
+                $protocol = $result['protocolType'] ?? '';
+                if (stripos($protocol, 'Socks') !== false) {
+                    $proxyType = 'socks5';
+                }
+            }
+        }
+
+        if (!$proxyString) {
+            return $this->errorResponse('Proxy bilgisi bulunamadı.');
+        }
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'http://httpbin.org/ip');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 7);
+        curl_setopt($ch, CURLOPT_PROXY, $proxyString);
+        if ($proxyType === 'socks5') {
+            curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5);
+        } else {
+            curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+        }
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
+
+        $response = curl_exec($ch);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $totalTime = round(curl_getinfo($ch, CURLINFO_TOTAL_TIME) * 1000);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error || $httpCode === 0) {
+            return $this->errorResponse('Proxy bağlantısı başarısız: ' . ($error ?: 'Zaman aşımı'));
+        }
+
+        $decoded = json_decode($response, true);
+        $originIp = $decoded['origin'] ?? null;
+
+        if ($httpCode >= 200 && $httpCode < 400 && $originIp) {
+            return $this->successResponse('Proxy çalışıyor', [
+                'status' => 'online',
+                'origin_ip' => $originIp,
+                'response_time' => $totalTime,
+                'http_code' => $httpCode,
+            ]);
+        }
+
+        return $this->errorResponse('Proxy yanıt verdi ancak beklenen sonuç alınamadı (HTTP ' . $httpCode . ')');
+    }
 }

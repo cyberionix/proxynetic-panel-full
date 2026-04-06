@@ -938,6 +938,13 @@
                 </div>
             </div>
             <div class="col-xl-4 text-end">
+                <button type="button"
+                    class="btn btn-light-info btn-sm me-2 proxyCheckBtn"
+                    data-check-url="{{ $ltRoute('proxyCheck') }}">
+                    <span class="indicator-label"><i class="fa fa-wifi me-1"></i>Proxy Kontrol</span>
+                    <span class="indicator-progress">{{__("please_wait")}}...
+                        <span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                </button>
                 <button
                     class="btn btn-{{$proxyLocaltonet && $proxyLocaltonet["status"]  == 1 ? "danger" : "success"}} btn-sm proxyChangeStatusBtn"
                     data-alert-text="{{$proxyLocaltonet && $proxyLocaltonet["status"]  == 1 ? "Durdurmak istediğinize emin misiniz?" : "Başlatmak istediğinze emin misiniz?"}}"
@@ -3275,6 +3282,72 @@
                     }
                 });
             });
+
+            (function(){
+                var proxyCheckLastTime = 0;
+                $(document).on("click", ".proxyCheckBtn", function () {
+                    var btn = $(this);
+                    var now = Date.now();
+                    if (now - proxyCheckLastTime < 5000) {
+                        var wait = Math.ceil((5000 - (now - proxyCheckLastTime)) / 1000);
+                        toastr.warning('Lütfen ' + wait + ' saniye bekleyin.');
+                        return;
+                    }
+                    proxyCheckLastTime = now;
+                    var url = btn.data("check-url");
+                    propSubmitButton(btn, 1);
+                    $.ajax({
+                        type: "POST",
+                        url: url,
+                        dataType: "json",
+                        data: { _token: "{{ csrf_token() }}" },
+                        timeout: 15000,
+                        success: function (res) {
+                            if (res && res.success) {
+                                var d = res.data || {};
+                                var msg = 'Proxy çalışıyor';
+                                if (d.origin_ip) msg += '\nIP: ' + d.origin_ip;
+                                if (d.response_time) msg += '\nYanıt: ' + d.response_time + 'ms';
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Proxy Aktif',
+                                    html: '<div class="text-start">' +
+                                        '<div class="d-flex align-items-center mb-3"><span class="bullet bullet-dot bg-success h-10px w-10px me-3"></span><span class="fw-bold fs-5 text-success">Proxy Çalışıyor</span></div>' +
+                                        (d.origin_ip ? '<div class="d-flex justify-content-between border-bottom py-2"><span class="text-gray-600">Çıkış IP</span><span class="fw-bold">' + d.origin_ip + '</span></div>' : '') +
+                                        (d.response_time ? '<div class="d-flex justify-content-between py-2"><span class="text-gray-600">Yanıt Süresi</span><span class="fw-bold">' + d.response_time + ' ms</span></div>' : '') +
+                                        '</div>',
+                                    showConfirmButton: false,
+                                    showCancelButton: true,
+                                    cancelButtonText: "{{ __('close') }}",
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Proxy Yanıt Vermiyor',
+                                    text: res?.message || 'Bağlantı kurulamadı.',
+                                    showConfirmButton: false,
+                                    showCancelButton: true,
+                                    cancelButtonText: "{{ __('close') }}",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Bağlantı hatası';
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Proxy Yanıt Vermiyor',
+                                text: msg,
+                                showConfirmButton: false,
+                                showCancelButton: true,
+                                cancelButtonText: "{{ __('close') }}",
+                            });
+                        },
+                        complete: function () {
+                            propSubmitButton(btn, 0);
+                        }
+                    });
+                });
+            })();
 
             $(document).on("click", ".changePortBtn", function () {
                 var btn = $(this);
