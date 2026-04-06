@@ -3816,6 +3816,56 @@
     <script>
         (function(){
             var proxyCheckLastTime = 0;
+            var orderId = @json($order->id);
+            var orderName = @json($order->product_data['name'] ?? 'Bilinmiyor');
+
+            function showProxyError(btn, errorMsg) {
+                btn.removeClass('btn-light-info btn-light-success').addClass('btn-light-danger');
+                btn.find('.indicator-label').html('<i class="fa fa-times-circle me-1"></i>Bağlantı Yok');
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Proxy Yanıt Vermiyor',
+                    html: '<div class="text-start">' +
+                        '<div class="d-flex align-items-center mb-3"><span class="bullet bullet-dot bg-danger h-10px w-10px me-3"></span><span class="fw-bold fs-6 text-danger">Bağlantı Başarısız</span></div>' +
+                        '<div class="bg-light-danger rounded p-3 mb-4"><span class="text-gray-700 fs-7">' + (errorMsg || 'Bağlantı kurulamadı.') + '</span></div>' +
+                        '<div class="border border-dashed border-gray-300 rounded p-3 text-center">' +
+                        '<p class="text-gray-600 fs-7 mb-3">Bu sorun devam ediyorsa destek ekibimize bildirin.</p>' +
+                        '<button type="button" class="btn btn-sm btn-primary" id="proxyCheckCreateTicket"><i class="fa fa-headset me-1"></i>Destek Talebi Oluştur</button>' +
+                        '</div></div>',
+                    showConfirmButton: false,
+                    showCancelButton: true,
+                    cancelButtonText: "{{ __('close') }}",
+                    didOpen: function() {
+                        $('#proxyCheckCreateTicket').on('click', function() {
+                            Swal.close();
+                            var subject = 'Proxy Bağlantı Sorunu - Sipariş #' + orderId;
+                            var message = 'Merhaba,\n\n' +
+                                'Sipariş #' + orderId + ' (' + orderName + ') hizmetimde proxy bağlantı sorunu yaşıyorum.\n\n' +
+                                'Hata Detayı: ' + (errorMsg || 'Bağlantı kurulamadı') + '\n\n' +
+                                'Proxy bağlantım çalışmıyor. Lütfen kontrol eder misiniz?\n\n' +
+                                'Teşekkürler.';
+                            var modal = $('#createSupportModal');
+                            var form = modal.find('#createSupportForm');
+                            form.find('input[name="subject"]').val(subject);
+                            form.find('textarea[name="message"]').val(message);
+                            var orderSelect = form.find('select[name="order_id"]');
+                            if (orderSelect.length) {
+                                if (orderSelect.find('option[value="' + orderId + '"]').length === 0) {
+                                    orderSelect.append(new Option(orderName + ' (#' + orderId + ')', orderId, true, true));
+                                }
+                                orderSelect.val(orderId).trigger('change');
+                            }
+                            var prioritySelect = form.find('select[name="priority"]');
+                            if (prioritySelect.length) {
+                                prioritySelect.val('HIGH').trigger('change');
+                            }
+                            modal.modal('show');
+                        });
+                    }
+                });
+            }
+
             $(document).on("click", ".proxyCheckBtn", function () {
                 var btn = $(this);
                 var now = Date.now();
@@ -3836,6 +3886,8 @@
                     success: function (res) {
                         if (res && res.success) {
                             var d = res.data || {};
+                            btn.removeClass('btn-light-info btn-light-danger').addClass('btn-light-success');
+                            btn.find('.indicator-label').html('<i class="fa fa-check-circle me-1"></i>Proxy Aktif');
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Proxy Aktif',
@@ -3849,26 +3901,12 @@
                                 cancelButtonText: "{{ __('close') }}",
                             });
                         } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Proxy Yanıt Vermiyor',
-                                text: res?.message || 'Bağlantı kurulamadı.',
-                                showConfirmButton: false,
-                                showCancelButton: true,
-                                cancelButtonText: "{{ __('close') }}",
-                            });
+                            showProxyError(btn, res?.message || 'Bağlantı kurulamadı.');
                         }
                     },
                     error: function (xhr) {
                         var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Bağlantı hatası';
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Proxy Yanıt Vermiyor',
-                            text: msg,
-                            showConfirmButton: false,
-                            showCancelButton: true,
-                            cancelButtonText: "{{ __('close') }}",
-                        });
+                        showProxyError(btn, msg);
                     },
                     complete: function () {
                         propSubmitButton(btn, 0);
