@@ -3856,6 +3856,10 @@
                                 }
                                 orderSelect.val(orderId).trigger('change');
                             }
+                            var deptSelect = form.find('select[name="department"]');
+                            if (deptSelect.length) {
+                                deptSelect.val('TECHNICAL_SUPPORT').trigger('change');
+                            }
                             var prioritySelect = form.find('select[name="priority"]');
                             if (prioritySelect.length) {
                                 prioritySelect.val('HIGH').trigger('change');
