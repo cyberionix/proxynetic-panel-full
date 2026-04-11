@@ -202,7 +202,13 @@
                                                                           dropdownParent="#createOrderModal"/>
                                     <!--end::Input-->
                                 </div>
-                                <div class="col-xl-6">
+                                <div class="col-xl-12">
+                                    <label class="form-label fw-semibold required">Periyot (Döngü)</label>
+                                    <select class="form-select" id="npOrderPeriodSelect" name="period_select">
+                                        <option value="">Önce ürün seçiniz</option>
+                                    </select>
+                                </div>
+                                <div class="col-xl-6" id="npOrderStartDateCol">
                                     <!--begin::Label-->
                                     <label class="form-label fw-semibold required">{{__("start_date")}}</label>
                                     <!--end::Label-->
@@ -210,7 +216,7 @@
                                     <x-admin.form-elements.date-input name="start_date"/>
                                     <!--end::Input-->
                                 </div>
-                                <div class="col-xl-6">
+                                <div class="col-xl-6" id="npOrderEndDateCol">
                                     <!--begin::Label-->
                                     <label class="form-label fw-semibold required">{{__("end_date")}}</label>
                                     <!--end::Label-->
@@ -464,13 +470,63 @@
                 $("#createOrderModal").modal("show");
             })
 
+            var npPeriodDurations = {
+                'DAILY': { days: 1, label: 'Günlük' },
+                'WEEKLY': { days: 7, label: 'Haftalık' },
+                'MONTHLY': { months: 1, label: 'Aylık' },
+                'YEARLY': { months: 12, label: 'Yıllık' },
+                'ONE_TIME': { days: 0, label: 'Tek Sefer' }
+            };
+
+            function npCalcEndDate(startStr, unit, duration) {
+                if (!startStr) return '';
+                var parts = startStr.split('/');
+                if (parts.length !== 3) return '';
+                var d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                var info = npPeriodDurations[unit];
+                if (!info) return '';
+                if (info.months) {
+                    d.setMonth(d.getMonth() + (info.months * duration));
+                } else if (info.days) {
+                    d.setDate(d.getDate() + (info.days * duration));
+                }
+                var dd = String(d.getDate()).padStart(2, '0');
+                var mm = String(d.getMonth() + 1).padStart(2, '0');
+                var yy = d.getFullYear();
+                return dd + '/' + mm + '/' + yy;
+            }
+
             $(document).on("select2:select", '.productSelection', function (e) {
                 let additionalServiceArea = $("#additionalTable"),
                     extraParams = e.params.data.extraParams,
                     attributes,
                     body = additionalServiceArea.find("tbody");
 
-                $(".priceSelection").val("").trigger("change")
+                $(".priceSelection").val("").trigger("change");
+
+                var productId = $(this).val();
+                var periodSel = $('#npOrderPeriodSelect');
+                periodSel.html('<option value="">Yükleniyor...</option>');
+
+                if (productId) {
+                    $.get("{{route('admin.prices.searchByProduct')}}", { product_id: productId, _token: "{{csrf_token()}}" }, function(data) {
+                        var opts = '';
+                        var items = data.items || [];
+                        if (items.length > 0) {
+                            items.forEach(function(item) {
+                                opts += '<option value="' + item.id + '" data-duration="' + (item.duration || 1) + '" data-unit="' + (item.duration_unit || '') + '">' + item.name + '</option>';
+                            });
+                            opts += '<option value="custom">Özel (Manuel Tarih)</option>';
+                            periodSel.html(opts);
+                            periodSel.trigger('change');
+                        } else {
+                            periodSel.html('<option value="custom">Özel (Manuel Tarih)</option>');
+                            periodSel.trigger('change');
+                        }
+                    });
+                } else {
+                    periodSel.html('<option value="">Önce ürün seçiniz</option>');
+                }
 
                 if (extraParams.attrs.length > 0) {
                     attributes = extraParams.attrs.filter((item) => {
@@ -489,6 +545,64 @@
                     body.append("<tr>" +
                         "<td colspan='2' class='text-center fw-bold text-gray-600'>Ek Hizmet Yok</td>" +
                         "</tr>")
+                }
+            })
+
+            $(document).on('change', '#npOrderPeriodSelect', function() {
+                var val = $(this).val();
+                var opt = $(this).find('option:selected');
+                var startInput = $('[name="start_date"]');
+                var endInput = $('[name="end_date"]');
+
+                if (val && val !== 'custom') {
+                    var priceId = val;
+                    var existingOpt = $(".priceSelection option[value='" + priceId + "']");
+                    if (existingOpt.length === 0) {
+                        var newOpt = new Option(opt.text(), priceId, true, true);
+                        $(".priceSelection").append(newOpt).trigger("change");
+                    } else {
+                        $(".priceSelection").val(priceId).trigger("change");
+                    }
+                    var unit = opt.data('unit');
+                    var duration = parseInt(opt.data('duration'), 10) || 1;
+
+                    var today = new Date();
+                    var dd = String(today.getDate()).padStart(2, '0');
+                    var mm = String(today.getMonth() + 1).padStart(2, '0');
+                    var yy = today.getFullYear();
+                    var todayStr = dd + '/' + mm + '/' + yy;
+
+                    if (!startInput.val()) {
+                        startInput.val(todayStr);
+                        if (startInput[0] && startInput[0]._flatpickr) {
+                            startInput[0]._flatpickr.setDate(todayStr, false, 'd/m/Y');
+                        }
+                    }
+
+                    var endStr = npCalcEndDate(startInput.val(), unit, duration);
+                    if (endStr) {
+                        endInput.val(endStr);
+                        if (endInput[0] && endInput[0]._flatpickr) {
+                            endInput[0]._flatpickr.setDate(endStr, false, 'd/m/Y');
+                        }
+                    }
+
+                    $('#npOrderEndDateCol').css('opacity', '0.6');
+                    endInput.prop('readonly', true);
+                } else {
+                    $('#npOrderEndDateCol').css('opacity', '1');
+                    endInput.val('');
+                    if (endInput[0] && endInput[0]._flatpickr) {
+                        endInput[0]._flatpickr.clear();
+                    }
+                }
+            })
+
+            $(document).on('change', '[name="start_date"]', function() {
+                var periodSel = $('#npOrderPeriodSelect');
+                var val = periodSel.val();
+                if (val && val !== 'custom') {
+                    periodSel.trigger('change');
                 }
             })
 
