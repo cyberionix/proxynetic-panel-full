@@ -47,14 +47,16 @@ class CheckoutController extends Controller
                 "checkouts.id",
                 db_user_full_name_expr('users'),
                 "checkouts.type",
+                "checkouts.status",
                 "checkouts.created_at",
                 "checkouts.amount"
             ];
         } else {
             $searchableColumns = [
                 "checkouts.id",
-                "checkouts.created_at",
                 "checkouts.type",
+                "checkouts.status",
+                "checkouts.created_at",
                 "checkouts.amount"
             ];
 
@@ -139,18 +141,39 @@ class CheckoutController extends Controller
                     $bg = "secondary";
                     break;
             }
+            $typeConfig = [
+                'TRANSFER' => ['icon' => 'fa-building-columns', 'class' => 'badge-light-info', 'label' => 'Havale/EFT'],
+                'CREDIT_CARD' => ['icon' => 'fa-credit-card', 'class' => 'badge-light-primary', 'label' => 'Kredi Kartı'],
+                'BALANCE' => ['icon' => 'fa-wallet', 'class' => 'badge-light-success', 'label' => 'Bakiye'],
+            ];
+            $tc = $typeConfig[$item->type] ?? ['icon' => 'fa-money-bill', 'class' => 'badge-secondary', 'label' => $item->type];
+            $typeBadge = "<span class='badge {$tc['class']} fs-7'><i class='fa {$tc['icon']} me-1'></i>{$tc['label']}</span>";
+
+            $statusConfig = [
+                'NEW' => ['class' => 'badge-light-primary', 'label' => 'Yeni'],
+                'WAITING_APPROVAL' => ['class' => 'badge-light-warning', 'label' => 'Bekliyor'],
+                '3DS_REDIRECTED' => ['class' => 'badge-light-info', 'label' => '3D Secure'],
+                'COMPLETED' => ['class' => 'badge-light-success', 'label' => 'Tamamlandı'],
+                'FAILED' => ['class' => 'badge-light-danger', 'label' => 'Başarısız'],
+                'CANCELLED' => ['class' => 'badge-secondary', 'label' => 'İptal'],
+            ];
+            $sc = $statusConfig[$item->status] ?? ['class' => 'badge-secondary', 'label' => $item->status];
+            $statusBadge = "<span class='badge {$sc['class']} fs-7'>{$sc['label']}</span>";
+
             if ($showAllList) {
                 $data[] = [
                     "<span data-id='" . $item->id . "' data-bg='" . $bg . "' class='badge badge-sm badge-light-primary'>#" . $item->id . "</span>",
                     "<a target='_blank' href='" . route("admin.users.show", ["user" => $item->user_id]) . "'>" . $item->user_name . "</a>",
-                    "<span class='badge badge-secondary'>" . $item->type . "</span>",
+                    $typeBadge,
+                    $statusBadge,
                     $item->created_at->format('d/m/Y H:i:s'),
                     $item->draw_amount
                 ];
             } else {
                 $data[] = [
                     "<span data-id='" . $item->id . "' data-bg='" . $bg . "' class='badge badge-sm badge-light-primary'>#" . $item->id . "</span>",
-                    "<span class='badge badge-secondary'>" . $item->type . "</span>",
+                    $typeBadge,
+                    $statusBadge,
                     $item->created_at->format('d/m/Y H:i:s'),
                     $item->draw_amount
                 ];

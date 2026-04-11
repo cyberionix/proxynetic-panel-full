@@ -106,7 +106,7 @@
                                 <th class="min-w-50px">{{__("customer")}}</th>
                                 <th class="min-w-125px">{{__("invoice_date")}}</th>
                                 <th class="min-w-125px">{{__("amount")}}</th>
-                                <th class="min-w-125px">Paraşüt</th>
+                                <th class="min-w-125px">{{__("status")}}</th>
                                 <th class="min-w-125px">{{__("action")}}</th>
                             </tr>
                             </thead>

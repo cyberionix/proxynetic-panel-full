@@ -2,18 +2,22 @@
 @section("title", __("checkouts"))
 @section("css")
 <style>
+    .statusTab { transition: all 0.2s ease; }
+    .statusTab:hover { opacity: 0.85; }
     .statusTab[data-key="NEW"].active { color: #3b82f6 !important; border-bottom-color: #3b82f6 !important; }
     .statusTab[data-key="WAITING_APPROVAL"].active { color: #f59e0b !important; border-bottom-color: #f59e0b !important; }
     .statusTab[data-key="3DS_REDIRECTED"].active { color: #8b5cf6 !important; border-bottom-color: #8b5cf6 !important; }
     .statusTab[data-key="COMPLETED"].active { color: #10b981 !important; border-bottom-color: #10b981 !important; }
     .statusTab[data-key="FAILED"].active { color: #ef4444 !important; border-bottom-color: #ef4444 !important; }
     .statusTab[data-key="CANCELLED"].active { color: #6b7280 !important; border-bottom-color: #6b7280 !important; }
-    #dataTable tbody tr.bg-light-primary { background-color: rgba(59,130,246,0.08) !important; }
-    #dataTable tbody tr.bg-light-warning { background-color: rgba(245,158,11,0.08) !important; }
-    #dataTable tbody tr.bg-light-info { background-color: rgba(139,92,246,0.08) !important; }
-    #dataTable tbody tr.bg-light-success { background-color: rgba(16,185,129,0.08) !important; }
-    #dataTable tbody tr.bg-light-danger { background-color: rgba(239,68,68,0.08) !important; }
-    #dataTable tbody tr.bg-secondary { background-color: rgba(107,114,128,0.06) !important; }
+    #dataTable tbody tr { transition: background-color 0.15s ease; }
+    #dataTable tbody tr.bg-light-primary { background-color: rgba(59,130,246,0.06) !important; }
+    #dataTable tbody tr.bg-light-warning { background-color: rgba(245,158,11,0.06) !important; }
+    #dataTable tbody tr.bg-light-info { background-color: rgba(139,92,246,0.06) !important; }
+    #dataTable tbody tr.bg-light-success { background-color: rgba(16,185,129,0.06) !important; }
+    #dataTable tbody tr.bg-light-danger { background-color: rgba(239,68,68,0.06) !important; }
+    #dataTable tbody tr.bg-secondary { background-color: rgba(107,114,128,0.04) !important; }
+    #dataTable tbody tr:hover { filter: brightness(0.97); }
 </style>
 @endsection
 @section("description", "")
@@ -31,63 +35,56 @@
                     <div class="card-body py-0">
                         <!--begin:::Tabs-->
                         <ul id="header-nav"
-                            class="nav nav-stretch nav-line-tabs nav-line-tabs-2x border-transparent fs-5 fw-bold mt-3 gap-8">
-                            <!--begin:::Tab item-->
+                            class="nav nav-stretch nav-line-tabs nav-line-tabs-2x border-transparent fs-5 fw-bold mt-3 gap-2">
                             <li class="nav-item">
                                 <a class="nav-link text-active-primary pb-4 statusTab active"
-                                   data-bs-toggle="tab"
-                                   data-key=""
-                                   href="javascript:void(0);">{{__("all")}}</a>
+                                   data-bs-toggle="tab" data-key="" href="javascript:void(0);">
+                                    <i class="fa fa-list-ul me-2 fs-6"></i>{{__("all")}}
+                                    <span class="badge badge-light-dark badge-sm ms-2 np-tab-count" data-status="all"></span>
+                                </a>
                             </li>
-                            <!--end:::Tab item-->
-                            <!--begin:::Tab item-->
                             <li class="nav-item">
                                 <a class="nav-link text-active-primary pb-4 statusTab"
-                                   data-bs-toggle="tab"
-                                   data-key="NEW"
-                                   href="javascript:void(0);">{{__("new")}}</a>
+                                   data-bs-toggle="tab" data-key="NEW" href="javascript:void(0);">
+                                    <i class="fa fa-sparkles me-2 fs-6"></i>{{__("new")}}
+                                    <span class="badge badge-light-primary badge-sm ms-2 np-tab-count" data-status="NEW"></span>
+                                </a>
                             </li>
-                            <!--end:::Tab item-->
-                            <!--begin:::Tab item-->
                             <li class="nav-item">
                                 <a class="nav-link text-active-primary pb-4 statusTab"
-                                   data-bs-toggle="tab"
-                                   data-key="WAITING_APPROVAL"
-                                   href="javascript:void(0);">{{__("waiting")}}</a>
+                                   data-bs-toggle="tab" data-key="WAITING_APPROVAL" href="javascript:void(0);">
+                                    <i class="fa fa-clock me-2 fs-6"></i>{{__("waiting")}}
+                                    <span class="badge badge-light-warning badge-sm ms-2 np-tab-count" data-status="WAITING_APPROVAL"></span>
+                                </a>
                             </li>
-                            <!--end:::Tab item-->
-                            <!--begin:::Tab item-->
                             <li class="nav-item">
                                 <a class="nav-link text-active-primary pb-4 statusTab"
-                                   data-bs-toggle="tab"
-                                   data-key="3DS_REDIRECTED"
-                                   href="javascript:void(0);">3D</a>
+                                   data-bs-toggle="tab" data-key="3DS_REDIRECTED" href="javascript:void(0);">
+                                    <i class="fa fa-shield-halved me-2 fs-6"></i>3D
+                                    <span class="badge badge-light-info badge-sm ms-2 np-tab-count" data-status="3DS_REDIRECTED"></span>
+                                </a>
                             </li>
-                            <!--end:::Tab item-->
-                            <!--begin:::Tab item-->
                             <li class="nav-item">
                                 <a class="nav-link text-active-primary pb-4 statusTab"
-                                   data-bs-toggle="tab"
-                                   data-key="COMPLETED"
-                                   href="javascript:void(0);">{{__("completed")}}</a>
+                                   data-bs-toggle="tab" data-key="COMPLETED" href="javascript:void(0);">
+                                    <i class="fa fa-check-circle me-2 fs-6"></i>{{__("completed")}}
+                                    <span class="badge badge-light-success badge-sm ms-2 np-tab-count" data-status="COMPLETED"></span>
+                                </a>
                             </li>
-                            <!--end:::Tab item-->
-                            <!--begin:::Tab item-->
                             <li class="nav-item">
                                 <a class="nav-link text-active-primary pb-4 statusTab"
-                                   data-bs-toggle="tab"
-                                   data-key="FAILED"
-                                   href="javascript:void(0);">{{__("failed")}}</a>
+                                   data-bs-toggle="tab" data-key="FAILED" href="javascript:void(0);">
+                                    <i class="fa fa-times-circle me-2 fs-6"></i>{{__("failed")}}
+                                    <span class="badge badge-light-danger badge-sm ms-2 np-tab-count" data-status="FAILED"></span>
+                                </a>
                             </li>
-                            <!--end:::Tab item-->
-                            <!--begin:::Tab item-->
                             <li class="nav-item">
                                 <a class="nav-link text-active-primary pb-4 statusTab"
-                                   data-bs-toggle="tab"
-                                   data-key="CANCELLED"
-                                   href="javascript:void(0);">{{__("cancelled")}}</a>
+                                   data-bs-toggle="tab" data-key="CANCELLED" href="javascript:void(0);">
+                                    <i class="fa fa-ban me-2 fs-6"></i>{{__("cancelled")}}
+                                    <span class="badge badge-light-secondary badge-sm ms-2 np-tab-count" data-status="CANCELLED"></span>
+                                </a>
                             </li>
-                            <!--end:::Tab item-->
                         </ul>
                         <!--end:::Tabs-->
                     </div>
@@ -98,7 +95,7 @@
                     <!--begin::Card header-->
                     <div class="card-header border-0 pt-6">
                         <!--begin::Card title-->
-                        <div class="card-title d-flex flex-wrap gap-5">
+                        <div class="card-title">
                             <!--begin::Search-->
                             <div class="d-flex align-items-center position-relative my-1">
                                 <i class="ki-duotone ki-magnifier fs-3 position-absolute ms-5">
@@ -106,42 +103,13 @@
                                     <span class="path2"></span>
                                 </i>
                                 <input type="text" data-table-action="search"
-                                       class="form-control  w-250px ps-13"
+                                       class="form-control w-250px ps-13"
                                        placeholder="{{__("search_in_table")}}"/>
                             </div>
                             <!--end::Search-->
-                            <!--start::Info-->
-                            <div class="ms-2 d-flex flex-wrap gap-5">
-                                <div class="d-flex align-items-center fs-6 me-3">
-                                    <div class="rounded-circle w-12px h-12px me-2" style="background:#3b82f6;"></div>
-                                    <span class="fw-semibold text-gray-700">{{__("new")}}</span>
-                                </div>
-                                <div class="d-flex align-items-center fs-6 me-3">
-                                    <div class="rounded-circle w-12px h-12px me-2" style="background:#f59e0b;"></div>
-                                    <span class="fw-semibold text-gray-700">{{__("waiting")}}</span>
-                                </div>
-                                <div class="d-flex align-items-center fs-6 me-3">
-                                    <div class="rounded-circle w-12px h-12px me-2" style="background:#8b5cf6;"></div>
-                                    <span class="fw-semibold text-gray-700">3D</span>
-                                </div>
-                                <div class="d-flex align-items-center fs-6 me-3">
-                                    <div class="rounded-circle w-12px h-12px me-2" style="background:#10b981;"></div>
-                                    <span class="fw-semibold text-gray-700">{{__("completed")}}</span>
-                                </div>
-                                <div class="d-flex align-items-center fs-6 me-3">
-                                    <div class="rounded-circle w-12px h-12px me-2" style="background:#ef4444;"></div>
-                                    <span class="fw-semibold text-gray-700">{{__("failed")}}</span>
-                                </div>
-                                <div class="d-flex align-items-center fs-6 me-3">
-                                    <div class="rounded-circle w-12px h-12px me-2" style="background:#6b7280;"></div>
-                                    <span class="fw-semibold text-gray-700">{{__("cancelled")}}</span>
-                                </div>
-                            </div>
-                            <!--end::Info-->
                         </div>
                         <!--end::Card title-->
                         <div class="card-toolbar">
-
                         </div>
                     </div>
                     <!--end::Card header-->
@@ -155,14 +123,14 @@
                                 <th class="m-w-50">#</th>
                                 <th class="min-w-50px">{{__("customer")}}</th>
                                 <th class="min-w-125px">{{__("payment_type")}}</th>
+                                <th class="min-w-100px">{{__("status")}}</th>
                                 <th class="min-w-125px">{{__("payment_date")}}</th>
-                                <th class="min-w-125px">{{__("amount")}}</th>
+                                <th class="min-w-100px">{{__("amount")}}</th>
                             </tr>
                             </thead>
                             <tbody class="fw-semibold text-gray-600">
 
                             </tbody>
-                            <!--end::Table body-->
                         </table>
                         <!--end::Table-->
                     </div>
@@ -185,21 +153,7 @@
             var t = $("#dataTable").DataTable({
                 order: [],
                 columnDefs: [
-                    {
-                        orderable: !0, targets: 0
-                    },
-                    {
-                        orderable: !0, targets: 1
-                    },
-                    {
-                        orderable: !0, targets: 2
-                    },
-                    {
-                        orderable: !0, targets: 3
-                    },
-                    {
-                        orderable: !0, targets: 4
-                    }
+                    { orderable: true, targets: [0, 1, 2, 3, 4, 5] }
                 ],
                 "processing": true,
                 "serverSide": true,
@@ -219,6 +173,33 @@
                     $(item).addClass('bg-' + bg)
                 })
             });
+
+            function loadTabCounts() {
+                $.ajax({
+                    url: "{{ route("admin.checkouts.ajax") }}",
+                    type: "POST",
+                    data: { _token: "{{ csrf_token() }}", showAllList: true, length: 0, start: 0, status: '' },
+                    dataType: 'json',
+                    success: function(res) {
+                        var total = res.recordsTotal || 0;
+                        $('[data-status="all"]').text(total);
+                    }
+                });
+                var statuses = ['NEW', 'WAITING_APPROVAL', '3DS_REDIRECTED', 'COMPLETED', 'FAILED', 'CANCELLED'];
+                statuses.forEach(function(st) {
+                    $.ajax({
+                        url: "{{ route("admin.checkouts.ajax") }}",
+                        type: "POST",
+                        data: { _token: "{{ csrf_token() }}", showAllList: true, length: 0, start: 0, status: st },
+                        dataType: 'json',
+                        success: function(res) {
+                            var count = res.recordsFiltered || 0;
+                            $('[data-status="' + st + '"]').text(count);
+                        }
+                    });
+                });
+            }
+            loadTabCounts();
 
             document.querySelector('[data-table-action="search"]').addEventListener("keyup", (function (e) {
                 t.search(e.target.value).draw();
@@ -320,6 +301,7 @@
                                         cancelButtonText: "{{__('close')}}",
                                     }).then((r) => $("#checkoutDetailModal").modal("hide"))
                                     t.draw();
+                                    loadTabCounts();
                                 } else {
                                     Swal.fire({
                                         title: "{{__('error')}}",
