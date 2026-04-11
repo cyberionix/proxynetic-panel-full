@@ -3592,8 +3592,14 @@
                     document.body.removeChild(ta);
                 }
             }
-            function npLtv4Term(idx, line, isHtml) {
+            function npLtv4FindTerminal(idx) {
                 var el = document.querySelector('[data-np-ltv4-terminal="' + idx + '"]');
+                if (!el) el = document.querySelector('[data-np-ltv4-terminal="0"]');
+                if (!el) el = document.querySelector('.np-ltv4-terminal');
+                return el;
+            }
+            function npLtv4Term(idx, line, isHtml) {
+                var el = npLtv4FindTerminal(idx);
                 if (!el) return;
                 var ts = new Date().toLocaleTimeString();
                 var cur = el.innerHTML.trim();
@@ -3654,7 +3660,9 @@
                 npLtv4Copy($(this).attr('data-np-ltv4-copy'));
             });
             function npLtv4RunConnectivity(idx, action, tunnelId, triggerBtn) {
-                npLtv4Term(idx, 'Sunucu üzerinden test çalışıyor…');
+                var proxyNum = parseInt(idx, 10) + 1;
+                var label = '<span style="color:#a1a5b7;font-weight:600;">#' + proxyNum + '</span> ';
+                npLtv4Term(idx, label + 'Sunucu üzerinden test çalışıyor…', true);
                 var pdata = { _token: v4Csrf, action: action };
                 if (tunnelId) {
                     pdata.tunnel_id = tunnelId;
@@ -3669,7 +3677,7 @@
                         if (triggerBtn) triggerBtn.prop('disabled', false);
                         var res = xhr.responseJSON;
                         if (!res || res.success !== true) {
-                            npLtv4Term(idx, '<span style="color:#f1416c;font-weight:600;">✗ Hata:</span> ' + ((res && res.message ? res.message : 'İstek başarısız').replace(/</g,'&lt;').replace(/>/g,'&gt;')), true);
+                            npLtv4Term(idx, label + '<span style="color:#f1416c;font-weight:600;">✗ Hata:</span> ' + ((res && res.message ? res.message : 'İstek başarısız').replace(/</g,'&lt;').replace(/>/g,'&gt;')), true);
                             if (triggerBtn) {
                                 triggerBtn.removeClass('btn-light-primary btn-light-success').addClass('btn-light-danger');
                             }
@@ -3678,9 +3686,9 @@
                         var line = (res.line || res.message || 'Tamamlandı.').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                         var isOk = res.ok !== false;
                         if (isOk) {
-                            npLtv4Term(idx, '<span style="color:#50cd89;font-weight:600;">✓ Aktif</span> — ' + line, true);
+                            npLtv4Term(idx, label + '<span style="color:#50cd89;font-weight:600;">✓ Aktif</span> — ' + line, true);
                         } else {
-                            npLtv4Term(idx, '<span style="color:#ffc700;font-weight:600;">⚠ UYARI:</span> ' + line, true);
+                            npLtv4Term(idx, label + '<span style="color:#ffc700;font-weight:600;">⚠ UYARI:</span> ' + line, true);
                         }
                         if (triggerBtn) {
                             if (isOk) {
@@ -3700,7 +3708,7 @@
             $(document).on('click', '[data-np-ltv4-ping-test]', function () {
                 var idx = String($(this).data('np-ltv4-ping-test'));
                 var tid = $(this).attr('data-np-ltv4-tunnel-id') || '';
-                npLtv4RunConnectivity(idx, 'ping', tid);
+                npLtv4RunConnectivity(idx, 'ping', tid, $(this));
             });
 
             $(document).on('change', '[data-np-ltv4-auth] [name="is_active"]', function () {
