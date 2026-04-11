@@ -1066,9 +1066,10 @@ class OrderLocaltonetController extends Controller
         return $this->errorResponse($result['message'] ?? 'Güncelleme başarısız.');
     }
 
-    public function proxyCheck(Order $order): JsonResponse
+    public function proxyCheck(Order $order, Request $request): JsonResponse
     {
-        $cacheKey = 'proxy_check_' . $order->id . '_' . (Auth::guard('admin')->check() ? 'admin' : Auth::id());
+        $proxyIndex = (int) $request->input('proxy_index', 0);
+        $cacheKey = 'proxy_check_' . $order->id . '_' . $proxyIndex . '_' . (Auth::guard('admin')->check() ? 'admin' : Auth::id());
         if (Cache::has($cacheKey)) {
             $remaining = (int) ceil(Cache::get($cacheKey) - microtime(true));
             return $this->errorResponse('Lütfen ' . max(1, $remaining) . ' saniye bekleyin.');
@@ -1081,11 +1082,11 @@ class OrderLocaltonetController extends Controller
         if ($order->isThreeProxyDelivery()) {
             $list = $order->getThreeProxyDisplayList();
             if (!empty($list)) {
-                $first = $list[0];
-                $ip = $first['ip'] ?? '';
-                $port = $first['http_port'] ?? '';
-                $user = $first['username'] ?? '';
-                $pass = $first['password'] ?? '';
+                $item = $list[$proxyIndex] ?? $list[0];
+                $ip = $item['ip'] ?? '';
+                $port = $item['http_port'] ?? '';
+                $user = $item['username'] ?? '';
+                $pass = $item['password'] ?? '';
                 if ($ip && $port) {
                     $proxyString = "{$ip}:{$port}";
                     if ($user && $pass) {
