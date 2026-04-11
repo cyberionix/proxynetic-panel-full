@@ -30,7 +30,7 @@
                 <div class="card-body pt-0">
                     <div class="separator border-1 border-gray mt-3"></div>
                     <div class="row mt-5 gap-5">
-                        <div class="col-12">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
                             <span class="fw-bold">{{__("customer")}}:</span>
                             <span>
                                 @if($order->user)
@@ -39,36 +39,33 @@
                                 @endif
                             </span>
                         </div>
-                        <div class="col-12">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
                             <span class="fw-bold">Sipariş Tarihi:</span>
-                            <span
-                                class="badge badge-sm badge-secondary">{{$order->created_at?->format(defaultDateTimeFormat()) ?? '-'}}</span>
+                            <span class="badge badge-sm badge-secondary">{{$order->created_at?->format(defaultDateTimeFormat()) ?? '-'}}</span>
                         </div>
-                        <div class="col-12">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
                             <span class="fw-bold">{{__("service_group")}}:</span>
-                            <span class="fw-semibold">{{@$order->product_data["category"]["name"]}}</span>
+                            <span class="fw-semibold text-end">{{@$order->product_data["category"]["name"]}}</span>
                         </div>
-                        <div class="col-12">
-                            <span class="fw-bold">{{__("service_name")}}:</span>
-                            <span class="fw-semibold">{{@$order->product_data["name"]}}</span>
+                        <div class="col-12 d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-nowrap me-3">{{__("service_name")}}:</span>
+                            <span class="fw-semibold text-end">{{@$order->product_data["name"]}}</span>
                         </div>
-                        <div class="col-12">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
                             <span class="fw-bold">{{__("payment_period")}}:</span>
                             <span class="fw-semibold">{{$order->getPaymentPeriod()}}</span>
                         </div>
-                        <div class="col-12">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
                             <span class="fw-bold">{{__("start_date")}}:</span>
-                            <span
-                                class="badge badge-sm badge-secondary">{{$order->start_date?->format(defaultDateFormat()) ?? '-'}}</span>
+                            <span class="badge badge-sm badge-secondary">{{$order->start_date?->format(defaultDateFormat()) ?? '-'}}</span>
                         </div>
-                        <div class="col-12">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
                             <span class="fw-bold">{{__("end_date")}}:</span>
-                            <span
-                                class="badge badge-sm badge-secondary">{{$order->end_date?->format(defaultDateFormat()) ?? '-'}}</span>
+                            <span class="badge badge-sm badge-secondary">{{$order->end_date?->format(defaultDateFormat()) ?? '-'}}</span>
                         </div>
-                        <div class="col-12 fs-3">
-                            <div class="fw-bold">{{__("total_amount")}}:</div>
-                            <div class="fw-semibold">{{showBalance($order->getTotalAmount() ?? 0, true)}}</div>
+                        <div class="col-12 d-flex justify-content-between align-items-center fs-3">
+                            <span class="fw-bold">{{__("total_amount")}}:</span>
+                            <span class="fw-semibold">{{showBalance($order->getTotalAmount() ?? 0, true)}}</span>
                         </div>
                     </div>
                 </div>
