@@ -7,6 +7,14 @@
             filter: blur(3px);
             pointer-events: none;
         }
+        a.card {
+            transition: box-shadow 0.2s ease, transform 0.15s ease;
+            cursor: pointer;
+        }
+        a.card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
         @media (max-width: 768px) {
             .table th.min-w-125px,
             .table th.min-w-70px { min-width: auto !important; }
@@ -29,7 +37,7 @@
                          data-np-sale-report="loader">
                         <span class="spinner-border spinner-border-sm align-middle"></span>
                     </div>
-                    <div class="card card-flush loading" data-np-sale-report="area">
+                    <a href="{{route('admin.checkouts.index')}}" class="card card-flush loading text-reset text-hover-primary" data-np-sale-report="area" style="text-decoration:none;">
                         <!--begin::Header-->
                         <div class="card-header pt-5">
                             <!--begin::Title-->
@@ -97,7 +105,7 @@
                             <!--end::Labels-->
                         </div>
                         <!--end::Card body-->
-                    </div>
+                    </a>
                 </div>
                 <div class="col-xl-4 position-relative">
                     <div class="d-flex flex-center position-absolute top-50 start-50 z-index-3"
@@ -171,7 +179,7 @@
                          data-np-support-report="loader">
                         <span class="spinner-border spinner-border-sm align-middle"></span>
                     </div>
-                    <div class="card card-flush loading" data-np-support-report="area">
+                    <a href="{{route('admin.supports.index')}}" class="card card-flush loading text-reset text-hover-primary" data-np-support-report="area" style="text-decoration:none;">
                         <!--begin::Header-->
                         <div class="card-header pt-5">
                             <!--begin::Title-->
@@ -233,7 +241,7 @@
                             <!--end::Labels-->
                         </div>
                         <!--end::Card body-->
-                    </div>
+                    </a>
                 </div>
             </div>
         </div>

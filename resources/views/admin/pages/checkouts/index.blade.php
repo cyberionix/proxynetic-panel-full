@@ -1,6 +1,21 @@
 @extends("admin.template")
 @section("title", __("checkouts"))
-@section("css") @endsection
+@section("css")
+<style>
+    .statusTab[data-key="NEW"].active { color: #3b82f6 !important; border-bottom-color: #3b82f6 !important; }
+    .statusTab[data-key="WAITING_APPROVAL"].active { color: #f59e0b !important; border-bottom-color: #f59e0b !important; }
+    .statusTab[data-key="3DS_REDIRECTED"].active { color: #8b5cf6 !important; border-bottom-color: #8b5cf6 !important; }
+    .statusTab[data-key="COMPLETED"].active { color: #10b981 !important; border-bottom-color: #10b981 !important; }
+    .statusTab[data-key="FAILED"].active { color: #ef4444 !important; border-bottom-color: #ef4444 !important; }
+    .statusTab[data-key="CANCELLED"].active { color: #6b7280 !important; border-bottom-color: #6b7280 !important; }
+    #dataTable tbody tr.bg-light-primary { background-color: rgba(59,130,246,0.08) !important; }
+    #dataTable tbody tr.bg-light-warning { background-color: rgba(245,158,11,0.08) !important; }
+    #dataTable tbody tr.bg-light-info { background-color: rgba(139,92,246,0.08) !important; }
+    #dataTable tbody tr.bg-light-success { background-color: rgba(16,185,129,0.08) !important; }
+    #dataTable tbody tr.bg-light-danger { background-color: rgba(239,68,68,0.08) !important; }
+    #dataTable tbody tr.bg-secondary { background-color: rgba(107,114,128,0.06) !important; }
+</style>
+@endsection
 @section("description", "")
 @section("keywords", "")
 @section("master")
@@ -98,34 +113,28 @@
                             <!--start::Info-->
                             <div class="ms-2 d-flex flex-wrap gap-5">
                                 <div class="d-flex align-items-center fs-6 me-3">
-                                    <div
-                                        class="border border-1 border-gray-400 w-15px h-15px bg-light-primary me-1"></div>
-                                    {{__("new")}}
+                                    <div class="rounded-circle w-12px h-12px me-2" style="background:#3b82f6;"></div>
+                                    <span class="fw-semibold text-gray-700">{{__("new")}}</span>
                                 </div>
                                 <div class="d-flex align-items-center fs-6 me-3">
-                                    <div
-                                        class="border border-1 border-gray-400 w-15px h-15px bg-light-warning me-1"></div>
-                                    {{__("waiting")}}
+                                    <div class="rounded-circle w-12px h-12px me-2" style="background:#f59e0b;"></div>
+                                    <span class="fw-semibold text-gray-700">{{__("waiting")}}</span>
                                 </div>
                                 <div class="d-flex align-items-center fs-6 me-3">
-                                    <div
-                                        class="border border-1 border-gray-400 w-15px h-15px bg-light-info me-1"></div>
-                                    3D
+                                    <div class="rounded-circle w-12px h-12px me-2" style="background:#8b5cf6;"></div>
+                                    <span class="fw-semibold text-gray-700">3D</span>
                                 </div>
                                 <div class="d-flex align-items-center fs-6 me-3">
-                                    <div
-                                        class="border border-1 border-gray-400 w-15px h-15px bg-light-success me-1"></div>
-                                    {{__("completed")}}
+                                    <div class="rounded-circle w-12px h-12px me-2" style="background:#10b981;"></div>
+                                    <span class="fw-semibold text-gray-700">{{__("completed")}}</span>
                                 </div>
                                 <div class="d-flex align-items-center fs-6 me-3">
-                                    <div
-                                        class="border border-1 border-gray-400 w-15px h-15px bg-light-danger me-1"></div>
-                                    {{__("failed")}}
+                                    <div class="rounded-circle w-12px h-12px me-2" style="background:#ef4444;"></div>
+                                    <span class="fw-semibold text-gray-700">{{__("failed")}}</span>
                                 </div>
                                 <div class="d-flex align-items-center fs-6 me-3">
-                                    <div
-                                        class="border border-1 border-gray-400 w-15px h-15px bg-secondary me-1"></div>
-                                    {{__("cancelled")}}
+                                    <div class="rounded-circle w-12px h-12px me-2" style="background:#6b7280;"></div>
+                                    <span class="fw-semibold text-gray-700">{{__("cancelled")}}</span>
                                 </div>
                             </div>
                             <!--end::Info-->
