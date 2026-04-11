@@ -3652,33 +3652,46 @@
             $(document).on('click', '[data-np-ltv4-copy]', function () {
                 npLtv4Copy($(this).attr('data-np-ltv4-copy'));
             });
-            function npLtv4RunConnectivity(idx, action, tunnelId) {
+            function npLtv4RunConnectivity(idx, action, tunnelId, triggerBtn) {
                 npLtv4Term(idx, 'Sunucu üzerinden test çalışıyor…');
                 var pdata = { _token: v4Csrf, action: action };
                 if (tunnelId) {
                     pdata.tunnel_id = tunnelId;
                 }
+                if (triggerBtn) triggerBtn.prop('disabled', true);
                 $.ajax({
                     type: 'POST',
                     url: v4ConnectivityUrl,
                     dataType: 'json',
                     data: pdata,
                     complete: function (xhr) {
+                        if (triggerBtn) triggerBtn.prop('disabled', false);
                         var res = xhr.responseJSON;
                         if (!res || res.success !== true) {
                             npLtv4Term(idx, 'Hata: ' + (res && res.message ? res.message : 'İstek başarısız'));
+                            if (triggerBtn) {
+                                triggerBtn.removeClass('btn-light-primary btn-light-success').addClass('btn-light-danger');
+                            }
                             return;
                         }
                         var line = res.line || res.message || 'Tamamlandı.';
-                        var prefix = (res.ok === false) ? 'UYARI: ' : '';
+                        var isOk = res.ok !== false;
+                        var prefix = isOk ? '' : 'UYARI: ';
                         npLtv4Term(idx, prefix + line);
+                        if (triggerBtn) {
+                            if (isOk) {
+                                triggerBtn.removeClass('btn-light-primary btn-light-danger').addClass('btn-light-success');
+                            } else {
+                                triggerBtn.removeClass('btn-light-primary btn-light-success').addClass('btn-light-danger');
+                            }
+                        }
                     }
                 });
             }
             $(document).on('click', '[data-np-ltv4-proxy-test]', function () {
                 var idx = String($(this).data('np-ltv4-proxy-test'));
                 var tid = $(this).attr('data-np-ltv4-tunnel-id') || '';
-                npLtv4RunConnectivity(idx, 'proxy', tid);
+                npLtv4RunConnectivity(idx, 'proxy', tid, $(this));
             });
             $(document).on('click', '[data-np-ltv4-ping-test]', function () {
                 var idx = String($(this).data('np-ltv4-ping-test'));

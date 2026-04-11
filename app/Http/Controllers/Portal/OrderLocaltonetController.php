@@ -786,6 +786,20 @@ class OrderLocaltonetController extends Controller
             return $this->errorResponse($proxy['errorMessage'] ?? 'Proxy bilgisi alınamadı.');
         }
 
+        $serverIp = trim((string) ($proxy['serverIp'] ?? ''));
+        if ($serverIp === '127.0.0.1' || $serverIp === 'localhost' || $serverIp === '') {
+            $pi = $order->product_info ?? [];
+            $allTids = $pi['localtonet_v4_proxy_ids'] ?? [];
+            $snaps = $pi['localtonet_v4_snapshots'] ?? [];
+            $tid = $tunnelId ?? (int) ($order->getLocaltonetProxyId() ?? 0);
+            $snapIdx = array_search($tid, $allTids);
+            $snap = ($snapIdx !== false && isset($snaps[$snapIdx])) ? $snaps[$snapIdx] : ($snaps[0] ?? []);
+            $realIp = trim((string) ($snap['selected_ip'] ?? ''));
+            if ($realIp !== '' && filter_var($realIp, FILTER_VALIDATE_IP)) {
+                $proxy['serverIp'] = $realIp;
+            }
+        }
+
         $proxyUrl = $this->buildLocaltonetGuzzleProxyUrl($proxy);
         if ($proxyUrl === null) {
             return $this->errorResponse('Proxy adresi eksik.');
@@ -1099,6 +1113,14 @@ class OrderLocaltonetController extends Controller
             $result = $proxyData['result'] ?? [];
             if (!empty($result['serverIp']) && !empty($result['serverPort'])) {
                 $ip = $result['serverIp'];
+                if ($ip === '127.0.0.1' || $ip === 'localhost') {
+                    $pi = $order->product_info ?? [];
+                    $snap = ($pi['localtonet_v4_snapshots'][0] ?? null) ?: ($pi['localtonet_v4_snapshot'] ?? []);
+                    $realIp = trim((string) ($snap['selected_ip'] ?? ''));
+                    if ($realIp !== '' && filter_var($realIp, FILTER_VALIDATE_IP)) {
+                        $ip = $realIp;
+                    }
+                }
                 $port = $result['serverPort'];
                 $proxyString = "{$ip}:{$port}";
                 if (!empty($result['authentication']['isActive'])) {
