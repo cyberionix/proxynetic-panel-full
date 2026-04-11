@@ -3592,16 +3592,17 @@
                     document.body.removeChild(ta);
                 }
             }
-            function npLtv4Term(idx, line) {
+            function npLtv4Term(idx, line, isHtml) {
                 var el = document.querySelector('[data-np-ltv4-terminal="' + idx + '"]');
                 if (!el) return;
                 var ts = new Date().toLocaleTimeString();
-                var cur = el.textContent.trim();
+                var cur = el.innerHTML.trim();
                 if (cur.indexOf('burada görüntülenecek') !== -1 && cur.length < 90) {
-                    el.textContent = '';
+                    el.innerHTML = '';
                     cur = '';
                 }
-                el.textContent += (cur ? '\n' : '') + '[' + ts + '] ' + line;
+                var entry = '[' + ts + '] ' + (isHtml ? line : line.replace(/</g,'&lt;').replace(/>/g,'&gt;'));
+                el.innerHTML += (cur ? '\n' : '') + entry;
                 el.scrollTop = el.scrollHeight;
             }
             $(document).on('click', '[data-np-ltv4-copy-bulk]', function () {
@@ -3668,16 +3669,19 @@
                         if (triggerBtn) triggerBtn.prop('disabled', false);
                         var res = xhr.responseJSON;
                         if (!res || res.success !== true) {
-                            npLtv4Term(idx, 'Hata: ' + (res && res.message ? res.message : 'İstek başarısız'));
+                            npLtv4Term(idx, '<span style="color:#f1416c;font-weight:600;">✗ Hata:</span> ' + ((res && res.message ? res.message : 'İstek başarısız').replace(/</g,'&lt;').replace(/>/g,'&gt;')), true);
                             if (triggerBtn) {
                                 triggerBtn.removeClass('btn-light-primary btn-light-success').addClass('btn-light-danger');
                             }
                             return;
                         }
-                        var line = res.line || res.message || 'Tamamlandı.';
+                        var line = (res.line || res.message || 'Tamamlandı.').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                         var isOk = res.ok !== false;
-                        var prefix = isOk ? '' : 'UYARI: ';
-                        npLtv4Term(idx, prefix + line);
+                        if (isOk) {
+                            npLtv4Term(idx, '<span style="color:#50cd89;font-weight:600;">✓ Aktif</span> — ' + line, true);
+                        } else {
+                            npLtv4Term(idx, '<span style="color:#ffc700;font-weight:600;">⚠ UYARI:</span> ' + line, true);
+                        }
                         if (triggerBtn) {
                             if (isOk) {
                                 triggerBtn.removeClass('btn-light-primary btn-light-danger').addClass('btn-light-success');
