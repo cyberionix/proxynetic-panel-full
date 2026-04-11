@@ -502,7 +502,7 @@
                     attributes,
                     body = additionalServiceArea.find("tbody");
 
-                $(".priceSelection").val("").trigger("change");
+                $(".priceSelection").empty().val(null).trigger("change");
 
                 var productId = $(this).val();
                 var periodSel = $('#npOrderPeriodSelect');
@@ -556,13 +556,9 @@
 
                 if (val && val !== 'custom') {
                     var priceId = val;
-                    var existingOpt = $(".priceSelection option[value='" + priceId + "']");
-                    if (existingOpt.length === 0) {
-                        var newOpt = new Option(opt.text(), priceId, true, true);
-                        $(".priceSelection").append(newOpt).trigger("change");
-                    } else {
-                        $(".priceSelection").val(priceId).trigger("change");
-                    }
+                    $(".priceSelection").empty();
+                    var newOpt = new Option(opt.text(), priceId, true, true);
+                    $(".priceSelection").append(newOpt).trigger("change");
                     var unit = opt.data('unit');
                     var duration = parseInt(opt.data('duration'), 10) || 1;
 
@@ -590,6 +586,7 @@
                     $('#npOrderEndDateCol').css('opacity', '0.6');
                     endInput.prop('readonly', true);
                 } else {
+                    $(".priceSelection").empty().val(null).trigger("change");
                     $('#npOrderEndDateCol').css('opacity', '1');
                     endInput.val('');
                     if (endInput[0] && endInput[0]._flatpickr) {
