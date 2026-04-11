@@ -11,12 +11,12 @@
     .statusTab[data-key="FAILED"].active { color: #ef4444 !important; border-bottom-color: #ef4444 !important; }
     .statusTab[data-key="CANCELLED"].active { color: #6b7280 !important; border-bottom-color: #6b7280 !important; }
     #dataTable tbody tr { transition: background-color 0.15s ease; }
-    #dataTable tbody tr.bg-light-primary { background-color: rgba(59,130,246,0.06) !important; }
-    #dataTable tbody tr.bg-light-warning { background-color: rgba(245,158,11,0.06) !important; }
-    #dataTable tbody tr.bg-light-info { background-color: rgba(139,92,246,0.06) !important; }
-    #dataTable tbody tr.bg-light-success { background-color: rgba(16,185,129,0.06) !important; }
-    #dataTable tbody tr.bg-light-danger { background-color: rgba(239,68,68,0.06) !important; }
-    #dataTable tbody tr.bg-secondary { background-color: rgba(107,114,128,0.04) !important; }
+    #dataTable tbody tr.bg-light-primary { background-color: rgba(59,130,246,0.10) !important; }
+    #dataTable tbody tr.bg-light-warning { background-color: rgba(245,158,11,0.10) !important; }
+    #dataTable tbody tr.bg-light-info { background-color: rgba(139,92,246,0.10) !important; }
+    #dataTable tbody tr.bg-light-success { background-color: rgba(16,185,129,0.10) !important; }
+    #dataTable tbody tr.bg-light-danger { background-color: rgba(239,68,68,0.12) !important; }
+    #dataTable tbody tr.bg-secondary { background-color: rgba(107,114,128,0.08) !important; }
     #dataTable tbody tr:hover { filter: brightness(0.97); }
 </style>
 @endsection
