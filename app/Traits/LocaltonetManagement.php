@@ -389,6 +389,15 @@ trait LocaltonetManagement
 
         $stored = $this->getStoredTunnelDetail($tunnelId);
         if ($stored !== null) {
+            if (empty($stored['airplaneMode'])) {
+                try {
+                    $service = $this->resolveLocaltonetService();
+                    $airplaneMode = $service->getAirplaneModeSettings($stored['authToken'] ?? '');
+                    $stored['airplaneMode'] = @$airplaneMode['result'];
+                } catch (\Throwable $e) {
+                    // airplaneMode fetch failed
+                }
+            }
             return ['result' => $stored];
         }
 
@@ -567,7 +576,12 @@ trait LocaltonetManagement
             $result['drawProxy'] = $result['serverIp'] . ':' . $result['serverPort'];
         }
 
-        $result['airplaneMode'] = null;
+        try {
+            $airplaneMode = $service->getAirplaneModeSettings($result['authToken'] ?? '');
+            $result['airplaneMode'] = @$airplaneMode['result'];
+        } catch (\Throwable $e) {
+            $result['airplaneMode'] = null;
+        }
 
         return $result;
     }
