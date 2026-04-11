@@ -796,9 +796,7 @@ trait LocaltonetManagement
             return false;
         }
 
-        $serverCode = $this->isCanDeliveryType('LOCALTONETV4')
-            ? ($this->product->delivery_items['server_code'] ?? 'app')
-            : 'tr1';
+        $serverCode = $this->product->delivery_items['server_code'] ?? ($this->isCanDeliveryType('LOCALTONETV4') ? 'app' : 'tr520');
 
         if ($this->isCanDeliveryType('LOCALTONETV4')) {
             return $this->deliverLocaltonetV4Item($service, $protocolType, $serverCode);
