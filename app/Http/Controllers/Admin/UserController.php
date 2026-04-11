@@ -268,7 +268,10 @@ class UserController extends Controller
 
     public function accountLogin(User $user)
     {
-        Auth::guard('web')->login($user);
+        $guard = Auth::guard('web');
+        $guard->setUser($user);
+        session()->put($guard->getName(), $user->getAuthIdentifier());
+
         return $this->successResponse(__('login_successful'), ["redirectUrl" => route("portal.dashboard")]);
     }
 
