@@ -217,6 +217,7 @@ dd($data->is_proxy || $data->is_vpn);
             Route::post('/ajax', [InvoiceController::class, "ajax"])->name("ajax");
             Route::get('/status-counts', [InvoiceController::class, "statusCounts"])->name("statusCounts");
             Route::post('/bulk-action', [InvoiceController::class, "bulkAction"])->name("bulkAction");
+            Route::get('/view-as-customer/{invoice}', [InvoiceController::class, "viewAsCustomer"])->name("viewAsCustomer");
             Route::get('/{invoice}', [InvoiceController::class, "show"])->name("show");
             Route::post('/update/{invoice}', [InvoiceController::class, "update"])->name("update");
             Route::post('/delete/{invoice}', [InvoiceController::class, "delete"])->name("delete");

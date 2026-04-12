@@ -102,7 +102,7 @@
                                         <i class="fa fa-file-pdf me-1"></i>PDF
                                     </a>
                                 @endif
-                                <a href="{{route("portal.invoices.show", ["invoice" => $invoice->id])}}"
+                                <a href="{{route("admin.invoices.viewAsCustomer", ["invoice" => $invoice->id])}}"
                                    target="_blank"
                                    class="btn btn-sm btn-light-primary text-nowrap">
                                     <i class="fa fa-external-link-alt me-1"></i>Faturaya Git
