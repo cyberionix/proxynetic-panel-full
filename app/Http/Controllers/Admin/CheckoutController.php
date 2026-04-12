@@ -152,7 +152,7 @@ class CheckoutController extends Controller
             $statusConfig = [
                 'NEW' => ['class' => 'badge-light-primary', 'label' => 'Yeni'],
                 'WAITING_APPROVAL' => ['class' => 'badge-light-warning', 'label' => 'Bekliyor'],
-                '3DS_REDIRECTED' => ['class' => 'badge-light-info', 'label' => '3D Secure'],
+                '3DS_REDIRECTED' => ['class' => 'badge-light-warning', 'label' => '3D Beklemede'],
                 'COMPLETED' => ['class' => 'badge-light-success', 'label' => 'Tamamlandı'],
                 'FAILED' => ['class' => 'badge-light-danger', 'label' => 'Başarısız'],
                 'CANCELLED' => ['class' => 'badge-secondary', 'label' => 'İptal'],

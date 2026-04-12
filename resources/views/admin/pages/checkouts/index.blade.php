@@ -6,14 +6,14 @@
     .statusTab:hover { opacity: 0.85; }
     .statusTab[data-key="NEW"].active { color: #3b82f6 !important; border-bottom-color: #3b82f6 !important; }
     .statusTab[data-key="WAITING_APPROVAL"].active { color: #f59e0b !important; border-bottom-color: #f59e0b !important; }
-    .statusTab[data-key="3DS_REDIRECTED"].active { color: #8b5cf6 !important; border-bottom-color: #8b5cf6 !important; }
+    .statusTab[data-key="3DS_REDIRECTED"].active { color: #f97316 !important; border-bottom-color: #f97316 !important; }
     .statusTab[data-key="COMPLETED"].active { color: #10b981 !important; border-bottom-color: #10b981 !important; }
     .statusTab[data-key="FAILED"].active { color: #ef4444 !important; border-bottom-color: #ef4444 !important; }
     .statusTab[data-key="CANCELLED"].active { color: #6b7280 !important; border-bottom-color: #6b7280 !important; }
     #dataTable tbody tr { transition: background-color 0.15s ease; }
     #dataTable tbody tr.bg-light-primary { background-color: rgba(59,130,246,0.10) !important; }
     #dataTable tbody tr.bg-light-warning { background-color: rgba(245,158,11,0.10) !important; }
-    #dataTable tbody tr.bg-light-info { background-color: rgba(139,92,246,0.10) !important; }
+    #dataTable tbody tr.bg-light-info { background-color: rgba(249,115,22,0.10) !important; }
     #dataTable tbody tr.bg-light-success { background-color: rgba(16,185,129,0.10) !important; }
     #dataTable tbody tr.bg-light-danger { background-color: rgba(239,68,68,0.12) !important; }
     #dataTable tbody tr.bg-secondary { background-color: rgba(107,114,128,0.08) !important; }
@@ -110,30 +110,30 @@
                         </div>
                         <!--end::Card title-->
                         <div class="card-toolbar">
-                            <div class="d-flex flex-wrap gap-4 align-items-center">
+                            <div class="d-flex flex-wrap gap-5 align-items-center">
                                 <div class="d-flex align-items-center">
-                                    <div class="rounded w-14px h-14px me-2" style="background:rgba(59,130,246,0.25);border:1px solid rgba(59,130,246,0.4);"></div>
-                                    <span class="fs-7 fw-semibold text-gray-600">Yeni</span>
+                                    <div style="width:16px;height:16px;background:#3b82f6;border-radius:3px;" class="me-2"></div>
+                                    <span class="fs-7 fw-semibold text-gray-700">Yeni</span>
                                 </div>
                                 <div class="d-flex align-items-center">
-                                    <div class="rounded w-14px h-14px me-2" style="background:rgba(245,158,11,0.25);border:1px solid rgba(245,158,11,0.4);"></div>
-                                    <span class="fs-7 fw-semibold text-gray-600">Bekliyor</span>
+                                    <div style="width:16px;height:16px;background:#f59e0b;border-radius:3px;" class="me-2"></div>
+                                    <span class="fs-7 fw-semibold text-gray-700">Onay Bekliyor</span>
                                 </div>
                                 <div class="d-flex align-items-center">
-                                    <div class="rounded w-14px h-14px me-2" style="background:rgba(139,92,246,0.25);border:1px solid rgba(139,92,246,0.4);"></div>
-                                    <span class="fs-7 fw-semibold text-gray-600">3D Secure</span>
+                                    <div style="width:16px;height:16px;background:#f97316;border-radius:3px;" class="me-2"></div>
+                                    <span class="fs-7 fw-semibold text-gray-700">3D Beklemede</span>
                                 </div>
                                 <div class="d-flex align-items-center">
-                                    <div class="rounded w-14px h-14px me-2" style="background:rgba(16,185,129,0.25);border:1px solid rgba(16,185,129,0.4);"></div>
-                                    <span class="fs-7 fw-semibold text-gray-600">Tamamlandı</span>
+                                    <div style="width:16px;height:16px;background:#10b981;border-radius:3px;" class="me-2"></div>
+                                    <span class="fs-7 fw-semibold text-gray-700">Tamamlandı</span>
                                 </div>
                                 <div class="d-flex align-items-center">
-                                    <div class="rounded w-14px h-14px me-2" style="background:rgba(239,68,68,0.25);border:1px solid rgba(239,68,68,0.4);"></div>
-                                    <span class="fs-7 fw-semibold text-gray-600">Başarısız</span>
+                                    <div style="width:16px;height:16px;background:#ef4444;border-radius:3px;" class="me-2"></div>
+                                    <span class="fs-7 fw-semibold text-gray-700">Başarısız</span>
                                 </div>
                                 <div class="d-flex align-items-center">
-                                    <div class="rounded w-14px h-14px me-2" style="background:rgba(107,114,128,0.2);border:1px solid rgba(107,114,128,0.35);"></div>
-                                    <span class="fs-7 fw-semibold text-gray-600">İptal</span>
+                                    <div style="width:16px;height:16px;background:#6b7280;border-radius:3px;" class="me-2"></div>
+                                    <span class="fs-7 fw-semibold text-gray-700">İptal</span>
                                 </div>
                             </div>
                         </div>
