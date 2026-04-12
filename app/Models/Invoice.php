@@ -28,6 +28,11 @@ class Invoice extends Model
     protected static function boot()
     {
         parent::boot();
+        static::creating(function ($invoice) {
+            if (empty($invoice->share_token)) {
+                $invoice->share_token = base64_encode(random_bytes(32));
+            }
+        });
         static::created(function ($invoice) {
             if (static::$skipCreatedNotification) return;
             if ($invoice->user && $invoice->status === 'PENDING') {

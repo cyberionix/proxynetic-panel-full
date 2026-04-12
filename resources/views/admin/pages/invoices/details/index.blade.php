@@ -102,17 +102,19 @@
                                         <i class="fa fa-file-pdf me-1"></i>PDF
                                     </a>
                                 @endif
-                                <a href="{{route("admin.invoices.viewAsCustomer", ["invoice" => $invoice->id])}}"
+                                @if($invoice->share_token)
+                                <a href="{{route("public.invoice.show", ["token" => $invoice->share_token])}}"
                                    target="_blank"
                                    class="btn btn-sm btn-light-primary text-nowrap">
                                     <i class="fa fa-external-link-alt me-1"></i>Faturaya Git
                                 </a>
                                 <button type="button"
                                         class="btn btn-sm btn-light-info text-nowrap npShareLinkBtn"
-                                        data-link="{{route("portal.invoices.show", ["invoice" => $invoice->id])}}"
+                                        data-link="{{route("public.invoice.show", ["token" => $invoice->share_token])}}"
                                         title="Linki Kopyala">
                                     <i class="fa fa-copy me-1"></i>Paylaş
                                 </button>
+                                @endif
                             </div>
                             <!--end::Input group-->
                         </div>

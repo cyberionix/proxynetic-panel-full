@@ -222,5 +222,7 @@ Route::get('/kvkk-aydinlatma-metni', function () {
 })->name('web.gdpr');
 
 
+Route::get('/invoice', [\App\Http\Controllers\PublicInvoiceController::class, 'show'])->name('public.invoice.show');
+
 Route::get('/verify-email-otp/{email}/{code}', [\App\Http\Controllers\Portal\AuthController::class, 'verifyEmailOTP'])->name('auth.verify_email_otp');
 

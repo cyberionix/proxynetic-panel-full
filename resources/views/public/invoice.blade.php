@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fatura #{{ $invoice->invoice_number }} | {{ brand('title') }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f5f8fa; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        .invoice-card { max-width: 900px; margin: 30px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 20px rgba(0,0,0,0.08); overflow: hidden; }
+        .invoice-header { background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); color: #fff; padding: 30px 40px; }
+        .invoice-header .logo img { max-height: 40px; }
+        .invoice-body { padding: 30px 40px; }
+        .status-badge { font-size: 14px; padding: 6px 18px; border-radius: 20px; font-weight: 600; }
+        .status-paid { background: #d1fae5; color: #065f46; }
+        .status-pending { background: #fee2e2; color: #991b1b; }
+        .status-cancelled { background: #e5e7eb; color: #374151; }
+        .info-label { color: #6b7280; font-size: 13px; font-weight: 500; }
+        .info-value { color: #1f2937; font-size: 15px; font-weight: 600; }
+        .items-table th { background: #f9fafb; color: #6b7280; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .items-table td { color: #374151; font-size: 14px; }
+        .total-row { font-size: 18px; font-weight: 700; color: #1e3a5f; }
+        .bank-section { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 20px; }
+        .bank-section h5 { color: #0369a1; }
+        .copy-btn { cursor: pointer; color: #2563eb; transition: color 0.2s; }
+        .copy-btn:hover { color: #1d4ed8; }
+        .footer-text { text-align: center; color: #9ca3af; font-size: 12px; padding: 20px; }
+        @media (max-width: 576px) {
+            .invoice-header, .invoice-body { padding: 20px; }
+            .items-table { font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-card">
+        <div class="invoice-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <div class="logo mb-2">
+                    <img src="{{ url(brand('logo')) }}" alt="Logo" onerror="this.style.display='none'">
+                </div>
+                <div class="fs-4 fw-bold">Fatura #{{ $invoice->invoice_number }}</div>
+            </div>
+            <div class="text-end">
+                @if($invoice->status == 'PAID')
+                    <span class="status-badge status-paid"><i class="fa fa-check-circle me-1"></i>Ödendi</span>
+                @elseif($invoice->status == 'CANCELLED')
+                    <span class="status-badge status-cancelled"><i class="fa fa-ban me-1"></i>İptal Edildi</span>
+                @else
+                    <span class="status-badge status-pending"><i class="fa fa-clock me-1"></i>Ödeme Bekleniyor</span>
+                @endif
+            </div>
+        </div>
+
+        <div class="invoice-body">
+            <div class="row mb-4">
+                <div class="col-sm-6 mb-3">
+                    <div class="info-label mb-1">Düzenleyen</div>
+                    <div class="info-value">SAĞLAM PROXY YAZILIM LİMİTED ŞİRKETİ</div>
+                    <div class="text-muted" style="font-size:13px;">
+                        YAKUPLU MAH. HÜRRİYET BLV. SKYPORT Skyport Residence NO: 1 İÇ KAPI NO: 62<br>
+                        BEYLİKDÜZÜ / İSTANBUL<br>
+                        7381261591 - BEYLİKDÜZÜ V.D.
+                    </div>
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <div class="info-label mb-1">Müşteri</div>
+                    <div class="info-value">{{ $invoice->user?->full_name }}</div>
+                    @if($invoice->invoice_address)
+                        <div class="text-muted" style="font-size:13px;">
+                            {!! nl2br(e(@$invoice->invoice_address['address'] ?? '')) !!}
+                            @if(@$invoice->invoice_address['district']['title'] || @$invoice->invoice_address['city']['title'])
+                                <br>{{ @$invoice->invoice_address['district']['title'] }} / {{ @$invoice->invoice_address['city']['title'] }}
+                            @endif
+                            @if(@$invoice->invoice_address['tax_number'])
+                                <br>{{ @$invoice->invoice_address['tax_number'] }}
+                                @if(@$invoice->invoice_address['invoice_type'] == 'CORPORATE' && @$invoice->invoice_address['tax_office'])
+                                    - {{ @$invoice->invoice_address['tax_office'] }}
+                                @endif
+                            @endif
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-sm-4 mb-2">
+                    <div class="info-label">Fatura Tarihi</div>
+                    <div class="info-value">{{ $invoice->invoice_date?->format('d/m/Y') }}</div>
+                </div>
+                <div class="col-sm-4 mb-2">
+                    <div class="info-label">Son Ödeme Tarihi</div>
+                    <div class="info-value">{{ $invoice->due_date?->format('d/m/Y') ?? '-' }}</div>
+                </div>
+                <div class="col-sm-4 mb-2">
+                    <div class="info-label">Toplam Tutar</div>
+                    <div class="info-value fs-5">{{ showBalance($invoice->total_price_with_vat, true) }}</div>
+                </div>
+            </div>
+
+            <div class="table-responsive mb-4">
+                <table class="table items-table mb-0">
+                    <thead>
+                        <tr>
+                            <th class="border-0 ps-0">Ürün / Hizmet</th>
+                            <th class="border-0 text-end">Fiyat</th>
+                            <th class="border-0 text-end">KDV</th>
+                            <th class="border-0 text-end pe-0">Tutar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($invoice->items as $item)
+                            <tr>
+                                <td class="ps-0">{{ $item->name }}</td>
+                                <td class="text-end">{{ showBalance($item->total_price ?? 0, true) }}</td>
+                                <td class="text-end">%{{ $item->vat_percent ?? 0 }}</td>
+                                <td class="text-end pe-0 fw-bold">{{ showBalance($item->total_price_with_vat ?? 0, true) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-end mb-4">
+                <div style="min-width: 250px;">
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="text-muted">Ara Toplam:</span>
+                        <span class="fw-semibold">{{ showBalance($invoice->total_price, true) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="text-muted">KDV:</span>
+                        <span class="fw-semibold">{{ showBalance($invoice->total_vat, true) }}</span>
+                    </div>
+                    @if($invoice->discount_amount)
+                        <div class="d-flex justify-content-between py-1">
+                            <span class="text-muted">İndirim:</span>
+                            <span class="fw-semibold text-success">-{{ showBalance($invoice->discount_amount, true) }}</span>
+                        </div>
+                    @endif
+                    <hr class="my-2">
+                    <div class="d-flex justify-content-between total-row">
+                        <span>Toplam:</span>
+                        <span>{{ showBalance($invoice->total_price_with_vat, true) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            @if($invoice->status == 'PENDING')
+                <div class="bank-section mt-4">
+                    <h5 class="mb-3"><i class="fa fa-building-columns me-2"></i>Banka Hesap Bilgileri</h5>
+                    <p class="text-muted mb-3" style="font-size:13px;">Havale/EFT ile ödeme yapabilirsiniz. Açıklama kısmına adınızı soyadınızı yazmanız yeterlidir.</p>
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <td class="fw-bold text-end" style="width:130px;">Banka:</td>
+                            <td>QNB Finansbank A.Ş.</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-end">Hesap Sahibi:</td>
+                            <td>
+                                <span class="copy-btn" onclick="copyText('SAĞLAM PROXY YAZILIM HİZMETLERİ LTD ŞTİ')" title="Kopyala"><i class="fa fa-copy"></i></span>
+                                SAĞLAM PROXY YAZILIM HİZMETLERİ LTD ŞTİ
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-end">IBAN:</td>
+                            <td>
+                                <span class="copy-btn" onclick="copyText('TR110011111111114343123111')" title="Kopyala"><i class="fa fa-copy"></i></span>
+                                TR11 0011 1111 1111 4343 1231 11
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-end">Açıklama:</td>
+                            <td>
+                                <span class="copy-btn" onclick="copyText('{{ $invoice->user?->full_name }}')" title="Kopyala"><i class="fa fa-copy"></i></span>
+                                {{ mb_strtoupper($invoice->user?->full_name ?? '') }}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="text-center mt-4">
+                    <a href="{{ route('portal.invoices.show', ['invoice' => $invoice->id]) }}" class="btn btn-primary btn-lg px-5">
+                        <i class="fa fa-credit-card me-2"></i>Kredi Kartı ile Öde
+                    </a>
+                    <p class="text-muted mt-2" style="font-size:12px;">Kredi kartı ile ödeme için giriş yapmanız gerekmektedir.</p>
+                </div>
+            @endif
+        </div>
+
+        <div class="footer-text">
+            {{ brand('title') }} &copy; {{ date('Y') }}
+        </div>
+    </div>
+
+    <script>
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                alert('Kopyalandı: ' + text);
+            }).catch(function() {
+                var tmp = document.createElement('input');
+                document.body.appendChild(tmp);
+                tmp.value = text;
+                tmp.select();
+                document.execCommand('copy');
+                document.body.removeChild(tmp);
+                alert('Kopyalandı: ' + text);
+            });
+        }
+    </script>
+</body>
+</html>
