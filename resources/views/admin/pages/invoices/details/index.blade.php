@@ -296,13 +296,11 @@
                                     <tfoot>
                                     <tr class="border-top border-top-dashed align-top fs-6 fw-bold text-gray-700">
                                         <th>
-                                            <button type="button" class="btn btn-light-primary me-3 d-none"
-                                                    data-kt-element="add-item">
-														<span class="svg-icon svg-icon-2">
-															<i class="fa fa-plus"></i>
-														</span>
-                                                {{__("add")}}
-                                            </button>
+                                            @if($invoice->status === 'PENDING')
+                                                <button type="button" class="btn btn-light-primary btn-sm addItemBtn">
+                                                    <i class="fa fa-plus me-1"></i>Kalem Ekle
+                                                </button>
+                                            @endif
                                         </th>
                                         @php
                                             $itemDiscountTotal = $invoice->items->sum(function($i) {
@@ -1030,6 +1028,68 @@
                     }
                 });
             }
+
+            $(document).on('click', '.addItemBtn', function() {
+                Swal.fire({
+                    title: 'Yeni Kalem Ekle',
+                    html: `
+                        <div class="text-start">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Kalem Adı</label>
+                                <input type="text" id="swalItemName" class="form-control" placeholder="Ürün / hizmet adı">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Tutar (KDV Dahil)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">{{ defaultCurrencySymbol() }}</span>
+                                    <input type="number" id="swalItemAmount" class="form-control" step="0.01" min="0.01" placeholder="0,00">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">KDV Oranı (%)</label>
+                                <select id="swalItemVat" class="form-select">
+                                    @foreach(getVats() as $vat)
+                                        <option value="{{ $vat }}" {{ $vat == 20 ? 'selected' : '' }}>%{{ $vat }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Ekle',
+                    cancelButtonText: 'Vazgeç',
+                    preConfirm: function() {
+                        let name = $('#swalItemName').val().trim();
+                        let amount = parseFloat($('#swalItemAmount').val());
+                        let vat = $('#swalItemVat').val();
+                        if (!name) { Swal.showValidationMessage('Kalem adı giriniz.'); return false; }
+                        if (!amount || amount <= 0) { Swal.showValidationMessage('Geçerli bir tutar giriniz.'); return false; }
+                        return { name: name, amount: amount, vat_percent: vat };
+                    }
+                }).then(function(result) {
+                    if (result.isConfirmed && result.value) {
+                        $.ajax({
+                            type: 'POST',
+                            url: '{{ route("admin.invoices.addItem", ["invoice" => $invoice->id]) }}',
+                            dataType: 'json',
+                            data: {
+                                _token: '{{ csrf_token() }}',
+                                name: result.value.name,
+                                amount: result.value.amount,
+                                vat_percent: result.value.vat_percent
+                            },
+                            complete: function(data) {
+                                let res = data.responseJSON;
+                                if (res && res.success === true) {
+                                    Swal.fire({ title: '{{ __("success") }}', text: res.message, icon: 'success', timer: 1500, showConfirmButton: false }).then(() => window.location.reload());
+                                } else {
+                                    Swal.fire({ title: '{{ __("error") }}', text: res?.message ?? '', icon: 'error' });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
 
             $(document).on('click', '.globalDiscountBtn', function() {
                 showDiscountDialog(null);

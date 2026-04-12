@@ -229,6 +229,7 @@ dd($data->is_proxy || $data->is_vpn);
             Route::get('/pdf/{invoice}', [InvoiceController::class, 'showPdf'])->name('showPdf');
             Route::post('/split-item/{invoice}', [InvoiceController::class, "splitItem"])->name("splitItem");
             Route::post('/remove-item/{invoice}', [InvoiceController::class, "removeItem"])->name("removeItem");
+            Route::post('/add-item/{invoice}', [InvoiceController::class, "addItem"])->name("addItem");
             Route::post('/apply-discount/{invoice}', [InvoiceController::class, "applyDiscount"])->name("applyDiscount");
             Route::post('/remove-discount/{invoice}', [InvoiceController::class, "removeDiscount"])->name("removeDiscount");
             Route::post('/remove-item-discount/{invoice}', [InvoiceController::class, "removeItemDiscount"])->name("removeItemDiscount");
