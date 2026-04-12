@@ -18,10 +18,12 @@
         .status-cancelled { background: #e5e7eb; color: #374151; }
         .info-label { color: #6b7280; font-size: 13px; font-weight: 500; }
         .info-value { color: #1f2937; font-size: 15px; font-weight: 600; }
-        .items-table th { background: #f9fafb; color: #6b7280; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .items-table th { background: #1e3a5f; color: #fff; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 16px; }
         .items-table td { color: #374151; font-size: 14px; }
         .total-row { font-size: 18px; font-weight: 700; color: #1e3a5f; }
-        .footer-text { text-align: center; color: #9ca3af; font-size: 12px; padding: 20px; }
+        .footer-text { color: #9ca3af; font-size: 13px; padding: 20px 40px; }
+        .footer-text a { color: #2563eb; text-decoration: none; font-weight: 500; transition: color 0.2s; }
+        .footer-text a:hover { color: #1d4ed8; }
         @media (max-width: 576px) {
             .invoice-header, .invoice-body { padding: 20px; }
             .items-table { font-size: 12px; }
@@ -59,7 +61,7 @@
                         7381261591 - BEYLİKDÜZÜ V.D.
                     </div>
                 </div>
-                <div class="col-sm-6 mb-3">
+                <div class="col-sm-6 mb-3 text-sm-end">
                     <div class="info-label mb-1">Müşteri</div>
                     <div class="info-value">{{ $invoice->user?->full_name }}</div>
                     @if($invoice->invoice_address)
@@ -88,7 +90,7 @@
                     <div class="info-label">Son Ödeme Tarihi</div>
                     <div class="info-value">{{ $invoice->due_date?->format('d/m/Y') ?? '-' }}</div>
                 </div>
-                <div class="col-sm-4 mb-2">
+                <div class="col-sm-4 mb-2 text-sm-end">
                     <div class="info-label">Toplam Tutar</div>
                     <div class="info-value fs-5">{{ showBalance($invoice->total_price_with_vat, true) }}</div>
                 </div>
@@ -144,7 +146,7 @@
         </div>
 
         <div class="footer-text">
-            {{ brand('title') }} &copy; {{ date('Y') }}
+            <a href="{{ route('portal.dashboard') }}"><i class="fa fa-arrow-left me-1"></i>Müşteri paneline geri dön</a>
         </div>
     </div>
 
