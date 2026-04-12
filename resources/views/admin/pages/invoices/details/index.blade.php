@@ -126,54 +126,41 @@
                         <div class="mb-0">
                             <!--begin::Row-->
                             <div class="row gx-10 mb-9">
-                                <!--begin::Col-->
-                                <div class="col-lg-6">
-                                    <x-invoice-address-area/>
-                                </div>
-                                <!--end::Col-->
-                                <!--begin::Col-->
-                                <div class="col-lg-6 text-end customerInformation">
+                                <!--begin::Col - Müşteri (sol)-->
+                                <div class="col-lg-6 customerInformation">
                                     <div class="mb-1">
                                         <h6><a href="{{route('admin.users.show', ['user' => $invoice->user_id])}}" class="name text-hover-primary">{{$invoice->user?->fullName}}</a>
                                         </h6>
                                     </div>
-                                    <div class="text-end mb-2">
-                                                            <span
-                                                                class="badge badge-success cursor-pointer editAddressBtn">{{__("edit_:name", ["name" => __("address")])}}</span>
+                                    <div class="mb-2">
+                                        <span class="badge badge-success cursor-pointer editAddressBtn">{{__("edit_:name", ["name" => __("address")])}}</span>
                                     </div>
                                     <div class="mb-4 invoiceAddressArea">
-                                                            <span
-                                                                class="d-none invoice_type">{{@$invoice->invoice_address["invoice_type"]}}</span>
-                                        <span
-                                            class="address">{!! @$invoice->invoice_address["address"] !!}</span>
+                                        <span class="d-none invoice_type">{{@$invoice->invoice_address["invoice_type"]}}</span>
+                                        <span class="address">{!! @$invoice->invoice_address["address"] !!}</span>
                                         <div>
-                                                                <span
-                                                                    class="district">{{@$invoice->invoice_address["district"]["title"]}}</span>
-                                            <span
-                                                class="city">{{@$invoice->invoice_address["city"]["title"]}}</span>
+                                            <span class="district">{{@$invoice->invoice_address["district"]["title"]}}</span>
+                                            <span class="city">{{@$invoice->invoice_address["city"]["title"]}}</span>
                                         </div>
                                         <div>
-                                                                <span
-                                                                    class="country">{{@$invoice->invoice_address["country"]["title"]}}</span>
+                                            <span class="country">{{@$invoice->invoice_address["country"]["title"]}}</span>
                                         </div>
-                                        <div
-                                            class="{{@$invoice->invoice_address["invoice_type"] == "CORPORATE" ? "d-none" : ""}}">
-                                                                <span
-                                                                    class="identity_number">{{@$invoice->invoice_address["tax_number"]}}</span>
+                                        <div class="{{@$invoice->invoice_address["invoice_type"] == "CORPORATE" ? "d-none" : ""}}">
+                                            <span class="identity_number">{{@$invoice->invoice_address["tax_number"]}}</span>
                                         </div>
-                                        <div
-                                            class="{{@$invoice->invoice_address["invoice_type"] == "INDIVIDUAL" ? "d-none" : ""}}">
-                                                                <span
-                                                                    class="tax_number">{{@$invoice->invoice_address["tax_number"]}}</span>
-                                            <span
-                                                class="tax_office">{{@$invoice->invoice_address["tax_office"]}}</span>
+                                        <div class="{{@$invoice->invoice_address["invoice_type"] == "INDIVIDUAL" ? "d-none" : ""}}">
+                                            <span class="tax_number">{{@$invoice->invoice_address["tax_number"]}}</span>
+                                            <span class="tax_office">{{@$invoice->invoice_address["tax_office"]}}</span>
                                         </div>
-                                        <div
-                                            class="{{@$invoice->invoice_address["invoice_type"] == "INDIVIDUAL" ? "d-none" : ""}}">
-                                                                <span
-                                                                    class="company_name">{{@$invoice->invoice_address["company_name"]}}</span>
+                                        <div class="{{@$invoice->invoice_address["invoice_type"] == "INDIVIDUAL" ? "d-none" : ""}}">
+                                            <span class="company_name">{{@$invoice->invoice_address["company_name"]}}</span>
                                         </div>
                                     </div>
+                                </div>
+                                <!--end::Col-->
+                                <!--begin::Col - Düzenleyen (sağ)-->
+                                <div class="col-lg-6 text-end">
+                                    <x-invoice-address-area/>
                                 </div>
                                 <!--end::Col-->
                             </div>
