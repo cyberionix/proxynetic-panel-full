@@ -18,8 +18,11 @@
         .status-cancelled { background: #e5e7eb; color: #374151; }
         .info-label { color: #6b7280; font-size: 13px; font-weight: 500; }
         .info-value { color: #1f2937; font-size: 15px; font-weight: 600; }
-        .items-table th { background: #1e3a5f; color: #fff; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 16px; }
-        .items-table td { color: #374151; font-size: 14px; }
+        .items-table { border-collapse: separate; border-spacing: 0; }
+        .items-table th { background: #1e3a5f; color: #fff; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 20px; border: none; }
+        .items-table th:first-child { border-radius: 8px 0 0 8px; }
+        .items-table th:last-child { border-radius: 0 8px 8px 0; }
+        .items-table td { color: #374151; font-size: 14px; padding: 12px 20px; }
         .total-row { font-size: 18px; font-weight: 700; color: #1e3a5f; }
         .footer-text { color: #9ca3af; font-size: 13px; padding: 20px 40px; }
         .footer-text a { color: #2563eb; text-decoration: none; font-weight: 500; transition: color 0.2s; }
@@ -118,19 +121,19 @@
                 <table class="table items-table mb-0">
                     <thead>
                         <tr>
-                            <th class="border-0 ps-0">Ürün / Hizmet</th>
-                            <th class="border-0 text-end">Fiyat</th>
-                            <th class="border-0 text-end">KDV</th>
-                            <th class="border-0 text-end pe-0">Tutar</th>
+                            <th>Ürün / Hizmet</th>
+                            <th class="text-end">Fiyat</th>
+                            <th class="text-end">KDV</th>
+                            <th class="text-end">Tutar</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($invoice->items as $item)
                             <tr>
-                                <td class="ps-0">{{ $item->name }}</td>
+                                <td>{{ $item->name }}</td>
                                 <td class="text-end">{{ showBalance($item->total_price ?? 0, true) }}</td>
                                 <td class="text-end">%{{ $item->vat_percent ?? 0 }}</td>
-                                <td class="text-end pe-0 fw-bold">{{ showBalance($item->total_price_with_vat ?? 0, true) }}</td>
+                                <td class="text-end fw-bold">{{ showBalance($item->total_price_with_vat ?? 0, true) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
