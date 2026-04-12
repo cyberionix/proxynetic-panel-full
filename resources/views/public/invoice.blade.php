@@ -53,15 +53,6 @@
         <div class="invoice-body">
             <div class="row mb-4">
                 <div class="col-sm-6 mb-3">
-                    <div class="info-label mb-1">Düzenleyen</div>
-                    <div class="info-value">SAĞLAM PROXY YAZILIM LİMİTED ŞİRKETİ</div>
-                    <div class="text-muted" style="font-size:13px;">
-                        YAKUPLU MAH. HÜRRİYET BLV. SKYPORT Skyport Residence NO: 1 İÇ KAPI NO: 62<br>
-                        BEYLİKDÜZÜ / İSTANBUL<br>
-                        7381261591 - BEYLİKDÜZÜ V.D.
-                    </div>
-                </div>
-                <div class="col-sm-6 mb-3 text-sm-end">
                     <div class="info-label mb-1">Müşteri</div>
                     <div class="info-value">{{ $invoice->user?->full_name }}</div>
                     @if($invoice->invoice_address)
@@ -78,6 +69,15 @@
                             @endif
                         </div>
                     @endif
+                </div>
+                <div class="col-sm-6 mb-3 text-sm-end">
+                    <div class="info-label mb-1">Düzenleyen</div>
+                    <div class="info-value">SAĞLAM PROXY YAZILIM LİMİTED ŞİRKETİ</div>
+                    <div class="text-muted" style="font-size:13px;">
+                        YAKUPLU MAH. HÜRRİYET BLV. SKYPORT Skyport Residence NO: 1 İÇ KAPI NO: 62<br>
+                        BEYLİKDÜZÜ / İSTANBUL<br>
+                        7381261591 - BEYLİKDÜZÜ V.D.
+                    </div>
                 </div>
             </div>
 
