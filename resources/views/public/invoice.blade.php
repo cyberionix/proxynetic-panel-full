@@ -8,7 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         body { background: #f5f8fa; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-        .invoice-card { max-width: 1125px; margin: 30px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 20px rgba(0,0,0,0.08); overflow: hidden; }
+        .invoice-card { max-width: 900px; margin: 30px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 20px rgba(0,0,0,0.08); overflow: hidden; }
         .invoice-header { background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); color: #fff; padding: 30px 40px; }
         .invoice-header .logo img { max-height: 40px; }
         .invoice-body { padding: 30px 40px; }
