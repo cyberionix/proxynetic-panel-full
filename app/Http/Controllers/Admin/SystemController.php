@@ -1345,4 +1345,70 @@ class SystemController extends Controller
             return response()->json(['success' => false, 'message' => 'Hata: ' . $e->getMessage()]);
         }
     }
+
+    public function saveParasutSettings(Request $request)
+    {
+        try {
+            $envPath = base_path('.env');
+            $envContent = file_get_contents($envPath);
+
+            $vars = [
+                'PARASUT_CLIENT_ID'          => $request->input('parasut_client_id', ''),
+                'PARASUT_CLIENT_SECRET'      => $request->input('parasut_client_secret', ''),
+                'PARASUT_COMPANY_ID'         => $request->input('parasut_company_id', ''),
+                'PARASUT_USERNAME'           => $request->input('parasut_username', ''),
+                'PARASUT_PASSWORD'           => $request->input('parasut_password', ''),
+                'PARASUT_REDIRECT_URI'       => $request->input('parasut_redirect_uri', 'urn:ietf:wg:oauth:2.0:oob'),
+                'PARASUT_IS_STAGE'           => $request->has('parasut_is_stage') ? 'true' : 'false',
+                'PARASUT_ACCOUNT_ID'         => $request->input('parasut_account_id', ''),
+                'PARASUT_INVOICE_SERIES'     => $request->input('parasut_invoice_series', 'AIBC'),
+                'PARASUT_VAT_EXEMPTION_CODE' => $request->input('parasut_vat_exemption_code', '335'),
+                'PARASUT_AUTO_FORMALIZE'     => $request->has('parasut_auto_formalize') ? 'true' : 'false',
+                'PARASUT_FORMALIZE_DAYS'     => $request->input('parasut_formalize_days', '3'),
+            ];
+
+            foreach ($vars as $key => $value) {
+                $escaped = str_contains($value, ' ') ? '"' . $value . '"' : $value;
+                if (preg_match("/^{$key}=.*/m", $envContent)) {
+                    $envContent = preg_replace("/^{$key}=.*/m", "{$key}={$escaped}", $envContent);
+                } else {
+                    $envContent .= "\n{$key}={$escaped}";
+                }
+            }
+
+            file_put_contents($envPath, $envContent);
+
+            Artisan::call('config:clear');
+            Artisan::call('config:cache');
+
+            return response()->json(['success' => true, 'message' => 'Paraşüt ayarları kaydedildi.']);
+        } catch (\Throwable $e) {
+            Log::error('PARASUT_SETTINGS_SAVE_FAIL', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Hata: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function testParasutConnection(Request $request)
+    {
+        try {
+            $clientId = $request->input('parasut_client_id', config('parasut.connection.client_id'));
+            $clientSecret = $request->input('parasut_client_secret', config('parasut.connection.client_secret'));
+            $companyId = $request->input('parasut_company_id', config('parasut.connection.company_id'));
+            $username = $request->input('parasut_username', config('parasut.connection.username'));
+            $password = $request->input('parasut_password', config('parasut.connection.password'));
+            $redirectUri = $request->input('parasut_redirect_uri', config('parasut.connection.redirect_uri', 'urn:ietf:wg:oauth:2.0:oob'));
+            $isStage = $request->has('parasut_is_stage');
+
+            if (!$clientId || !$clientSecret || !$companyId || !$username || !$password) {
+                return response()->json(['success' => false, 'message' => 'Tüm API bilgileri doldurulmalıdır.']);
+            }
+
+            $client = new \yedincisenol\Parasut\Client($clientId, $clientSecret, $redirectUri, $username, $password, $companyId, $isStage);
+            $client->login();
+
+            return response()->json(['success' => true, 'message' => 'Paraşüt bağlantısı başarılı!']);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Bağlantı hatası: ' . $e->getMessage()]);
+        }
+    }
 }

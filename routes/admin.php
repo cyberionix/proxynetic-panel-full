@@ -69,6 +69,8 @@ Route::group(['prefix' => 'netAdmin', 'as' => 'admin.'], function () {
         Route::post('/telegram/save', [SystemController::class, 'saveTelegramSettings'])->name('telegramSave');
         Route::post('/telegram/test', [SystemController::class, 'testTelegram'])->name('telegramTest');
         Route::post('/telegram/find-chat-id', [SystemController::class, 'findTelegramChatId'])->name('telegramFindChatId');
+        Route::post('/parasut/save', [SystemController::class, 'saveParasutSettings'])->name('parasutSave');
+        Route::post('/parasut/test', [SystemController::class, 'testParasutConnection'])->name('parasutTest');
         Route::get('/test', function (\App\Library\EInvoiceManager $EInvoiceManager, \Illuminate\Http\Request $request) {
 
             $ipAddress = $request->ip();

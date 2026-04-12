@@ -16,6 +16,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('app:renew-orders')->everyFiveMinutes()->withoutOverlapping();
         $schedule->command('app:invoices-with-upcoming-due-dates')->everyFiveMinutes()->withoutOverlapping();
         $schedule->command('app:stop-service-on-unpaid-renew-invoices')->everyFiveMinutes()->withoutOverlapping();
+
+        $schedule->command('invoices:auto-formalize')->daily()->withoutOverlapping();
     }
 
     /**

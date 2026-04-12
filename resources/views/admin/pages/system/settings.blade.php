@@ -78,6 +78,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link pb-4" data-bs-toggle="tab" href="#system_settings_parasut_tab">
+                        <i class="fa fa-file-invoice me-2 text-success"></i>Paraşüt
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link pb-4" data-bs-toggle="tab" href="#system_settings_telegram_tab">
                         <i class="fa fa-paper-plane me-2"></i>Telegram
                     </a>
@@ -1349,6 +1354,176 @@
                 </div>
             </div>
 
+                {{-- Paraşüt Tab --}}
+                <div class="tab-pane fade" id="system_settings_parasut_tab" role="tabpanel">
+                    <form id="parasutSettingsForm">
+                        @csrf
+                        <div class="w-75 mx-auto">
+                            <div class="d-flex align-items-center mb-6">
+                                <i class="fa fa-file-invoice fs-2 text-success me-3"></i>
+                                <div>
+                                    <h3 class="fw-bold mb-0">Paraşüt E-Fatura Ayarları</h3>
+                                    <span class="text-muted fs-7">Paraşüt API bağlantı bilgileri ve e-fatura resmileştirme ayarları</span>
+                                </div>
+                            </div>
+
+                            <div class="separator my-5"></div>
+                            <h5 class="fw-bold text-gray-800 mb-4"><i class="fa fa-key me-2"></i>API Bağlantı Bilgileri</h5>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold required">Client ID</label>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="text" name="parasut_client_id" class="form-control form-control-solid"
+                                           value="{{ config('parasut.connection.client_id') }}" placeholder="Client ID" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold required">Client Secret</label>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="password" name="parasut_client_secret" class="form-control form-control-solid"
+                                           value="{{ config('parasut.connection.client_secret') }}" placeholder="Client Secret" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold required">Firma ID</label>
+                                    <div class="text-muted fs-8">Paraşüt Company ID</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="text" name="parasut_company_id" class="form-control form-control-solid"
+                                           value="{{ config('parasut.connection.company_id') }}" placeholder="656302">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold required">E-Posta</label>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="email" name="parasut_username" class="form-control form-control-solid"
+                                           value="{{ config('parasut.connection.username') }}" placeholder="mail@sirket.com" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold required">Parola</label>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="password" name="parasut_password" class="form-control form-control-solid"
+                                           value="{{ config('parasut.connection.password') }}" placeholder="••••••••" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Redirect URI</label>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="text" name="parasut_redirect_uri" class="form-control form-control-solid"
+                                           value="{{ config('parasut.connection.redirect_uri', 'urn:ietf:wg:oauth:2.0:oob') }}">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Test Modu</label>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="form-check form-switch form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="checkbox" name="parasut_is_stage" value="1"
+                                               {{ config('parasut.connection.is_stage') ? 'checked' : '' }}>
+                                        <label class="form-check-label fw-semibold">Stage/Test ortamı</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="separator my-5"></div>
+                            <h5 class="fw-bold text-gray-800 mb-4"><i class="fa fa-cog me-2"></i>Resmileştirme Ayarları</h5>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Faturaları Resmileştir</label>
+                                    <div class="text-muted fs-8">Fatura ödenme tarihi itibari ile kaç gün sonra otomatik olarak resmileştirilsin?</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="d-flex align-items-center gap-4 mb-3">
+                                        <div class="form-check form-check-custom form-check-solid">
+                                            <input class="form-check-input" type="radio" name="parasut_auto_formalize" value="1"
+                                                   id="parasutAutoOn" {{ config('parasut.auto_formalize') ? 'checked' : '' }}
+                                                   onchange="document.getElementById('parasutFormalizeDaysRow').style.display='flex'">
+                                            <label class="form-check-label fw-semibold" for="parasutAutoOn">Otomatik</label>
+                                        </div>
+                                        <div class="form-check form-check-custom form-check-solid">
+                                            <input class="form-check-input" type="radio" name="parasut_auto_formalize" value="0"
+                                                   id="parasutAutoOff" {{ !config('parasut.auto_formalize') ? 'checked' : '' }}
+                                                   onchange="document.getElementById('parasutFormalizeDaysRow').style.display='none'">
+                                            <label class="form-check-label fw-semibold" for="parasutAutoOff">Manuel</label>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-3" id="parasutFormalizeDaysRow"
+                                         style="{{ config('parasut.auto_formalize') ? '' : 'display:none' }}">
+                                        <span class="text-gray-600 fw-semibold">Otomatik Resmileştirme Günü</span>
+                                        <input type="number" name="parasut_formalize_days" class="form-control form-control-solid"
+                                               style="width:80px;" min="0" max="30"
+                                               value="{{ config('parasut.formalize_days', 3) }}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold required">Kdv Muafiyet Kodu</label>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="text" name="parasut_vat_exemption_code" class="form-control form-control-solid"
+                                           value="{{ config('parasut.vat_exemption_code', '335') }}" placeholder="335">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Kasa ID</label>
+                                    <div class="text-muted fs-8">Paraşüt ödeme kaydı için kasa hesap ID</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="text" name="parasut_account_id" class="form-control form-control-solid"
+                                           value="{{ config('parasut.account_id') }}" placeholder="1000230432">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Fatura ID Ön Ek</label>
+                                    <div class="text-muted fs-8">Paraşüt fatura serisi (invoice_series)</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="text" name="parasut_invoice_series" class="form-control form-control-solid"
+                                           value="{{ config('parasut.invoice_series', 'AIBC') }}" placeholder="AIBC">
+                                </div>
+                            </div>
+
+                            <div class="separator my-5"></div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-light-success" id="parasutTestBtn">
+                                    <i class="fa fa-plug me-1"></i>Bağlantıyı Test Et
+                                </button>
+                                <button type="submit" class="btn btn-primary" id="parasutSaveBtn">
+                                    <span class="indicator-label"><i class="fa fa-save me-1"></i>Kaydet</span>
+                                    <span class="indicator-progress">Kaydediliyor...<span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
                 {{-- Telegram Tab --}}
                 <div class="tab-pane fade" id="system_settings_telegram_tab" role="tabpanel">
                     <form id="telegramSettingsForm">
@@ -2458,6 +2633,60 @@
                     },
                     error: function(){ toastr.error('Silme hatası'); }
                 });
+            });
+        });
+
+        // Paraşüt Settings
+        $('#parasutSettingsForm').on('submit', function(e){
+            e.preventDefault();
+            var btn = document.getElementById('parasutSaveBtn');
+            btn.setAttribute('data-kt-indicator', 'on');
+            btn.disabled = true;
+
+            $.ajax({
+                url: '{{ route("netAdmin.settings.parasutSave") }}',
+                type: 'POST',
+                data: $(this).serialize(),
+                headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'},
+                success: function(res){
+                    btn.removeAttribute('data-kt-indicator');
+                    btn.disabled = false;
+                    if(res.success){
+                        toastr.success(res.message);
+                    } else {
+                        toastr.error(res.message);
+                    }
+                },
+                error: function(xhr){
+                    btn.removeAttribute('data-kt-indicator');
+                    btn.disabled = false;
+                    var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Bir hata oluştu.';
+                    toastr.error(msg);
+                }
+            });
+        });
+
+        $('#parasutTestBtn').on('click', function(){
+            var btn = $(this);
+            btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i>Test ediliyor...');
+            $.ajax({
+                url: '{{ route("netAdmin.settings.parasutTest") }}',
+                type: 'POST',
+                data: $('#parasutSettingsForm').serialize(),
+                headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'},
+                success: function(res){
+                    btn.prop('disabled', false).html('<i class="fa fa-plug me-1"></i>Bağlantıyı Test Et');
+                    if(res.success){
+                        toastr.success(res.message);
+                    } else {
+                        toastr.error(res.message);
+                    }
+                },
+                error: function(xhr){
+                    btn.prop('disabled', false).html('<i class="fa fa-plug me-1"></i>Bağlantıyı Test Et');
+                    var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Bir hata oluştu.';
+                    toastr.error(msg);
+                }
             });
         });
 
