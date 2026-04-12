@@ -231,6 +231,7 @@ dd($data->is_proxy || $data->is_vpn);
             Route::post('/remove-item/{invoice}', [InvoiceController::class, "removeItem"])->name("removeItem");
             Route::post('/apply-discount/{invoice}', [InvoiceController::class, "applyDiscount"])->name("applyDiscount");
             Route::post('/remove-discount/{invoice}', [InvoiceController::class, "removeDiscount"])->name("removeDiscount");
+            Route::post('/remove-item-discount/{invoice}', [InvoiceController::class, "removeItemDiscount"])->name("removeItemDiscount");
         });
         Route::group(['prefix' => 'coupons', 'as' => 'couponCodes.'], function () {
             Route::get('/', [CouponCodeController::class, "index"])->name("index");

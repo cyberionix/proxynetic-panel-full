@@ -957,6 +957,35 @@ class InvoiceController extends Controller
         return $this->successResponse("Faturaya {$label} indirim uygulandı. İndirim: " . showBalance($discountAmount, true));
     }
 
+    public function removeItemDiscount(Request $request, Invoice $invoice)
+    {
+        if ($invoice->status !== 'PENDING') {
+            return $this->errorResponse('Yalnızca bekleyen faturalarda indirim kaldırılabilir.');
+        }
+
+        $item = InvoiceItem::where('id', $request->input('item_id'))
+            ->where('invoice_id', $invoice->id)
+            ->first();
+
+        if (!$item) return $this->errorResponse('Kalem bulunamadı.');
+        if (!$item->original_price_with_vat) return $this->errorResponse('Bu kalemde indirim yok.');
+
+        $originalPriceWithVat = $item->original_price_with_vat;
+        $originalPrice = $originalPriceWithVat / (1 + ($item->vat_percent / 100));
+
+        $item->update([
+            'total_price' => round($originalPrice, 2),
+            'total_price_with_vat' => $originalPriceWithVat,
+            'discount_percent' => null,
+            'discount_coupon_text' => null,
+            'original_price_with_vat' => null,
+        ]);
+
+        $this->recalculateInvoiceTotals($invoice);
+
+        return $this->successResponse('Kalem indirimi kaldırıldı.');
+    }
+
     public function removeDiscount(Invoice $invoice)
     {
         if ($invoice->status !== 'PENDING') {

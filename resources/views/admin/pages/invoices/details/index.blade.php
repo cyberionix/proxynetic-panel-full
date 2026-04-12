@@ -203,19 +203,26 @@
                                                         class="badge badge-primary badge-sm">{{__("invoice_item_types.".mb_strtolower($item->type))}}</span>
                                                 </div>
                                                 @if($item->discount_percent)
-                                                    <div class="mt-1">
+                                                    <div class="mt-1 d-flex align-items-center gap-1 flex-wrap">
                                                         <span class="badge badge-light-success badge-sm">
-                                                            <i class="fa fa-percent fs-9 me-1"></i>%{{ number_format($item->discount_percent, 0) }} indirim
+                                                            <i class="fa fa-percent fs-9 me-1"></i>%{{ number_format($item->discount_percent, 0) }}
+                                                            @if($item->discount_coupon_text)
+                                                                ({{ $item->discount_coupon_text }})
+                                                            @endif
                                                         </span>
-                                                        @if($item->discount_coupon_text)
-                                                            <span class="badge badge-light-info badge-sm">
-                                                                <i class="fa fa-tag fs-9 me-1"></i>{{ $item->discount_coupon_text }}
-                                                            </span>
-                                                        @endif
                                                         @if($item->original_price_with_vat)
-                                                            <span class="text-muted text-decoration-line-through fs-8 ms-1">
+                                                            <span class="text-muted text-decoration-line-through fs-8">
                                                                 {{ showBalance($item->original_price_with_vat, true) }}
                                                             </span>
+                                                        @endif
+                                                        @if($invoice->status === 'PENDING')
+                                                            <button type="button"
+                                                                    class="btn btn-icon btn-sm btn-light-danger removeItemDiscountBtn"
+                                                                    data-item-id="{{$item->id}}"
+                                                                    title="İndirimi kaldır"
+                                                                    style="width:18px;height:18px;min-width:18px;">
+                                                                <i class="fa fa-times" style="font-size:8px;"></i>
+                                                            </button>
                                                         @endif
                                                     </div>
                                                 @endif
@@ -1030,6 +1037,35 @@
 
             $(document).on('click', '.itemDiscountBtn', function() {
                 showDiscountDialog($(this).data('item-id'));
+            });
+
+            $(document).on('click', '.removeItemDiscountBtn', function() {
+                var itemId = $(this).data('item-id');
+                Swal.fire({
+                    title: 'Kalem İndirimi Kaldır',
+                    text: 'Bu kalemdeki indirimi kaldırmak istediğinize emin misiniz?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, kaldır',
+                    cancelButtonText: 'Vazgeç'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            type: 'POST',
+                            url: '{{ route("admin.invoices.removeItemDiscount", ["invoice" => $invoice->id]) }}',
+                            dataType: 'json',
+                            data: { _token: '{{ csrf_token() }}', item_id: itemId },
+                            complete: function(data) {
+                                let res = data.responseJSON;
+                                if (res && res.success === true) {
+                                    Swal.fire({ title: '{{ __("success") }}', text: res.message, icon: 'success', timer: 1500, showConfirmButton: false }).then(() => window.location.reload());
+                                } else {
+                                    Swal.fire({ title: '{{ __("error") }}', text: res?.message ?? '', icon: 'error' });
+                                }
+                            }
+                        });
+                    }
+                });
             });
 
             $(document).on('click', '.removeDiscountBtn', function() {
