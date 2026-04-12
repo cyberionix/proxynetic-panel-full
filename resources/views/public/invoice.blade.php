@@ -21,10 +21,6 @@
         .items-table th { background: #f9fafb; color: #6b7280; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
         .items-table td { color: #374151; font-size: 14px; }
         .total-row { font-size: 18px; font-weight: 700; color: #1e3a5f; }
-        .bank-section { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 20px; }
-        .bank-section h5 { color: #0369a1; }
-        .copy-btn { cursor: pointer; color: #2563eb; transition: color 0.2s; }
-        .copy-btn:hover { color: #1d4ed8; }
         .footer-text { text-align: center; color: #9ca3af; font-size: 12px; padding: 20px; }
         @media (max-width: 576px) {
             .invoice-header, .invoice-body { padding: 20px; }
@@ -145,46 +141,6 @@
                 </div>
             </div>
 
-            @if($invoice->status == 'PENDING')
-                <div class="bank-section mt-4">
-                    <h5 class="mb-3"><i class="fa fa-building-columns me-2"></i>Banka Hesap Bilgileri</h5>
-                    <p class="text-muted mb-3" style="font-size:13px;">Havale/EFT ile ödeme yapabilirsiniz. Açıklama kısmına adınızı soyadınızı yazmanız yeterlidir.</p>
-                    <table class="table table-sm table-borderless mb-0">
-                        <tr>
-                            <td class="fw-bold text-end" style="width:130px;">Banka:</td>
-                            <td>QNB Finansbank A.Ş.</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-end">Hesap Sahibi:</td>
-                            <td>
-                                <span class="copy-btn" onclick="copyText('SAĞLAM PROXY YAZILIM HİZMETLERİ LTD ŞTİ')" title="Kopyala"><i class="fa fa-copy"></i></span>
-                                SAĞLAM PROXY YAZILIM HİZMETLERİ LTD ŞTİ
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-end">IBAN:</td>
-                            <td>
-                                <span class="copy-btn" onclick="copyText('TR110011111111114343123111')" title="Kopyala"><i class="fa fa-copy"></i></span>
-                                TR11 0011 1111 1111 4343 1231 11
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-end">Açıklama:</td>
-                            <td>
-                                <span class="copy-btn" onclick="copyText('{{ $invoice->user?->full_name }}')" title="Kopyala"><i class="fa fa-copy"></i></span>
-                                {{ mb_strtoupper($invoice->user?->full_name ?? '') }}
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-
-                <div class="text-center mt-4">
-                    <a href="{{ route('portal.invoices.show', ['invoice' => $invoice->id]) }}" class="btn btn-primary btn-lg px-5">
-                        <i class="fa fa-credit-card me-2"></i>Kredi Kartı ile Öde
-                    </a>
-                    <p class="text-muted mt-2" style="font-size:12px;">Kredi kartı ile ödeme için giriş yapmanız gerekmektedir.</p>
-                </div>
-            @endif
         </div>
 
         <div class="footer-text">
@@ -192,20 +148,5 @@
         </div>
     </div>
 
-    <script>
-        function copyText(text) {
-            navigator.clipboard.writeText(text).then(function() {
-                alert('Kopyalandı: ' + text);
-            }).catch(function() {
-                var tmp = document.createElement('input');
-                document.body.appendChild(tmp);
-                tmp.value = text;
-                tmp.select();
-                document.execCommand('copy');
-                document.body.removeChild(tmp);
-                alert('Kopyalandı: ' + text);
-            });
-        }
-    </script>
 </body>
 </html>
