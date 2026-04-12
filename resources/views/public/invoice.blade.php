@@ -140,25 +140,27 @@
                 </table>
             </div>
 
-            <div class="summary-section mb-4">
-                <div class="d-flex justify-content-between py-2">
-                    <span class="text-muted">Ara Toplam:</span>
-                    <span class="fw-semibold">{{ showBalance($invoice->total_price, true) }}</span>
-                </div>
-                <div class="d-flex justify-content-between py-2">
-                    <span class="text-muted">KDV:</span>
-                    <span class="fw-semibold">{{ showBalance($invoice->total_vat, true) }}</span>
-                </div>
-                @if($invoice->discount_amount)
+            <div class="d-flex justify-content-end mb-4">
+                <div class="summary-section" style="min-width: 300px;">
                     <div class="d-flex justify-content-between py-2">
-                        <span class="text-muted">İndirim:</span>
-                        <span class="fw-semibold text-success">-{{ showBalance($invoice->discount_amount, true) }}</span>
+                        <span class="text-muted">Ara Toplam:</span>
+                        <span class="fw-semibold">{{ showBalance($invoice->total_price, true) }}</span>
                     </div>
-                @endif
-                <hr class="my-1">
-                <div class="d-flex justify-content-between total-row py-2">
-                    <span>Toplam:</span>
-                    <span>{{ showBalance($invoice->total_price_with_vat, true) }}</span>
+                    <div class="d-flex justify-content-between py-2">
+                        <span class="text-muted">KDV:</span>
+                        <span class="fw-semibold">{{ showBalance($invoice->total_vat, true) }}</span>
+                    </div>
+                    @if($invoice->discount_amount)
+                        <div class="d-flex justify-content-between py-2">
+                            <span class="text-muted">İndirim:</span>
+                            <span class="fw-semibold text-success">-{{ showBalance($invoice->discount_amount, true) }}</span>
+                        </div>
+                    @endif
+                    <hr class="my-1">
+                    <div class="d-flex justify-content-between total-row py-2">
+                        <span>Toplam:</span>
+                        <span>{{ showBalance($invoice->total_price_with_vat, true) }}</span>
+                    </div>
                 </div>
             </div>
 
