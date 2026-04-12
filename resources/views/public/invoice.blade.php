@@ -23,6 +23,7 @@
         .items-table th:first-child { border-radius: 8px 0 0 8px; }
         .items-table th:last-child { border-radius: 0 8px 8px 0; }
         .items-table td { color: #374151; font-size: 14px; padding: 12px 20px; }
+        .summary-section { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 20px; }
         .total-row { font-size: 18px; font-weight: 700; color: #1e3a5f; }
         .footer-text { color: #9ca3af; font-size: 13px; padding: 20px 40px; }
         .footer-text a { color: #2563eb; text-decoration: none; font-weight: 500; transition: color 0.2s; }
@@ -140,27 +141,25 @@
                 </table>
             </div>
 
-            <div class="d-flex justify-content-end mb-4">
-                <div style="min-width: 250px;">
-                    <div class="d-flex justify-content-between py-1">
-                        <span class="text-muted">Ara Toplam:</span>
-                        <span class="fw-semibold">{{ showBalance($invoice->total_price, true) }}</span>
+            <div class="summary-section mb-4">
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Ara Toplam:</span>
+                    <span class="fw-semibold">{{ showBalance($invoice->total_price, true) }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">KDV:</span>
+                    <span class="fw-semibold">{{ showBalance($invoice->total_vat, true) }}</span>
+                </div>
+                @if($invoice->discount_amount)
+                    <div class="d-flex justify-content-between py-2">
+                        <span class="text-muted">İndirim:</span>
+                        <span class="fw-semibold text-success">-{{ showBalance($invoice->discount_amount, true) }}</span>
                     </div>
-                    <div class="d-flex justify-content-between py-1">
-                        <span class="text-muted">KDV:</span>
-                        <span class="fw-semibold">{{ showBalance($invoice->total_vat, true) }}</span>
-                    </div>
-                    @if($invoice->discount_amount)
-                        <div class="d-flex justify-content-between py-1">
-                            <span class="text-muted">İndirim:</span>
-                            <span class="fw-semibold text-success">-{{ showBalance($invoice->discount_amount, true) }}</span>
-                        </div>
-                    @endif
-                    <hr class="my-2">
-                    <div class="d-flex justify-content-between total-row">
-                        <span>Toplam:</span>
-                        <span>{{ showBalance($invoice->total_price_with_vat, true) }}</span>
-                    </div>
+                @endif
+                <hr class="my-1">
+                <div class="d-flex justify-content-between total-row py-2">
+                    <span>Toplam:</span>
+                    <span>{{ showBalance($invoice->total_price_with_vat, true) }}</span>
                 </div>
             </div>
 
