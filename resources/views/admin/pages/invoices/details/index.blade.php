@@ -297,8 +297,8 @@
                                     <tr class="border-top border-top-dashed align-top fs-6 fw-bold text-gray-700">
                                         <th>
                                             @if($invoice->status === 'PENDING')
-                                                <button type="button" class="btn btn-light-primary btn-sm addItemBtn">
-                                                    <i class="fa fa-plus me-1"></i>Kalem Ekle
+                                                <button type="button" class="btn btn-icon btn-sm btn-light-primary addItemBtn" title="Kalem Ekle">
+                                                    <i class="fa fa-plus fs-7"></i>
                                                 </button>
                                             @endif
                                         </th>
@@ -1030,63 +1030,88 @@
             }
 
             $(document).on('click', '.addItemBtn', function() {
-                Swal.fire({
-                    title: 'Yeni Kalem Ekle',
-                    html: `
-                        <div class="text-start">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Kalem Adı</label>
-                                <input type="text" id="swalItemName" class="form-control" placeholder="Ürün / hizmet adı">
+                var vatOptions = '';
+                @foreach(getVats() as $vat)
+                    vatOptions += '<option value="{{ $vat }}" {{ $vat == 20 ? "selected" : "" }}>{{ $vat }}</option>';
+                @endforeach
+
+                var newRow = `
+                    <tr class="border-bottom border-bottom-dashed newItemRow" data-kt-element="item">
+                        <td>
+                            <div class="mt-3">
+                                <input type="text" class="form-control form-control-sm newItemName" placeholder="Kalem adı giriniz..." autofocus>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Tutar (KDV Dahil)</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">{{ defaultCurrencySymbol() }}</span>
-                                    <input type="number" id="swalItemAmount" class="form-control" step="0.01" min="0.01" placeholder="0,00">
-                                </div>
+                            <input type="hidden" name="invoice_item[id][]" value="new">
+                        </td>
+                        <td>
+                            <div class="w-125px">
+                                <input class="form-control text-end priceInput newItemPrice" data-kt-element="price" value="" name="invoice_item[price][]" placeholder="0,00" type="text">
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">KDV Oranı (%)</label>
-                                <select id="swalItemVat" class="form-select">
-                                    @foreach(getVats() as $vat)
-                                        <option value="{{ $vat }}" {{ $vat == 20 ? 'selected' : '' }}>%{{ $vat }}</option>
-                                    @endforeach
+                        </td>
+                        <td>
+                            <div class="w-75px">
+                                <select class="form-select newItemVat" data-kt-element="vat_percent" name="invoice_item[vat_percent][]">
+                                    ${vatOptions}
                                 </select>
                             </div>
-                        </div>
-                    `,
-                    showCancelButton: true,
-                    confirmButtonText: 'Ekle',
-                    cancelButtonText: 'Vazgeç',
-                    preConfirm: function() {
-                        let name = $('#swalItemName').val().trim();
-                        let amount = parseFloat($('#swalItemAmount').val());
-                        let vat = $('#swalItemVat').val();
-                        if (!name) { Swal.showValidationMessage('Kalem adı giriniz.'); return false; }
-                        if (!amount || amount <= 0) { Swal.showValidationMessage('Geçerli bir tutar giriniz.'); return false; }
-                        return { name: name, amount: amount, vat_percent: vat };
-                    }
-                }).then(function(result) {
-                    if (result.isConfirmed && result.value) {
-                        $.ajax({
-                            type: 'POST',
-                            url: '{{ route("admin.invoices.addItem", ["invoice" => $invoice->id]) }}',
-                            dataType: 'json',
-                            data: {
-                                _token: '{{ csrf_token() }}',
-                                name: result.value.name,
-                                amount: result.value.amount,
-                                vat_percent: result.value.vat_percent
-                            },
-                            complete: function(data) {
-                                let res = data.responseJSON;
-                                if (res && res.success === true) {
-                                    Swal.fire({ title: '{{ __("success") }}', text: res.message, icon: 'success', timer: 1500, showConfirmButton: false }).then(() => window.location.reload());
-                                } else {
-                                    Swal.fire({ title: '{{ __("error") }}', text: res?.message ?? '', icon: 'error' });
-                                }
-                            }
-                        });
+                        </td>
+                        <td>
+                            <div class="input-group mb-5">
+                                <span class="input-group-text">{{ defaultCurrencySymbol() }}</span>
+                                <input class="form-control priceInput newItemAmount" data-kt-element="total" value="" name="invoice_item[amount][]" placeholder="0,00" type="text">
+                            </div>
+                        </td>
+                        <td>
+                            <div class="mt-1 d-flex gap-1">
+                                <button type="button" class="btn btn-sm btn-icon btn-light-success saveNewItemBtn" title="Kaydet">
+                                    <i class="fa fa-check fs-7"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-icon btn-light-danger cancelNewItemBtn" title="İptal">
+                                    <i class="fa fa-times fs-7"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                $('#invoiceItemTable tbody').append(newRow);
+                $('#invoiceItemTable tbody .newItemRow:last .newItemName').focus();
+            });
+
+            $(document).on('click', '.cancelNewItemBtn', function() {
+                $(this).closest('.newItemRow').remove();
+            });
+
+            $(document).on('click', '.saveNewItemBtn', function() {
+                var row = $(this).closest('.newItemRow');
+                var name = row.find('.newItemName').val().trim();
+                var amount = row.find('.newItemAmount').val().replace(',', '.');
+                var vat = row.find('.newItemVat').val();
+
+                if (!name) { toastr.error('Kalem adı giriniz.'); return; }
+                if (!amount || parseFloat(amount) <= 0) { toastr.error('Geçerli bir tutar giriniz.'); return; }
+
+                var btn = $(this);
+                btn.prop('disabled', true);
+
+                $.ajax({
+                    type: 'POST',
+                    url: '{{ route("admin.invoices.addItem", ["invoice" => $invoice->id]) }}',
+                    dataType: 'json',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        name: name,
+                        amount: parseFloat(amount),
+                        vat_percent: vat
+                    },
+                    complete: function(data) {
+                        let res = data.responseJSON;
+                        if (res && res.success === true) {
+                            toastr.success(res.message);
+                            window.location.reload();
+                        } else {
+                            toastr.error(res?.message ?? 'Hata oluştu');
+                            btn.prop('disabled', false);
+                        }
                     }
                 });
             });
