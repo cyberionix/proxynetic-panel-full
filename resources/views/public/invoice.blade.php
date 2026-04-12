@@ -87,6 +87,20 @@
                         BEYLİKDÜZÜ / İSTANBUL<br>
                         7381261591 - BEYLİKDÜZÜ V.D.
                     </div>
+                    <div class="mt-3" style="font-size:13px;">
+                        <div class="d-flex justify-content-sm-end gap-3 mb-1">
+                            <span class="text-muted">Fatura Tarihi:</span>
+                            <span class="info-value" style="font-size:13px;">{{ $invoice->invoice_date?->format('d/m/Y') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-sm-end gap-3 mb-1">
+                            <span class="text-muted">Son Ödeme Tarihi:</span>
+                            <span class="info-value" style="font-size:13px;">{{ $invoice->due_date?->format('d/m/Y') ?? '-' }}</span>
+                        </div>
+                        <div class="d-flex justify-content-sm-end gap-3">
+                            <span class="text-muted">Toplam Tutar:</span>
+                            <span class="info-value" style="font-size:15px; color:#1e3a5f;">{{ showBalance($invoice->total_price_with_vat, true) }}</span>
+                        </div>
+                    </div>
                     <div class="mt-3 d-flex gap-2 justify-content-sm-end flex-wrap action-buttons">
                         <button type="button" class="btn btn-sm btn-outline-primary" onclick="shareInvoice()">
                             <i class="fa fa-share-nodes me-1"></i>Paylaş
@@ -100,21 +114,6 @@
                         </a>
                         @endif
                     </div>
-                </div>
-            </div>
-
-            <div class="row mb-4">
-                <div class="col-sm-4 mb-2">
-                    <div class="info-label">Fatura Tarihi</div>
-                    <div class="info-value">{{ $invoice->invoice_date?->format('d/m/Y') }}</div>
-                </div>
-                <div class="col-sm-4 mb-2">
-                    <div class="info-label">Son Ödeme Tarihi</div>
-                    <div class="info-value">{{ $invoice->due_date?->format('d/m/Y') ?? '-' }}</div>
-                </div>
-                <div class="col-sm-4 mb-2 text-sm-end">
-                    <div class="info-label">Toplam Tutar</div>
-                    <div class="info-value fs-5">{{ showBalance($invoice->total_price_with_vat, true) }}</div>
                 </div>
             </div>
 
