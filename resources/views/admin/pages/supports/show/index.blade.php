@@ -45,6 +45,9 @@
                             <!--end::Input-->
                         </div>
                         <div class="col-xl-6 text-end">
+                            @if($support->status !== 'RESOLVED')
+                                <button class="btn btn-success btn-sm resolveBtn" data-url="{{route("admin.supports.resolve", ["support" => $support->id])}}" data-swal-text="Destek talebini çözümlendi olarak işaretlemek istediğinize emin misiniz?"><i class="fa fa-check-circle me-1"></i>Çözümlendi</button>
+                            @endif
                             @if($support->is_locked == 1)
                                 <button class="btn btn-danger btn-sm lockBtn" data-url="{{route("admin.supports.unlock", ["support" => $support->id])}}" data-swal-text="Destek Talebinin kilidini kaldırmak istediğinize emin misiniz?"><i class="fa fa-lock-open me-1"></i>Kilidi Kaldır</button>
                             @else
@@ -541,7 +544,7 @@
                     });
                 }
             })
-            $(document).on("click", ".lockBtn, .deleteBtn", function () {
+            $(document).on("click", ".lockBtn, .deleteBtn, .resolveBtn", function () {
                 let element = $(this),
                     ajaxUrl = element.data("url"),
                     swalText = element.data("swal-text"),

@@ -227,6 +227,15 @@ class SupportController extends Controller
         if (!$save) return $this->errorResponse(__("error_response"));
         return $this->successResponse("Destek talebi kilidi açıldı.");
     }
+    public function resolve(Support $support)
+    {
+        $save = $support->update([
+            "status" => "RESOLVED"
+        ]);
+        if (!$save) return $this->errorResponse(__("error_response"));
+        return $this->successResponse("Destek talebi çözümlendi olarak işaretlendi.");
+    }
+
     public function delete(Support $support)
     {
         $save = $support->delete();
