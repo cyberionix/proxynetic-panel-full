@@ -67,6 +67,11 @@
                             <span class="fw-bold">{{__("total_amount")}}:</span>
                             <span class="fw-semibold">{{showBalance($order->getTotalAmount() ?? 0, true)}}</span>
                         </div>
+                        <div class="col-12 mt-3">
+                            <button type="button" class="btn btn-primary btn-sm w-100" id="createRenewalInvoiceBtn">
+                                <i class="fa fa-file-invoice me-2"></i>Faturalandır
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <!--end::Card body-->
@@ -1421,6 +1426,54 @@
                     }
                 })
             })
+
+            $(document).on('click', '#createRenewalInvoiceBtn', function() {
+                var btn = $(this);
+                Swal.fire({
+                    title: 'Faturalandır',
+                    text: 'Bu sipariş için yenileme faturası oluşturmak istediğinize emin misiniz?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, oluştur',
+                    cancelButtonText: 'Vazgeç'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            type: 'POST',
+                            url: '{{ route("admin.orders.createRenewalInvoice", ["order" => $order->id]) }}',
+                            dataType: 'json',
+                            data: { _token: '{{ csrf_token() }}' },
+                            beforeSend: function() {
+                                propSubmitButton(btn, 1);
+                                alerts.wait.fire();
+                            },
+                            complete: function(data) {
+                                propSubmitButton(btn, 0);
+                                var res = data.responseJSON;
+                                if (res && res.success === true) {
+                                    Swal.fire({
+                                        title: '{{ __("success") }}',
+                                        text: res.message || '',
+                                        icon: 'success',
+                                        confirmButtonText: 'Faturaya Git',
+                                        showCancelButton: true,
+                                        cancelButtonText: 'Kapat'
+                                    }).then(function(r) {
+                                        if (r.isConfirmed && res.redirectUrl) {
+                                            window.location.href = res.redirectUrl;
+                                        }
+                                    });
+                                } else {
+                                    alerts.error.fire({
+                                        title: '{{ __("error") }}',
+                                        text: res?.message ?? ''
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
 
             @if($order->isPProxyUDelivery())
             $('#ppuEditToggleBtn').on('click', function(){

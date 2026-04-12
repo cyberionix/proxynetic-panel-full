@@ -848,6 +848,88 @@ class OrderController extends Controller
         return response()->json(['success' => true, 'message' => "{$count} sipariş işlem gördü."]);
     }
 
+    public function createRenewalInvoice(Order $order)
+    {
+        $order->loadMissing(['product', 'user', 'activeDetail']);
+
+        if (!$order->activeDetail || !$order->activeDetail->price) {
+            return $this->errorResponse('Bu siparişe ait aktif fiyat bilgisi bulunamadı.');
+        }
+
+        $hasPending = InvoiceItem::where('type', 'RENEW')
+            ->where('order_id', $order->id)
+            ->whereHas('invoice', fn($q) => $q->where('status', 'PENDING'))
+            ->exists();
+
+        if ($hasPending) {
+            return $this->errorResponse('Bu sipariş için zaten bekleyen bir yenileme faturası mevcut.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $priceData = $order->activeDetail->price->toArray();
+            unset($priceData['deleted_at'], $priceData['created_at'], $priceData['updated_at']);
+
+            $priceData['price'] = $order->activeDetail->price->price_without_vat;
+            $priceData['total_vat'] = ($priceData['price'] * $order->product->vat_percent) / 100;
+            $priceData['price_with_vat'] = $priceData['price'] + $priceData['total_vat'];
+
+            $durationUnit = $priceData['duration_unit'] ?? 'MONTHLY';
+
+            $additionalServices = null;
+            foreach ($order->getAllActiveDetailsAdditionalServices() as $service) {
+                if (isset($service['renew']) && $service['renew']) {
+                    $additionalServices[] = getAdditionalServices($order->product, $service['name'], $service['value']);
+                }
+            }
+
+            Invoice::$skipCreatedNotification = true;
+            $invoice = Invoice::create([
+                'invoice_number' => Invoice::generateInvoiceNumber(),
+                'invoice_date' => Carbon::now(),
+                'due_date' => $order->end_date ?? Carbon::now()->addWeek(),
+                'status' => 'PENDING',
+                'total_price' => $priceData['price'],
+                'total_vat' => $priceData['total_vat'],
+                'total_price_with_vat' => $priceData['price_with_vat'],
+                'user_id' => $order->user_id,
+            ]);
+            Invoice::$skipCreatedNotification = false;
+
+            $orderDetail = OrderDetail::create([
+                'order_id' => $order->id,
+                'is_active' => 0,
+                'price_data' => $priceData,
+                'price_id' => $order->activeDetail->price_id,
+                'additional_services' => $additionalServices,
+            ]);
+
+            InvoiceItem::create([
+                'type' => 'RENEW',
+                'name' => $order->product->name . ' | ' . $priceData['duration'] . ' ' . __(mb_strtolower($durationUnit)),
+                'total_price' => $priceData['price'],
+                'vat_percent' => $order->product->vat_percent,
+                'total_price_with_vat' => $priceData['price_with_vat'],
+                'product_id' => $order->product_id,
+                'price_id' => $order->activeDetail->price_id,
+                'order_id' => $order->id,
+                'order_detail_id' => $orderDetail->id,
+                'invoice_id' => $invoice->id,
+            ]);
+
+            DB::commit();
+
+            return $this->successResponse(
+                "Yenileme faturası #{$invoice->invoice_number} başarıyla oluşturuldu.",
+                ['redirectUrl' => route('admin.invoices.show', ['invoice' => $invoice->id])]
+            );
+        } catch (\Exception $e) {
+            Invoice::$skipCreatedNotification = false;
+            DB::rollback();
+            return $this->errorResponse('Fatura oluşturulurken hata: ' . $e->getMessage());
+        }
+    }
+
     public function delete(Order $order)
     {
         $order->deleteServiceAndRevoke();
