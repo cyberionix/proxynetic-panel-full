@@ -32,11 +32,16 @@
             .invoice-header, .invoice-body { padding: 20px; }
             .items-table { font-size: 12px; }
         }
+        .logo-print { display: none; }
         .payment-section { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px; padding: 24px; }
         .payment-tabs .btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
         @media print {
             body { background: #fff; }
             .invoice-card { box-shadow: none; margin: 0; border-radius: 0; }
+            .invoice-header { background: #fff !important; color: #1e3a5f !important; border-bottom: 2px solid #e5e7eb; }
+            .status-badge { border: 1px solid currentColor; }
+            .logo-screen { display: none !important; }
+            .logo-print { display: inline !important; }
             .footer-text, .action-buttons, .payment-section { display: none !important; }
         }
     </style>
@@ -46,7 +51,8 @@
         <div class="invoice-header d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
                 <div class="logo mb-2">
-                    <img src="{{ url(brand('logo')) }}" alt="Logo" onerror="this.style.display='none'">
+                    <img src="{{ url(brand('logo')) }}" alt="Logo" class="logo-screen" onerror="this.style.display='none'">
+                    <img src="{{ url(brand('logo_dark')) }}" alt="Logo" class="logo-print" onerror="this.style.display='none'">
                 </div>
                 <div class="fs-4 fw-bold">Fatura #{{ $invoice->invoice_number }}</div>
             </div>
