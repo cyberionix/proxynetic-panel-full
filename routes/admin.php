@@ -355,6 +355,8 @@ dd($data->is_proxy || $data->is_vpn);
             Route::post('/lock/{support}', [SupportController::class, 'lock'])->name("lock");
             Route::post('/unlock/{support}', [SupportController::class, 'unlock'])->name("unlock");
             Route::post('/resolve/{support}', [SupportController::class, 'resolve'])->name("resolve");
+            Route::post('/change-order/{support}', [SupportController::class, 'changeOrder'])->name("changeOrder");
+            Route::get('/user-orders/{user}', [SupportController::class, 'getUserOrders'])->name("getUserOrders");
             Route::post('/delete/{support}', [SupportController::class, 'delete'])->name("delete");
         });
 

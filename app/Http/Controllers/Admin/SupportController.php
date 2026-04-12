@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SmsLog;
 use App\Models\Support;
 use App\Models\SupportMessage;
+use App\Models\User;
 use App\Services\SupportAutoReplyService;
 use App\Traits\AjaxResponses;
 use Illuminate\Http\Request;
@@ -234,6 +235,45 @@ class SupportController extends Controller
         ]);
         if (!$save) return $this->errorResponse(__("error_response"));
         return $this->successResponse("Destek talebi çözümlendi olarak işaretlendi.");
+    }
+
+    public function getUserOrders(User $user)
+    {
+        $orders = $user->orders()
+            ->select('id', 'product_data', 'status', 'end_date')
+            ->orderByDesc('id')
+            ->get()
+            ->map(function ($order) {
+                return [
+                    'id'   => $order->id,
+                    'name' => ($order->product_data['name'] ?? 'Ürün #' . $order->id),
+                    'category' => $order->product_data['category']['name'] ?? '',
+                    'status' => $order->status,
+                    'end_date' => $order->end_date?->format('d.m.Y'),
+                ];
+            });
+
+        return response()->json(['success' => true, 'orders' => $orders]);
+    }
+
+    public function changeOrder(Support $support, Request $request)
+    {
+        $request->validate([
+            'order_id' => 'nullable|integer|exists:orders,id',
+        ]);
+
+        $orderId = $request->input('order_id');
+
+        if ($orderId) {
+            $order = \App\Models\Order::find($orderId);
+            if (!$order || $order->user_id !== $support->user_id) {
+                return $this->errorResponse("Seçilen sipariş bu müşteriye ait değil.");
+            }
+        }
+
+        $support->update(['order_id' => $orderId]);
+
+        return $this->successResponse("İlişkili hizmet başarıyla güncellendi.");
     }
 
     public function delete(Support $support)
