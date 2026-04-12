@@ -505,6 +505,8 @@ class SystemController extends Controller
                 'renew_days_before_daily' => max(0, (int) ($ai['renew_days_before_daily'] ?? 1)),
                 'reminder_days_before' => max(1, (int) ($ai['reminder_days_before'] ?? 3)),
                 'stop_service_on_unpaid' => (bool) ($ai['stop_service_on_unpaid'] ?? false),
+                'invoice_consolidation_enabled' => (bool) ($ai['invoice_consolidation_enabled'] ?? false),
+                'consolidation_window_hours' => max(1, (int) ($ai['consolidation_window_hours'] ?? 1)),
             ];
 
             file_put_contents(

@@ -31,10 +31,41 @@ class RenewOrders extends Command
     /**
      * Execute the console command.
      */
+    private function findConsolidatableInvoice($userId, $settings)
+    {
+        if (!($settings['invoice_consolidation_enabled'] ?? false)) {
+            return null;
+        }
+
+        $windowHours = (int) ($settings['consolidation_window_hours'] ?? 1);
+        $cutoff = Carbon::now()->subHours($windowHours);
+
+        return Invoice::where('user_id', $userId)
+            ->where('status', 'PENDING')
+            ->where('created_at', '>=', $cutoff)
+            ->whereHas('items', fn($q) => $q->where('type', 'RENEW'))
+            ->orderByDesc('created_at')
+            ->first();
+    }
+
+    private function recalculateInvoiceTotals(Invoice $invoice)
+    {
+        $totals = $invoice->items()
+            ->selectRaw('SUM(total_price) as total_price, SUM(total_price_with_vat - total_price) as total_vat, SUM(total_price_with_vat) as total_price_with_vat')
+            ->first();
+
+        $invoice->update([
+            'total_price' => $totals->total_price ?? 0,
+            'total_vat' => $totals->total_vat ?? 0,
+            'total_price_with_vat' => $totals->total_price_with_vat ?? 0,
+        ]);
+    }
+
     function createInvoiceAndOrderDetails($order, $priceData, $additionalServices, $durationUnit)
     {
         $invoice = null;
         $orderDetail = null;
+        $isConsolidated = false;
         DB::beginTransaction();
         try {
             if ($this->hasExistingRenewInvoice($order->id)) {
@@ -47,18 +78,26 @@ class RenewOrders extends Command
             $priceData['total_vat'] = ($priceData['price'] * $order->product->vat_percent) / 100;
             $priceData['price_with_vat'] = $priceData['price'] + $priceData['total_vat'];
 
-            Invoice::$skipCreatedNotification = true;
-            $invoice = Invoice::create([
-                "invoice_number" => Invoice::generateInvoiceNumber(),
-                "invoice_date" => Carbon::now(),
-                "due_date" => $order->end_date,
-                "status" => "PENDING",
-                "total_price" => $priceData['price'],
-                "total_vat" => $priceData['total_vat'],
-                "total_price_with_vat" => $priceData['price_with_vat'],
-                "user_id" => $order->user_id,
-            ]);
-            Invoice::$skipCreatedNotification = false;
+            $settings = $this->loadAutoInvoiceSettings();
+            $invoice = $this->findConsolidatableInvoice($order->user_id, $settings);
+
+            if ($invoice) {
+                $isConsolidated = true;
+                Log::info('CRON_RENEW_ORDERS_CONSOLIDATED', ['order_id' => $order->id, 'invoice_id' => $invoice->id]);
+            } else {
+                Invoice::$skipCreatedNotification = true;
+                $invoice = Invoice::create([
+                    "invoice_number" => Invoice::generateInvoiceNumber(),
+                    "invoice_date" => Carbon::now(),
+                    "due_date" => $order->end_date,
+                    "status" => "PENDING",
+                    "total_price" => $priceData['price'],
+                    "total_vat" => $priceData['total_vat'],
+                    "total_price_with_vat" => $priceData['price_with_vat'],
+                    "user_id" => $order->user_id,
+                ]);
+                Invoice::$skipCreatedNotification = false;
+            }
 
             $orderDetail = OrderDetail::create([
                 "order_id" => $order->id,
@@ -81,8 +120,12 @@ class RenewOrders extends Command
                 "invoice_id" => $invoice->id,
             ]);
 
+            if ($isConsolidated) {
+                $this->recalculateInvoiceTotals($invoice);
+            }
+
             DB::commit();
-            Log::info('CRON_RENEW_ORDERS', ["invoice_id" => $invoice->id, "order_id" => $order->id, "order_item_id" => $orderDetail->id]);
+            Log::info('CRON_RENEW_ORDERS', ["invoice_id" => $invoice->id, "order_id" => $order->id, "order_item_id" => $orderDetail->id, "consolidated" => $isConsolidated]);
         } catch (\Exception $e) {
             Invoice::$skipCreatedNotification = false;
             DB::rollback();
@@ -90,28 +133,30 @@ class RenewOrders extends Command
             return;
         }
 
-        try {
-            $newEndDate = $order->end_date;
-            $duration = (int) ($priceData['duration'] ?? 1);
-            switch ($durationUnit) {
-                case 'DAILY': $newEndDate = $order->end_date->copy()->addDays($duration); break;
-                case 'WEEKLY': $newEndDate = $order->end_date->copy()->addWeeks($duration); break;
-                case 'MONTHLY': $newEndDate = $order->end_date->copy()->addMonths($duration); break;
-                case 'YEARLY': $newEndDate = $order->end_date->copy()->addYears($duration); break;
-            }
+        if (!$isConsolidated) {
+            try {
+                $newEndDate = $order->end_date;
+                $duration = (int) ($priceData['duration'] ?? 1);
+                switch ($durationUnit) {
+                    case 'DAILY': $newEndDate = $order->end_date->copy()->addDays($duration); break;
+                    case 'WEEKLY': $newEndDate = $order->end_date->copy()->addWeeks($duration); break;
+                    case 'MONTHLY': $newEndDate = $order->end_date->copy()->addMonths($duration); break;
+                    case 'YEARLY': $newEndDate = $order->end_date->copy()->addYears($duration); break;
+                }
 
-            $invoice->user->notify(new RenewOrderNotification($invoice, $order));
-            \App\Services\NotificationTemplateService::send('order_renewed', $invoice->user, [
-                'siparis_no' => $order->id,
-                'urun_adi' => $order->product?->name ?? '',
-                'fatura_no' => $invoice->invoice_number ?? $invoice->id,
-                'tutar' => number_format($invoice->total_price_with_vat ?? 0, 2, ',', '.'),
-                'son_odeme_tarihi' => $invoice->due_date?->format('d/m/Y') ?? '',
-                'yeni_bitis_tarihi' => $newEndDate->format('d/m/Y'),
-                'fatura_url' => url('/invoices/' . $invoice->id),
-            ]);
-        } catch (\Exception $e) {
-            Log::error('CRON_RENEW_ORDERS_NOTIFICATION', ['order_id' => $order->id, 'invoice_id' => $invoice->id, "error" => $e->getMessage()]);
+                $invoice->user->notify(new RenewOrderNotification($invoice, $order));
+                \App\Services\NotificationTemplateService::send('order_renewed', $invoice->user, [
+                    'siparis_no' => $order->id,
+                    'urun_adi' => $order->product?->name ?? '',
+                    'fatura_no' => $invoice->invoice_number ?? $invoice->id,
+                    'tutar' => number_format($invoice->total_price_with_vat ?? 0, 2, ',', '.'),
+                    'son_odeme_tarihi' => $invoice->due_date?->format('d/m/Y') ?? '',
+                    'yeni_bitis_tarihi' => $newEndDate->format('d/m/Y'),
+                    'fatura_url' => url('/invoices/' . $invoice->id),
+                ]);
+            } catch (\Exception $e) {
+                Log::error('CRON_RENEW_ORDERS_NOTIFICATION', ['order_id' => $order->id, 'invoice_id' => $invoice->id, "error" => $e->getMessage()]);
+            }
         }
     }
     private function hasExistingRenewInvoice($orderId): bool

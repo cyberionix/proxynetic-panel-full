@@ -10,4 +10,6 @@ return [
     'renew_run_time' => '10:00',
     'reminder_run_time' => '10:00',
     'stop_service_run_time' => '02:00',
+    'invoice_consolidation_enabled' => false,
+    'consolidation_window_hours' => 1,
 ];

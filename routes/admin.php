@@ -226,6 +226,8 @@ dd($data->is_proxy || $data->is_vpn);
             Route::post('/formalize/{invoice}', [InvoiceController::class, "formalize"])->name("formalize");
             Route::post('/toggle-payment-status/{invoice}', [InvoiceController::class, "togglePaymentStatus"])->name("togglePaymentStatus");
             Route::get('/pdf/{invoice}', [InvoiceController::class, 'showPdf'])->name('showPdf');
+            Route::post('/split-item/{invoice}', [InvoiceController::class, "splitItem"])->name("splitItem");
+            Route::post('/remove-item/{invoice}', [InvoiceController::class, "removeItem"])->name("removeItem");
         });
         Route::group(['prefix' => 'coupons', 'as' => 'couponCodes.'], function () {
             Route::get('/', [CouponCodeController::class, "index"])->name("index");

@@ -532,6 +532,32 @@
                                 </div>
 
                                 <hr class="my-5">
+                                <div class="d-flex align-items-center mb-5">
+                                    <i class="fa fa-layer-group text-info fs-2 me-3"></i>
+                                    <h5 class="mb-0 fw-bold">Fatura Birleştirme</h5>
+                                </div>
+                                <p class="text-gray-600 mb-4">Aynı müşteriye ait aynı gün oluşturulan yenileme faturaları tek bir faturada birleştirilir. Birleştirme penceresi süresince yeni oluşacak kalemler mevcut faturaya eklenir.</p>
+                                <div class="row">
+                                    <div class="col-md-6 mb-5">
+                                        <label class="form-label fw-semibold">Fatura Birleştirme</label>
+                                        <div class="form-check form-switch form-check-custom form-check-solid mt-2">
+                                            <input type="hidden" name="auto_invoice[invoice_consolidation_enabled]" value="0" />
+                                            <input class="form-check-input" type="checkbox" name="auto_invoice[invoice_consolidation_enabled]" value="1"
+                                                   id="consolidationEnabledSwitch" {{ ($autoInvoiceSettings['invoice_consolidation_enabled'] ?? false) ? 'checked' : '' }}/>
+                                            <label class="form-check-label" for="consolidationEnabledSwitch">Aktif</label>
+                                        </div>
+                                        <div class="form-text text-gray-500 mt-1">Aktifken aynı müşteriye ait yenileme faturaları otomatik birleştirilir.</div>
+                                    </div>
+                                    <div class="col-md-6 mb-5">
+                                        <label class="form-label fw-semibold required">Birleştirme Penceresi (saat)</label>
+                                        <input type="number" name="auto_invoice[consolidation_window_hours]" min="1" max="24"
+                                               class="form-control form-control-solid"
+                                               value="{{ $autoInvoiceSettings['consolidation_window_hours'] ?? 1 }}" />
+                                        <div class="form-text text-gray-500">İlk fatura oluşturulduktan sonra bu süre içinde aynı müşteriye ait yeni kalemler mevcut faturaya eklenir.</div>
+                                    </div>
+                                </div>
+
+                                <hr class="my-5">
                                 <div class="d-flex align-items-center mb-4">
                                     <i class="fa fa-clock text-warning fs-3 me-3"></i>
                                     <h5 class="mb-0 fw-bold">Çalışma Frekansı</h5>

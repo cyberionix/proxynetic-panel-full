@@ -246,18 +246,23 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <div class="mt-1">
-                                                    <button type="button"
-                                                            class="btn btn-sm btn-icon btn-active-color-primary d-none"
-                                                            data-kt-element="remove-item">
-                                                        <i class="ki-duotone ki-trash fs-3 ">
-                                                            <span class="path1"></span>
-                                                            <span class="path2"></span>
-                                                            <span class="path3"></span>
-                                                            <span class="path4"></span>
-                                                            <span class="path5"></span>
-                                                        </i>
-                                                    </button>
+                                                <div class="mt-1 d-flex gap-1">
+                                                    @if($invoice->status === 'PENDING' && $invoice->items->count() > 1)
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-icon btn-light-warning splitItemBtn"
+                                                                data-item-id="{{$item->id}}"
+                                                                title="Ayrı faturaya ayır">
+                                                            <i class="fa fa-external-link-alt fs-7"></i>
+                                                        </button>
+                                                    @endif
+                                                    @if($invoice->status === 'PENDING')
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-icon btn-light-danger removeItemBtn"
+                                                                data-item-id="{{$item->id}}"
+                                                                title="Kalemi sil">
+                                                            <i class="fa fa-trash fs-7"></i>
+                                                        </button>
+                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>
@@ -826,6 +831,69 @@
                     toastr.success("Link panoya kopyalandı!");
                 });
             });
+            $(document).on("click", ".splitItemBtn", function () {
+                let itemId = $(this).data("item-id");
+                Swal.fire({
+                    icon: 'warning',
+                    title: "{{__('warning')}}",
+                    text: 'Bu kalemi ayrı bir faturaya ayırmak istediğinize emin misiniz?',
+                    showConfirmButton: 1,
+                    showCancelButton: 1,
+                    cancelButtonText: "{{__('close')}}",
+                    confirmButtonText: "{{__('yes')}}",
+                }).then((result) => {
+                    if (result.isConfirmed === true) {
+                        $.ajax({
+                            type: "POST",
+                            url: "{{ route('admin.invoices.splitItem', ['invoice' => $invoice->id]) }}",
+                            dataType: "json",
+                            data: { _token: "{{csrf_token()}}", item_id: itemId },
+                            complete: function (data) {
+                                let res = data.responseJSON;
+                                if (res && res.success === true) {
+                                    Swal.fire({ title: "{{__('success')}}", text: res.message, icon: "success", showConfirmButton: 0, showCancelButton: 1, cancelButtonText: "{{__('close')}}" }).then(() => window.location.reload());
+                                } else {
+                                    Swal.fire({ title: "{{__('error')}}", text: res?.message ?? "{{__('form_has_errors')}}", icon: "error", showConfirmButton: 0, showCancelButton: 1, cancelButtonText: "{{__('close')}}" });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
+            $(document).on("click", ".removeItemBtn", function () {
+                let itemId = $(this).data("item-id");
+                Swal.fire({
+                    icon: 'warning',
+                    title: "{{__('warning')}}",
+                    text: 'Bu kalemi faturadan silmek istediğinize emin misiniz? Faturada tek kalem varsa fatura da silinir.',
+                    showConfirmButton: 1,
+                    showCancelButton: 1,
+                    cancelButtonText: "{{__('close')}}",
+                    confirmButtonText: "{{__('yes')}}",
+                }).then((result) => {
+                    if (result.isConfirmed === true) {
+                        $.ajax({
+                            type: "POST",
+                            url: "{{ route('admin.invoices.removeItem', ['invoice' => $invoice->id]) }}",
+                            dataType: "json",
+                            data: { _token: "{{csrf_token()}}", item_id: itemId },
+                            complete: function (data) {
+                                let res = data.responseJSON;
+                                if (res && res.success === true) {
+                                    Swal.fire({ title: "{{__('success')}}", text: res.message, icon: "success", showConfirmButton: 0, showCancelButton: 1, cancelButtonText: "{{__('close')}}" }).then(() => {
+                                        if (res.redirectUrl) window.location.href = res.redirectUrl;
+                                        else window.location.reload();
+                                    });
+                                } else {
+                                    Swal.fire({ title: "{{__('error')}}", text: res?.message ?? "{{__('form_has_errors')}}", icon: "error", showConfirmButton: 0, showCancelButton: 1, cancelButtonText: "{{__('close')}}" });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
             $(document).on("click", ".sendToParachuteBtn", function () {
                 let url = $(this).data("url");
 

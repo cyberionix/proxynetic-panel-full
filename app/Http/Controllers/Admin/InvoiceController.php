@@ -697,4 +697,112 @@ class InvoiceController extends Controller
         return die('PDF Bulunamadı.');
 
     }
+
+    public function splitItem(Request $request, Invoice $invoice)
+    {
+        $request->validate([
+            'item_id' => 'required|integer|exists:invoice_items,id',
+        ]);
+
+        $item = InvoiceItem::where('id', $request->item_id)
+            ->where('invoice_id', $invoice->id)
+            ->first();
+
+        if (!$item) {
+            return $this->errorResponse('Kalem bu faturada bulunamadı.');
+        }
+
+        if ($invoice->items()->count() <= 1) {
+            return $this->errorResponse('Tek kalemli faturadan ayırma yapılamaz.');
+        }
+
+        if ($invoice->status !== 'PENDING') {
+            return $this->errorResponse('Yalnızca bekleyen faturalardan kalem ayırılabilir.');
+        }
+
+        DB::beginTransaction();
+        try {
+            Invoice::$skipCreatedNotification = true;
+            $newInvoice = Invoice::create([
+                "invoice_number" => Invoice::generateInvoiceNumber(),
+                "invoice_date" => $invoice->invoice_date,
+                "due_date" => $invoice->due_date,
+                "status" => "PENDING",
+                "total_price" => $item->total_price,
+                "total_vat" => $item->total_price_with_vat - $item->total_price,
+                "total_price_with_vat" => $item->total_price_with_vat,
+                "user_id" => $invoice->user_id,
+                "invoice_address" => $invoice->invoice_address,
+            ]);
+            Invoice::$skipCreatedNotification = false;
+
+            $item->update(['invoice_id' => $newInvoice->id]);
+
+            $this->recalculateInvoiceTotals($invoice);
+
+            DB::commit();
+
+            return $this->successResponse(
+                "Kalem yeni fatura #{$newInvoice->invoice_number} olarak ayrıldı.",
+                ["redirectUrl" => route("admin.invoices.show", ["invoice" => $invoice->id])]
+            );
+        } catch (\Exception $e) {
+            Invoice::$skipCreatedNotification = false;
+            DB::rollback();
+            return $this->errorResponse('Hata: ' . $e->getMessage());
+        }
+    }
+
+    public function removeItem(Request $request, Invoice $invoice)
+    {
+        $request->validate([
+            'item_id' => 'required|integer|exists:invoice_items,id',
+        ]);
+
+        $item = InvoiceItem::where('id', $request->item_id)
+            ->where('invoice_id', $invoice->id)
+            ->first();
+
+        if (!$item) {
+            return $this->errorResponse('Kalem bu faturada bulunamadı.');
+        }
+
+        if ($invoice->status !== 'PENDING') {
+            return $this->errorResponse('Yalnızca bekleyen faturalardan kalem silinebilir.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $item->delete();
+
+            if ($invoice->items()->count() === 0) {
+                $invoice->delete();
+                DB::commit();
+                return $this->successResponse('Kalem silindi, fatura boş kaldığı için silindi.', [
+                    "redirectUrl" => route("admin.invoices.index")
+                ]);
+            }
+
+            $this->recalculateInvoiceTotals($invoice);
+
+            DB::commit();
+            return $this->successResponse('Kalem başarıyla silindi.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return $this->errorResponse('Hata: ' . $e->getMessage());
+        }
+    }
+
+    private function recalculateInvoiceTotals(Invoice $invoice)
+    {
+        $totals = $invoice->items()
+            ->selectRaw('SUM(total_price) as total_price, SUM(total_price_with_vat - total_price) as total_vat, SUM(total_price_with_vat) as total_price_with_vat')
+            ->first();
+
+        $invoice->update([
+            'total_price' => $totals->total_price ?? 0,
+            'total_vat' => $totals->total_vat ?? 0,
+            'total_price_with_vat' => $totals->total_price_with_vat ?? 0,
+        ]);
+    }
 }
