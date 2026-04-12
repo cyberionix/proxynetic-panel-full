@@ -2644,7 +2644,7 @@
             btn.disabled = true;
 
             $.ajax({
-                url: '{{ route("netAdmin.settings.parasutSave") }}',
+                url: '{{ route("admin.parasutSave") }}',
                 type: 'POST',
                 data: $(this).serialize(),
                 headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'},
@@ -2670,7 +2670,7 @@
             var btn = $(this);
             btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i>Test ediliyor...');
             $.ajax({
-                url: '{{ route("netAdmin.settings.parasutTest") }}',
+                url: '{{ route("admin.parasutTest") }}',
                 type: 'POST',
                 data: $('#parasutSettingsForm').serialize(),
                 headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'},
