@@ -53,74 +53,66 @@
                             <!--end::Input group-->
                             <!--begin::Input group-->
                             <div
-                                class="d-flex align-items-center justify-content-end flex-equal order-3 fw-row gap-2">
+                                class="d-flex align-items-center justify-content-end flex-equal order-3 fw-row gap-2 flex-wrap">
                                 @if($invoice->status == 'PAID')
-                                    <button type="button" class="btn btn-sm btn-success pe-none">
+                                    <button type="button" class="btn btn-sm btn-success pe-none text-nowrap">
                                         <i class="fa fa-check-circle text-white me-1"></i>Ödendi
                                     </button>
                                     <button type="button"
-                                            class="btn btn-sm btn-light-warning togglePaymentStatusBtn"
+                                            class="btn btn-sm btn-light-warning text-nowrap togglePaymentStatusBtn"
                                             data-url="{{route("admin.invoices.togglePaymentStatus", ["invoice" => $invoice->id])}}"
                                             data-status="PENDING">
-                                        <i class="fa fa-times-circle"></i> Ödenmedi Yap
+                                        <i class="fa fa-times-circle me-1"></i>Ödenmedi Yap
                                     </button>
                                 @elseif($invoice->status == 'CANCELLED')
-                                    <button type="button" class="btn btn-sm btn-secondary pe-none">
+                                    <button type="button" class="btn btn-sm btn-secondary pe-none text-nowrap">
                                         <i class="fa fa-ban text-white me-1"></i>İptal Edildi
                                     </button>
                                     <button type="button"
-                                            class="btn btn-sm btn-light-success togglePaymentStatusBtn"
+                                            class="btn btn-sm btn-light-success text-nowrap togglePaymentStatusBtn"
                                             data-url="{{route("admin.invoices.togglePaymentStatus", ["invoice" => $invoice->id])}}"
                                             data-status="PAID">
-                                        <i class="fa fa-check-circle"></i> Ödendi Yap
+                                        <i class="fa fa-check-circle me-1"></i>Ödendi Yap
                                     </button>
                                 @else
-                                    <button type="button" class="btn btn-sm btn-danger pe-none">
+                                    <button type="button" class="btn btn-sm btn-danger pe-none text-nowrap">
                                         <i class="fa fa-clock text-white me-1"></i>Ödenmedi
                                     </button>
                                     <button type="button"
-                                            class="btn btn-sm btn-light-success togglePaymentStatusBtn"
+                                            class="btn btn-sm btn-light-success text-nowrap togglePaymentStatusBtn"
                                             data-url="{{route("admin.invoices.togglePaymentStatus", ["invoice" => $invoice->id])}}"
                                             data-status="PAID">
-                                        <i class="fa fa-check-circle"></i> Ödendi Yap
+                                        <i class="fa fa-check-circle me-1"></i>Ödendi Yap
                                     </button>
                                 @endif
                                 <button type="button"
-                                        class="btn btn-sm btn-light-danger invoiceDeleteBtn"
+                                        class="btn btn-sm btn-light-danger text-nowrap invoiceDeleteBtn"
                                         data-url="{{route("admin.invoices.delete", ["invoice" => $invoice->id])}}">
-                                    <i class="fa fa-trash"></i>{{__("delete")}}</button>
+                                    <i class="fa fa-trash me-1"></i>Sil
+                                </button>
                                 @if(!$invoice->formalized_at)
                                     <button type="button"
-                                            class="btn btn-sm btn-light-success sendToParachuteBtn"
+                                            class="btn btn-sm btn-light-success text-nowrap sendToParachuteBtn"
                                             data-url="{{route("admin.invoices.formalize", ["invoice" => $invoice->id])}}">
-                                        <i class="fa fa-paper-plane"></i>Resmileştir
+                                        <i class="fa fa-paper-plane me-1"></i>Resmileştir
                                     </button>
                                 @else
-                                    <a type="button"
-                                       class="btn btn-sm btn-light-success"
+                                    <a class="btn btn-sm btn-light-success text-nowrap"
                                        href="{{route("admin.invoices.showPdf", ["invoice" => $invoice->id])}}">
-                                        <i class="fa fa-file-pdf"></i>PDF Görüntüle
+                                        <i class="fa fa-file-pdf me-1"></i>PDF
                                     </a>
                                 @endif
                                 <a href="{{route("portal.invoices.show", ["invoice" => $invoice->id])}}"
                                    target="_blank"
-                                   class="btn btn-sm btn-light-primary">
+                                   class="btn btn-sm btn-light-primary text-nowrap">
                                     <i class="fa fa-external-link-alt me-1"></i>Faturaya Git
                                 </a>
-                                <div class="btn-group">
-                                    <button type="button"
-                                            class="btn btn-sm btn-light-info npShareLinkBtn"
-                                            data-link="{{route("portal.invoices.show", ["invoice" => $invoice->id])}}"
-                                            title="Linki Kopyala">
-                                        <i class="fa fa-copy me-1"></i>Linki Kopyala
-                                    </button>
-                                    <a href="https://wa.me/?text={{ urlencode('Fatura #' . $invoice->invoice_number . ' - ' . showBalance($invoice->total_price_with_vat, true) . "\n" . route("portal.invoices.show", ["invoice" => $invoice->id])) }}"
-                                       target="_blank"
-                                       class="btn btn-sm btn-success"
-                                       title="WhatsApp ile Paylaş">
-                                        <i class="fab fa-whatsapp fs-4"></i>
-                                    </a>
-                                </div>
+                                <button type="button"
+                                        class="btn btn-sm btn-light-info text-nowrap npShareLinkBtn"
+                                        data-link="{{route("portal.invoices.show", ["invoice" => $invoice->id])}}"
+                                        title="Linki Kopyala">
+                                    <i class="fa fa-copy me-1"></i>Paylaş
+                                </button>
                             </div>
                             <!--end::Input group-->
                         </div>
