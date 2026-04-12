@@ -883,18 +883,26 @@ class OrderController extends Controller
                 }
             }
 
-            Invoice::$skipCreatedNotification = true;
-            $invoice = Invoice::create([
-                'invoice_number' => Invoice::generateInvoiceNumber(),
-                'invoice_date' => Carbon::now(),
-                'due_date' => $order->end_date ?? Carbon::now()->addWeek(),
-                'status' => 'PENDING',
-                'total_price' => $priceData['price'],
-                'total_vat' => $priceData['total_vat'],
-                'total_price_with_vat' => $priceData['price_with_vat'],
-                'user_id' => $order->user_id,
-            ]);
-            Invoice::$skipCreatedNotification = false;
+            $isConsolidated = false;
+            $settings = $this->loadAutoInvoiceSettings();
+            $invoice = $this->findConsolidatableInvoice($order->user_id, $settings);
+
+            if ($invoice) {
+                $isConsolidated = true;
+            } else {
+                Invoice::$skipCreatedNotification = true;
+                $invoice = Invoice::create([
+                    'invoice_number' => Invoice::generateInvoiceNumber(),
+                    'invoice_date' => Carbon::now(),
+                    'due_date' => $order->end_date ?? Carbon::now()->addWeek(),
+                    'status' => 'PENDING',
+                    'total_price' => $priceData['price'],
+                    'total_vat' => $priceData['total_vat'],
+                    'total_price_with_vat' => $priceData['price_with_vat'],
+                    'user_id' => $order->user_id,
+                ]);
+                Invoice::$skipCreatedNotification = false;
+            }
 
             $orderDetail = OrderDetail::create([
                 'order_id' => $order->id,
@@ -917,10 +925,18 @@ class OrderController extends Controller
                 'invoice_id' => $invoice->id,
             ]);
 
+            if ($isConsolidated) {
+                $this->recalculateInvoiceTotals($invoice);
+            }
+
             DB::commit();
 
+            $msg = $isConsolidated
+                ? "Mevcut fatura #{$invoice->invoice_number} ile birleştirildi."
+                : "Yenileme faturası #{$invoice->invoice_number} başarıyla oluşturuldu.";
+
             return $this->successResponse(
-                "Yenileme faturası #{$invoice->invoice_number} başarıyla oluşturuldu.",
+                $msg,
                 ['redirectUrl' => route('admin.invoices.show', ['invoice' => $invoice->id])]
             );
         } catch (\Exception $e) {
@@ -928,6 +944,46 @@ class OrderController extends Controller
             DB::rollback();
             return $this->errorResponse('Fatura oluşturulurken hata: ' . $e->getMessage());
         }
+    }
+
+    private function loadAutoInvoiceSettings(): array
+    {
+        $path = config_path('auto_invoice_settings.php');
+        if (is_file($path)) {
+            $data = require $path;
+            if (is_array($data)) return $data;
+        }
+        return [];
+    }
+
+    private function findConsolidatableInvoice($userId, $settings)
+    {
+        if (!($settings['invoice_consolidation_enabled'] ?? false)) {
+            return null;
+        }
+
+        $windowHours = (int) ($settings['consolidation_window_hours'] ?? 1);
+        $cutoff = Carbon::now()->subHours($windowHours);
+
+        return Invoice::where('user_id', $userId)
+            ->where('status', 'PENDING')
+            ->where('created_at', '>=', $cutoff)
+            ->whereHas('items', fn($q) => $q->where('type', 'RENEW'))
+            ->orderByDesc('created_at')
+            ->first();
+    }
+
+    private function recalculateInvoiceTotals(Invoice $invoice)
+    {
+        $totals = $invoice->items()
+            ->selectRaw('SUM(total_price) as total_price, SUM(total_price_with_vat - total_price) as total_vat, SUM(total_price_with_vat) as total_price_with_vat')
+            ->first();
+
+        $invoice->update([
+            'total_price' => $totals->total_price ?? 0,
+            'total_vat' => $totals->total_vat ?? 0,
+            'total_price_with_vat' => $totals->total_price_with_vat ?? 0,
+        ]);
     }
 
     public function delete(Order $order)
