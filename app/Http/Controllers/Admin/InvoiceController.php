@@ -530,6 +530,41 @@ class InvoiceController extends Controller
                 Invoice::whereIn('id', $ids)->delete();
                 return response()->json(['success' => true, 'message' => "{$count} fatura silindi."]);
 
+            case 'merge':
+                if (count($ids) < 2) {
+                    return response()->json(['success' => false, 'message' => 'Birleştirme için en az 2 fatura seçmelisiniz.']);
+                }
+
+                $userIds = $invoices->pluck('user_id')->unique();
+                if ($userIds->count() > 1) {
+                    return response()->json(['success' => false, 'message' => 'Farklı müşterilere ait faturalar birleştirilemez.']);
+                }
+
+                $nonPending = $invoices->where('status', '!=', 'PENDING');
+                if ($nonPending->isNotEmpty()) {
+                    return response()->json(['success' => false, 'message' => 'Sadece "Bekliyor" durumundaki faturalar birleştirilebilir.']);
+                }
+
+                DB::beginTransaction();
+                try {
+                    $master = $invoices->sortBy('id')->first();
+                    $others = $invoices->where('id', '!=', $master->id);
+
+                    foreach ($others as $other) {
+                        InvoiceItem::where('invoice_id', $other->id)->update(['invoice_id' => $master->id]);
+                        $other->delete();
+                    }
+
+                    $this->recalculateInvoiceTotals($master);
+
+                    DB::commit();
+                    $mergedCount = count($ids);
+                    return response()->json(['success' => true, 'message' => "{$mergedCount} fatura #{$master->invoice_number} altında birleştirildi."]);
+                } catch (\Exception $e) {
+                    DB::rollback();
+                    return response()->json(['success' => false, 'message' => 'Birleştirme hatası: ' . $e->getMessage()]);
+                }
+
             default:
                 return response()->json(['success' => false, 'message' => 'Geçersiz işlem.']);
         }

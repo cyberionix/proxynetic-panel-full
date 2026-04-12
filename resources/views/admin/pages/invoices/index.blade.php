@@ -82,6 +82,9 @@
                                 <button class="btn btn-sm btn-light-secondary bulk-btn" data-action="mark_cancelled">
                                     <i class="fa fa-ban me-1"></i>İptal Et
                                 </button>
+                                <button class="btn btn-sm btn-light-info bulk-btn" data-action="merge">
+                                    <i class="fa fa-compress-arrows-alt me-1"></i>Birleştir
+                                </button>
                                 <button class="btn btn-sm btn-light-danger bulk-btn" data-action="delete">
                                     <i class="fa fa-trash me-1"></i>Sil
                                 </button>
@@ -197,8 +200,14 @@
                     'mark_paid': ids.length + ' faturayı ödendi olarak işaretlemek istediğinize emin misiniz?',
                     'mark_pending': ids.length + ' faturayı bekliyor olarak işaretlemek istediğinize emin misiniz?',
                     'mark_cancelled': ids.length + ' faturayı iptal etmek istediğinize emin misiniz?',
-                    'delete': ids.length + ' faturayı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.'
+                    'delete': ids.length + ' faturayı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+                    'merge': ids.length + ' faturayı tek fatura altında birleştirmek istediğinize emin misiniz? Aynı müşteriye ait ve bekliyor durumunda olmalıdır.'
                 };
+
+                if (action === 'merge' && ids.length < 2) {
+                    Swal.fire({ title: 'Uyarı', text: 'Birleştirme için en az 2 fatura seçmelisiniz.', icon: 'warning' });
+                    return;
+                }
 
                 Swal.fire({
                     title: 'Toplu İşlem',
