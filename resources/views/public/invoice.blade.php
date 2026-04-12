@@ -28,6 +28,11 @@
             .invoice-header, .invoice-body { padding: 20px; }
             .items-table { font-size: 12px; }
         }
+        @media print {
+            body { background: #fff; }
+            .invoice-card { box-shadow: none; margin: 0; border-radius: 0; }
+            .footer-text, .action-buttons { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -77,6 +82,19 @@
                         YAKUPLU MAH. HÜRRİYET BLV. SKYPORT Skyport Residence NO: 1 İÇ KAPI NO: 62<br>
                         BEYLİKDÜZÜ / İSTANBUL<br>
                         7381261591 - BEYLİKDÜZÜ V.D.
+                    </div>
+                    <div class="mt-3 d-flex gap-2 justify-content-sm-end flex-wrap action-buttons">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="shareInvoice()">
+                            <i class="fa fa-share-nodes me-1"></i>Paylaş
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+                            <i class="fa fa-print me-1"></i>Yazdır
+                        </button>
+                        @if($invoice->invoice_pdf)
+                        <a href="{{ url($invoice->invoice_pdf) }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                            <i class="fa fa-file-pdf me-1"></i>PDF İndir
+                        </a>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -146,9 +164,23 @@
         </div>
 
         <div class="footer-text">
-            <a href="{{ route('portal.dashboard') }}"><i class="fa fa-arrow-left me-1"></i>Müşteri paneline geri dön</a>
+            <a href="{{ route('portal.invoices.index') }}"><i class="fa fa-arrow-left me-1"></i>Faturalarıma geri dön</a>
         </div>
     </div>
 
+    <script>
+        function shareInvoice() {
+            var url = window.location.href;
+            if (navigator.share) {
+                navigator.share({ title: 'Fatura #{{ $invoice->invoice_number }}', url: url });
+            } else {
+                navigator.clipboard.writeText(url).then(function() {
+                    alert('Fatura linki kopyalandı!');
+                }).catch(function() {
+                    prompt('Fatura linkini kopyalayın:', url);
+                });
+            }
+        }
+    </script>
 </body>
 </html>
