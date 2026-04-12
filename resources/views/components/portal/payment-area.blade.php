@@ -276,49 +276,17 @@
     @endif
     @if(Auth::user()->security->is_limit_payment_methods == 0 || (Auth::user()->security->is_limit_payment_methods == 1 && in_array("TRANSFER", Auth::user()->security->payment_methods)))
         <div class="transfer-eft-option-form-area" style="display: none">
-            <h3>Banka Hesap Bilgileri</h3>
-            <div class="table-responsive">
-                <table class="table table-bordered">
-
-                    <tbody>
-                    <tr>
-                        <td class="fw-bold text-end">Banka:</td>
-                        <td>QNB Finansbank A.Ş.</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-end">Hesap Sahibi:</td>
-                        <td><span data-text="SAĞLAM PROXY YAZILIM HİZMETLERİ LTD ŞTİ"
-                                  class="copy-text cursor-pointer text-hover-primary"><i
-                                    class="fa fa-copy fw-bold"></i></span> SAĞLAM PROXY YAZILIM HİZMETLERİ
-                            LTD ŞTİ
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-end">IBAN:</td>
-                        <td><span data-text="TR110011111111114343123111"
-                                  class="copy-text cursor-pointer text-hover-primary"><i
-                                    class="fa fa-copy fw-bold"></i></span> TR11 0011 1111 1111 4343
-                            1231 11
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-end">Açıklama:</td>
-                        <td><span data-text="{{auth()->user()->full_name}}"
-                                  class="copy-text cursor-pointer text-hover-primary"><i
-                                    class="fa fa-copy fw-bold"></i></span> {{mb_strtoupper(auth()->user()->full_name)}}
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="w-100 mb-3 mt-1 d-flex justify-content-center">
-                <button
-                    class="submit-transfer-button btn btn-primary d-flex align-items-center {{$hasPendingCheckout ? "disabled" : ""}}">
-                    <i
-                        class="fa fa-check-circle"></i> {{__("payment_notification")}}
+            <div class="text-center" id="eftStartArea">
+                <button type="button" class="btn btn-primary btn-lg px-5" id="portalEftStartBtn" onclick="loadPortalEftIframe()">
+                    <i class="fa fa-building-columns me-2"></i>Havale/EFT ile Ödeme Başlat
                 </button>
+                <p class="text-muted mt-3 fs-7">PayTR güvenli altyapısı ile banka havalesi yapabilirsiniz.</p>
             </div>
-            <span class="text-primary fw-bold">Havale yöntemi ile yaptığınız ödemeler mesai saatleri içerisinde ortalama 2 saat içinde onaylanacaktır.</span>
+            <div id="portalEftIframeArea" style="display:none;">
+                <script src="https://www.paytr.com/js/iframeResizer.min.js"></script>
+                <iframe id="portalEftIframe" frameborder="0" scrolling="no" style="width:100%; min-height:400px;"></iframe>
+            </div>
+            <div id="portalEftError" class="alert alert-danger mt-3" style="display:none;"></div>
         </div>
     @endif
     @if(Auth::user()->security->is_limit_payment_methods == 0 || (Auth::user()->security->is_limit_payment_methods == 1 && in_array("WALLET", Auth::user()->security->payment_methods)))
@@ -488,47 +456,50 @@
             {{--        }--}}
             {{--    })--}}
             {{--})--}}
-            $(document).on('click', '.submit-transfer-button', function (e) {
-                e.preventDefault();
-                alerts.confirm.fire({
-                    text: 'Lütfen bu işlemi yapmadan önce ödemeyi başarılı bir şekilde tamamladığınıza emin olun.',
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            type: "POST",
-                            url: '{{route('portal.save_bank_transfer_notification')}}',
-                            dataType: "json",
-                            data: {
-                                _token: '{{csrf_token()}}',
-                                invoice_address_id: $("[name='invoice_address_id']").val(),
-                                invoice_id: "{{$invoice ? $invoice->id : null}}"
-                            },
-                            complete: function (data, status) {
-                                res = data.responseJSON;
-                                if (res.success === true) {
-                                    Swal.fire({
-                                        title: "{{__('success')}}",
-                                        text: res?.message ?? "",
-                                        icon: "success",
-                                        showConfirmButton: 0,
-                                        showCancelButton: 1,
-                                        cancelButtonText: "{{__('close')}}"
-                                    }).then((r) => window.location.reload())
-                                } else {
-                                    Swal.fire({
-                                        title: "{{__('error')}}",
-                                        text: res?.message ?? "",
-                                        icon: "error",
-                                        showConfirmButton: 0,
-                                        showCancelButton: 1,
-                                        cancelButtonText: "{{__('close')}}",
-                                    })
-                                }
+            window.portalEftLoaded = false;
+            window.loadPortalEftIframe = function() {
+                if (window.portalEftLoaded) return;
+                var btn = $('#portalEftStartBtn');
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Yükleniyor...');
+                $('#portalEftError').hide();
+
+                var invoiceAddressId = $("[name='invoice_address_id']").val();
+                if (!invoiceAddressId) {
+                    btn.prop('disabled', false).html('<i class="fa fa-building-columns me-2"></i>Havale/EFT ile Ödeme Başlat');
+                    $('#portalEftError').text('Lütfen önce fatura adresinizi seçin.').show();
+                    return;
+                }
+
+                $.ajax({
+                    type: "POST",
+                    url: '{{route("portal.eftIframeToken")}}',
+                    dataType: "json",
+                    data: {
+                        _token: '{{csrf_token()}}',
+                        invoice_address_id: invoiceAddressId,
+                        invoice_id: "{{$invoice ? $invoice->id : null}}"
+                    },
+                    success: function(res) {
+                        if (res.success && res.data && res.data.iframe_token) {
+                            window.portalEftLoaded = true;
+                            $('#eftStartArea').hide();
+                            var iframe = document.getElementById('portalEftIframe');
+                            iframe.src = 'https://www.paytr.com/odeme/api/' + res.data.iframe_token;
+                            $('#portalEftIframeArea').show();
+                            if (typeof iFrameResize === 'function') {
+                                iFrameResize({}, '#portalEftIframe');
                             }
-                        })
+                        } else {
+                            btn.prop('disabled', false).html('<i class="fa fa-building-columns me-2"></i>Havale/EFT ile Ödeme Başlat');
+                            $('#portalEftError').text(res.message || 'Bir hata oluştu.').show();
+                        }
+                    },
+                    error: function() {
+                        btn.prop('disabled', false).html('<i class="fa fa-building-columns me-2"></i>Havale/EFT ile Ödeme Başlat');
+                        $('#portalEftError').text('Bağlantı hatası. Lütfen tekrar deneyin.').show();
                     }
-                })
-            });
+                });
+            };
 
             $(document).on('click', '.submit-wallet-button', function (e) {
                 e.preventDefault();

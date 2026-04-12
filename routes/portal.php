@@ -55,6 +55,7 @@ Route::middleware(["logRequest", "updateLastSeen"])->group(function () {
 
         Route::post('/checkout', [CheckoutController::class, 'checkout'])->name('checkout');
         Route::post('/save-bank-transfer-notification', [CheckoutController::class, 'saveBankTransferNotification'])->name('save_bank_transfer_notification');
+        Route::post('/eft-iframe-token', [CheckoutController::class, 'eftIframeToken'])->name('eftIframeToken');
         Route::post('/payment-with-balance', [CheckoutController::class, 'paymentWithBalance'])->name('paymentWithBalance');
         Route::any("/paytr-payment-result", [CheckoutController::class, 'paymentResult'])->name("paytr.paymentResult");
 

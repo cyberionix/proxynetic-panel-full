@@ -629,6 +629,88 @@ class CheckoutController extends Controller
         }
     }
 
+    public function eftIframeToken(Request $request)
+    {
+        if (Auth::user()->security->is_limit_payment_methods == 1 && !in_array("TRANSFER", Auth::user()->security->payment_methods)) {
+            return $this->errorResponse("Havale/EFT ile ödeme yapamazsınız.");
+        }
+
+        $request->validate([
+            'invoice_address_id' => [
+                'required',
+                Rule::exists('user_addresses', 'id')->where(function ($q) {
+                    $q->where('user_id', Auth::id());
+                }),
+            ],
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $user = Auth::user();
+            $netToken = Uuid::uuid4()->toString();
+            $invoiceAddressData = $this->getUserInvoiceAddress($request->invoice_address_id);
+
+            if (!$invoiceAddressData) {
+                return $this->errorResponse(__('please_choose_a_valid_address'));
+            }
+
+            $paymentAmount = 0;
+
+            if ($request->invoice_id) {
+                $invoice = Invoice::where(['id' => $request->invoice_id, 'user_id' => Auth::id()])->first();
+                if (!$invoice) {
+                    return $this->errorResponse('Fatura bulunamadı.');
+                }
+                $invoice->update(['invoice_address' => $invoiceAddressData]);
+                $paymentAmount = $invoice->total_price_with_vat;
+
+                $checkout = Checkout::create([
+                    'type' => 'TRANSFER',
+                    'status' => 'WAITING_APPROVAL',
+                    'amount' => $paymentAmount,
+                    'uuid_value' => $netToken,
+                    'invoice_id' => $invoice->id,
+                    'user_id' => Auth::id(),
+                    'extra_params' => ['invoice_address_data' => $invoiceAddressData],
+                ]);
+            } else {
+                $basket = $user->basket;
+                if (!$basket || count($basket->items) <= 0) {
+                    return $this->errorResponse(__('you_must_add_at_least_one_item_to_your_cart'));
+                }
+                $basketSummary = $basket->basketSummary();
+                $paymentAmount = $basketSummary['real_total'] ?? $basketSummary['total'];
+
+                $checkout = Checkout::create([
+                    'type' => 'TRANSFER',
+                    'status' => 'WAITING_APPROVAL',
+                    'amount' => $paymentAmount,
+                    'uuid_value' => $netToken,
+                    'basket_id' => $basket->id,
+                    'user_id' => Auth::id(),
+                    'extra_params' => ['invoice_address_data' => $invoiceAddressData],
+                ]);
+            }
+
+            $merchantOid = (string)($checkout->id + 51);
+            $paytrService = new PaytrService();
+            $iframeToken = $paytrService->getEftIframeToken(
+                $merchantOid,
+                $user->email,
+                (int)($paymentAmount * 100),
+                $user->full_name ?? null,
+                $user->phone ?? null
+            );
+
+            DB::commit();
+
+            return $this->successResponse('', ['iframe_token' => $iframeToken]);
+        } catch (\Exception $e) {
+            DB::rollback();
+            return $this->errorResponse('Havale/EFT başlatılamadı: ' . $e->getMessage());
+        }
+    }
+
     public function getUserInvoiceAddress($invoiceAddressId = null)
     {
         $invoiceAddress = UserAddress::with(["district", "city", "country"])->find($invoiceAddressId);
