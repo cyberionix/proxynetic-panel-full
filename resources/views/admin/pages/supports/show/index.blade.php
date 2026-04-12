@@ -106,8 +106,8 @@
                                                 <!--begin::Text-->
                                                 <div class="d-flex align-items-center">
                                                     <!--begin::Username-->
-                                                    <div class="text-gray-800 fw-bold fs-5 me-3"
-                                                         data-np-message="name"></div>
+                                                    <a class="text-gray-800 text-hover-primary fw-bold fs-5 me-3"
+                                                       data-np-message="name" href="#" target="_blank"></a>
                                                     <!--end::Username-->
                                                     <span class="badge badge-success" data-np-message="badge"></span>
                                                 </div>
@@ -404,18 +404,19 @@
                     let isAdmin = !!item.admin_id,
                         isAutoReply = !!item.is_auto_reply,
                         createdAt = moment(item.created_at).format(defaultDateTimeFormat());
+                    let nameEl = itemTemplate.find("[data-np-message='name']");
                     if (isAutoReply) {
-                        itemTemplate.find("[data-np-message='name']").text("Otomatik Mesaj");
+                        nameEl.text("Otomatik Mesaj").attr("href", "#").removeAttr("target");
                         itemTemplate.find("[data-np-message='badge']").removeClass("badge-primary badge-success").addClass("badge-warning").text("Otomatik");
                         itemTemplate.find("[data-np-message='date']").removeClass("badge-primary badge-success").addClass("badge-warning").text(createdAt);
                         itemTemplate.find("[data-np-message='user-ip']").addClass("d-none");
                     } else if (isAdmin) {
-                        itemTemplate.find("[data-np-message='name']").text(item.admin.full_name);
+                        nameEl.text(item.admin.full_name).attr("href", "#").removeAttr("target");
                         itemTemplate.find("[data-np-message='badge']").removeClass("badge-primary badge-warning").addClass("badge-success").text("{{__("staff")}}");
                         itemTemplate.find("[data-np-message='date']").removeClass("badge-primary badge-warning").addClass("badge-success").text(createdAt);
                         itemTemplate.find("[data-np-message='user-ip']").addClass("d-none");
                     } else {
-                        itemTemplate.find("[data-np-message='name']").text(userFullName);
+                        nameEl.text(userFullName).attr("href", "{{ route('admin.users.show', ['user' => $support->user_id]) }}").attr("target", "_blank");
                         itemTemplate.find("[data-np-message='badge']").removeClass("badge-success badge-warning").addClass("badge-primary").text("Müşteri");
                         itemTemplate.find("[data-np-message='date']").removeClass("badge-success badge-warning").addClass("badge-primary").text(createdAt);
                         itemTemplate.find("[data-np-message='user-ip']").text("IP: " + item?.user_ip).attr("data-ip-lookup", item?.user_ip || "");
