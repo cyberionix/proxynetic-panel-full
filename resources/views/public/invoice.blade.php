@@ -180,10 +180,13 @@
                     <div class="payment-tabs mb-3">
                         <div class="btn-group w-100" role="group">
                             <button type="button" class="btn btn-outline-primary active" id="tabCard" onclick="showPaymentTab('card')">
-                                <i class="fa fa-credit-card me-1"></i>Kredi / Banka Kartı
+                                <i class="fa fa-credit-card me-1"></i>Kredi Kartı
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" id="tabEft" onclick="showPaymentTab('eft')">
+                                <i class="fa fa-building-columns me-1"></i>Havale / EFT
                             </button>
                             <button type="button" class="btn btn-outline-primary" id="tabBalance" onclick="showPaymentTab('balance')">
-                                <i class="fa fa-wallet me-1"></i>Bakiye ile Öde
+                                <i class="fa fa-wallet me-1"></i>Bakiye
                             </button>
                         </div>
                     </div>
@@ -242,6 +245,20 @@
                         </form>
                     </div>
 
+                    <div id="eftPaymentArea" style="display:none;">
+                        <div class="text-center py-3" id="eftLoading">
+                            <button type="button" class="btn btn-success btn-lg px-5" id="eftStartBtn" onclick="loadEftIframe()">
+                                <i class="fa fa-building-columns me-2"></i>Havale/EFT ile Ödeme Başlat
+                            </button>
+                            <p class="text-muted mt-2" style="font-size:12px;">PayTR güvenli altyapısı ile banka havalesi yapabilirsiniz.</p>
+                        </div>
+                        <div id="eftIframeArea" style="display:none;">
+                            <script src="https://www.paytr.com/js/iframeResizer.min.js"></script>
+                            <iframe id="eftIframe" frameborder="0" scrolling="no" style="width:100%; min-height:400px;"></iframe>
+                        </div>
+                        <div id="eftError" class="alert alert-danger" style="display:none;"></div>
+                    </div>
+
                     <div id="balancePaymentArea" style="display:none;">
                         <div class="text-center py-4">
                             <i class="fa fa-wallet fa-3x text-primary mb-3"></i>
@@ -277,9 +294,49 @@
 
         function showPaymentTab(tab) {
             document.getElementById('tabCard').classList.toggle('active', tab === 'card');
+            document.getElementById('tabEft').classList.toggle('active', tab === 'eft');
             document.getElementById('tabBalance').classList.toggle('active', tab === 'balance');
             document.getElementById('cardPaymentArea').style.display = tab === 'card' ? 'block' : 'none';
+            document.getElementById('eftPaymentArea').style.display = tab === 'eft' ? 'block' : 'none';
             document.getElementById('balancePaymentArea').style.display = tab === 'balance' ? 'block' : 'none';
+        }
+
+        var eftLoaded = false;
+        function loadEftIframe() {
+            if (eftLoaded) return;
+            var btn = document.getElementById('eftStartBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Yükleniyor...';
+            document.getElementById('eftError').style.display = 'none';
+
+            fetch('{{ route("public.invoice.eftIframe") }}?token={{ $invoice->share_token }}')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success && data.iframe_token) {
+                        eftLoaded = true;
+                        document.getElementById('eftLoading').style.display = 'none';
+                        var iframeArea = document.getElementById('eftIframeArea');
+                        var iframe = document.getElementById('eftIframe');
+                        iframe.src = 'https://www.paytr.com/odeme/api/' + data.iframe_token;
+                        iframeArea.style.display = 'block';
+                        if (typeof iFrameResize === 'function') {
+                            iFrameResize({}, '#eftIframe');
+                        }
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa fa-building-columns me-2"></i>Havale/EFT ile Ödeme Başlat';
+                        var err = document.getElementById('eftError');
+                        err.textContent = data.message || 'Bir hata oluştu.';
+                        err.style.display = 'block';
+                    }
+                })
+                .catch(function() {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa fa-building-columns me-2"></i>Havale/EFT ile Ödeme Başlat';
+                    var err = document.getElementById('eftError');
+                    err.textContent = 'Bağlantı hatası. Lütfen tekrar deneyin.';
+                    err.style.display = 'block';
+                });
         }
 
         document.getElementById('publicCheckoutForm')?.addEventListener('submit', function() {

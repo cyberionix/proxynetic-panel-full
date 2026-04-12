@@ -105,6 +105,61 @@ class PublicInvoiceController extends Controller
         }
     }
 
+    public function eftIframe(Request $request)
+    {
+        $token = $request->query('token');
+        if (!$token) {
+            return response()->json(['success' => false, 'message' => 'Token gerekli.'], 400);
+        }
+
+        $invoice = Invoice::where('share_token', $token)->firstOrFail();
+        $invoice->load('items', 'user');
+
+        if ($invoice->status !== 'PENDING') {
+            return response()->json(['success' => false, 'message' => 'Bu fatura ödemeye uygun değil.']);
+        }
+
+        DB::beginTransaction();
+        try {
+            $netToken = Uuid::uuid4()->toString();
+
+            $checkout = Checkout::create([
+                'type' => 'TRANSFER',
+                'status' => 'WAITING_APPROVAL',
+                'amount' => $invoice->total_price_with_vat,
+                'uuid_value' => $netToken,
+                'invoice_id' => $invoice->id,
+                'user_id' => $invoice->user_id,
+                'extra_params' => [
+                    'invoice_address_data' => $invoice->invoice_address,
+                    'public_token' => $invoice->share_token,
+                ]
+            ]);
+
+            $user = $invoice->user;
+            $merchantOid = (string)($checkout->id + 51);
+
+            $paytrService = new PaytrService();
+            $iframeToken = $paytrService->getEftIframeToken(
+                $merchantOid,
+                $user->email ?? 'noreply@proxynetic.com',
+                (int)($invoice->total_price_with_vat * 100),
+                $user->full_name ?? null,
+                $user->phone ?? null
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'iframe_token' => $iframeToken,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(['success' => false, 'message' => 'Havale/EFT başlatılamadı: ' . $e->getMessage()]);
+        }
+    }
+
     public function paymentResult(Request $request)
     {
         $token = $request->query('token');

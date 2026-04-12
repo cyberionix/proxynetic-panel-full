@@ -224,6 +224,7 @@ Route::get('/kvkk-aydinlatma-metni', function () {
 
 Route::get('/invoice', [\App\Http\Controllers\PublicInvoiceController::class, 'show'])->name('public.invoice.show');
 Route::post('/invoice/checkout', [\App\Http\Controllers\PublicInvoiceController::class, 'checkout'])->name('public.invoice.checkout');
+Route::get('/invoice/eft-iframe', [\App\Http\Controllers\PublicInvoiceController::class, 'eftIframe'])->name('public.invoice.eftIframe');
 Route::any('/invoice/payment-result', [\App\Http\Controllers\PublicInvoiceController::class, 'paymentResult'])->name('public.invoice.paymentResult');
 
 Route::get('/verify-email-otp/{email}/{code}', [\App\Http\Controllers\Portal\AuthController::class, 'verifyEmailOTP'])->name('auth.verify_email_otp');
