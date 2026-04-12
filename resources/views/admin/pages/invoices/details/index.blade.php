@@ -295,13 +295,7 @@
                                     <!--begin::Table foot-->
                                     <tfoot>
                                     <tr class="border-top border-top-dashed align-top fs-6 fw-bold text-gray-700">
-                                        <th>
-                                            @if($invoice->status === 'PENDING')
-                                                <button type="button" class="btn btn-light-primary btn-sm addItemBtn">
-                                                    <i class="fa fa-plus me-1"></i>Kalem Ekle
-                                                </button>
-                                            @endif
-                                        </th>
+                                        <th></th>
                                         @php
                                             $itemDiscountTotal = $invoice->items->sum(function($i) {
                                                 return $i->original_price_with_vat ? ($i->original_price_with_vat - $i->total_price_with_vat) : 0;
@@ -355,7 +349,13 @@
                                         </th>
                                     </tr>
                                     <tr class="align-top fw-bold text-gray-700">
-                                        <th></th>
+                                        <th>
+                                            @if($invoice->status === 'PENDING')
+                                                <button type="button" class="btn btn-light-primary btn-sm addItemBtn">
+                                                    <i class="fa fa-plus me-1"></i>Kalem Ekle
+                                                </button>
+                                            @endif
+                                        </th>
                                         <th colspan="2" class="fs-4">{{__("total")}}</th>
                                         <th colspan="2" class="text-end fs-4 text-nowrap">
                                             {{defaultCurrencySymbol()}}<span
