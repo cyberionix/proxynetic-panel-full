@@ -1363,7 +1363,7 @@ class SystemController extends Controller
                 'PARASUT_ACCOUNT_ID'         => $request->input('parasut_account_id', ''),
                 'PARASUT_INVOICE_SERIES'     => $request->input('parasut_invoice_series', 'AIBC'),
                 'PARASUT_VAT_EXEMPTION_CODE' => $request->input('parasut_vat_exemption_code', '335'),
-                'PARASUT_AUTO_FORMALIZE'     => $request->has('parasut_auto_formalize') ? 'true' : 'false',
+                'PARASUT_AUTO_FORMALIZE'     => $request->input('parasut_auto_formalize') == '1' ? 'true' : 'false',
                 'PARASUT_FORMALIZE_DAYS'     => $request->input('parasut_formalize_days', '3'),
             ];
 
