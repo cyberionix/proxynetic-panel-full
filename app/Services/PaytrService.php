@@ -27,14 +27,13 @@ class PaytrService
         $installment_count,
         $token;
 
-    public function __construct()
+    public function __construct($okUrl = null, $failUrl = null)
     {
-
         $this->merchant_id = env("MERCENT_ID");
         $this->merchant_key = env("MERCENT_KEY");
         $this->merchant_salt = env("MERCENT_SALT");
-        $this->merchant_ok_url = route('portal.paytr.paymentResult');
-        $this->merchant_fail_url = route('portal.paytr.paymentResult');
+        $this->merchant_ok_url = $okUrl ?? route('portal.paytr.paymentResult');
+        $this->merchant_fail_url = $failUrl ?? route('portal.paytr.paymentResult');
         $this->test_mode = 0;
         $this->non_3d = 0;
         $this->non3d_test_failed = 0;

@@ -32,10 +32,12 @@
             .invoice-header, .invoice-body { padding: 20px; }
             .items-table { font-size: 12px; }
         }
+        .payment-section { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px; padding: 24px; }
+        .payment-tabs .btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
         @media print {
             body { background: #fff; }
             .invoice-card { box-shadow: none; margin: 0; border-radius: 0; }
-            .footer-text, .action-buttons { display: none !important; }
+            .footer-text, .action-buttons, .payment-section { display: none !important; }
         }
     </style>
 </head>
@@ -164,6 +166,94 @@
                 </div>
             </div>
 
+            @if(session('payment_status'))
+                <div class="alert {{ session('payment_status') == 'success' ? 'alert-success' : 'alert-danger' }} d-flex align-items-center" role="alert">
+                    <i class="fa {{ session('payment_status') == 'success' ? 'fa-check-circle' : 'fa-exclamation-circle' }} me-2"></i>
+                    {{ session('payment_message') }}
+                </div>
+            @endif
+
+            @if($invoice->status == 'PENDING')
+                <div class="payment-section mt-2">
+                    <h5 class="mb-3 fw-bold" style="color:#1e3a5f;"><i class="fa fa-lock me-2"></i>Faturayı Öde</h5>
+
+                    <div class="payment-tabs mb-3">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-outline-primary active" id="tabCard" onclick="showPaymentTab('card')">
+                                <i class="fa fa-credit-card me-1"></i>Kredi / Banka Kartı
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" id="tabBalance" onclick="showPaymentTab('balance')">
+                                <i class="fa fa-wallet me-1"></i>Bakiye ile Öde
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="cardPaymentArea">
+                        <form method="POST" action="{{ route('public.invoice.checkout') }}" id="publicCheckoutForm">
+                            @csrf
+                            <input type="hidden" name="token" value="{{ $invoice->share_token }}">
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Kart Üzerindeki İsim</label>
+                                <input type="text" class="form-control" name="card_name" value="{{ $invoice->user?->full_name }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Kart Numarası</label>
+                                <div class="position-relative">
+                                    <input type="text" class="form-control" name="card_number" placeholder="XXXX XXXX XXXX XXXX" maxlength="16" required>
+                                    <div class="position-absolute top-50 end-0 translate-middle-y me-3 d-flex gap-1">
+                                        <img src="https://cdn.jsdelivr.net/gh/nicepay-dev/nicepay-images@main/visa.svg" alt="Visa" height="20" onerror="this.style.display='none'">
+                                        <img src="https://cdn.jsdelivr.net/gh/nicepay-dev/nicepay-images@main/mastercard.svg" alt="MC" height="20" onerror="this.style.display='none'">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-4">
+                                    <label class="form-label fw-semibold">Ay</label>
+                                    <select name="card_exp_month" class="form-select" required>
+                                        <option value="">Ay</option>
+                                        @for($m = 1; $m <= 12; $m++)
+                                            <option value="{{ $m }}">{{ str_pad($m, 2, '0', STR_PAD_LEFT) }}</option>
+                                        @endfor
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label fw-semibold">Yıl</label>
+                                    <select name="card_exp_year" class="form-select" required>
+                                        <option value="">Yıl</option>
+                                        @for($y = (int)date('y'); $y <= (int)date('y') + 10; $y++)
+                                            <option value="{{ $y }}">20{{ str_pad($y, 2, '0', STR_PAD_LEFT) }}</option>
+                                        @endfor
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label fw-semibold">CVV</label>
+                                    <input type="text" class="form-control" name="card_cvv" placeholder="***" maxlength="3" required>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="text-muted" style="font-size:12px;"><i class="fa fa-shield-halved me-1 text-success"></i>Ödemeniz 3D Secure ile güvenli şekilde işlenir.</span>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold" id="payBtn">
+                                <i class="fa fa-lock me-1"></i>{{ showBalance($invoice->total_price_with_vat, true) }} Öde
+                            </button>
+                        </form>
+                    </div>
+
+                    <div id="balancePaymentArea" style="display:none;">
+                        <div class="text-center py-4">
+                            <i class="fa fa-wallet fa-3x text-primary mb-3"></i>
+                            <p class="text-muted mb-3">Bakiye ile ödeme yapabilmek için müşteri paneline giriş yapmanız gerekmektedir.</p>
+                            <a href="{{ route('portal.invoices.index') }}" class="btn btn-primary px-4">
+                                <i class="fa fa-sign-in-alt me-1"></i>Giriş Yap ve Bakiye ile Öde
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
         </div>
 
         <div class="footer-text">
@@ -184,6 +274,19 @@
                 });
             }
         }
+
+        function showPaymentTab(tab) {
+            document.getElementById('tabCard').classList.toggle('active', tab === 'card');
+            document.getElementById('tabBalance').classList.toggle('active', tab === 'balance');
+            document.getElementById('cardPaymentArea').style.display = tab === 'card' ? 'block' : 'none';
+            document.getElementById('balancePaymentArea').style.display = tab === 'balance' ? 'block' : 'none';
+        }
+
+        document.getElementById('publicCheckoutForm')?.addEventListener('submit', function() {
+            var btn = document.getElementById('payBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>İşleniyor...';
+        });
     </script>
 </body>
 </html>
