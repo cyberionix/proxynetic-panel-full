@@ -763,6 +763,7 @@ class InvoiceController extends Controller
                 "invoice_date" => $invoice->invoice_date,
                 "due_date" => $invoice->due_date,
                 "status" => "PENDING",
+                "no_auto_merge" => true,
                 "total_price" => $item->total_price,
                 "total_vat" => $item->total_price_with_vat - $item->total_price,
                 "total_price_with_vat" => $item->total_price_with_vat,

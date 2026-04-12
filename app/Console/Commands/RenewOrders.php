@@ -42,6 +42,7 @@ class RenewOrders extends Command
 
         return Invoice::where('user_id', $userId)
             ->where('status', 'PENDING')
+            ->where('no_auto_merge', false)
             ->where('created_at', '>=', $cutoff)
             ->whereHas('items', fn($q) => $q->where('type', 'RENEW'))
             ->orderByDesc('created_at')

@@ -22,7 +22,8 @@ class Invoice extends Model
         "e_document_info" => "json",
         "formalized_at" => "datetime:Y-m-d H:i:s",
         "invoice_date" => "date",
-        "due_date" => "date"
+        "due_date" => "date",
+        "no_auto_merge" => "boolean",
     ];
 
     protected static function boot()

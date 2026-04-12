@@ -22,10 +22,11 @@ class AutoMergeInvoices extends Command
         }
 
         $userIds = InvoiceItem::where('type', 'RENEW')
-            ->whereHas('invoice', fn($q) => $q->where('status', 'PENDING')->whereNull('deleted_at'))
+            ->whereHas('invoice', fn($q) => $q->where('status', 'PENDING')->where('no_auto_merge', false)->whereNull('deleted_at'))
             ->join('invoices', 'invoices.id', '=', 'invoice_items.invoice_id')
             ->whereNull('invoices.deleted_at')
             ->where('invoices.status', 'PENDING')
+            ->where('invoices.no_auto_merge', false)
             ->select('invoices.user_id')
             ->groupBy('invoices.user_id')
             ->havingRaw('COUNT(DISTINCT invoices.id) > 1')
@@ -41,6 +42,7 @@ class AutoMergeInvoices extends Command
         foreach ($userIds as $userId) {
             $invoices = Invoice::where('user_id', $userId)
                 ->where('status', 'PENDING')
+                ->where('no_auto_merge', false)
                 ->whereHas('items', fn($q) => $q->where('type', 'RENEW'))
                 ->orderBy('id')
                 ->get();
