@@ -102,6 +102,25 @@
                                         <i class="fa fa-file-pdf"></i>PDF Görüntüle
                                     </a>
                                 @endif
+                                <a href="{{route("portal.invoices.show", ["invoice" => $invoice->id])}}"
+                                   target="_blank"
+                                   class="btn btn-sm btn-light-primary">
+                                    <i class="fa fa-external-link-alt me-1"></i>Faturaya Git
+                                </a>
+                                <div class="btn-group">
+                                    <button type="button"
+                                            class="btn btn-sm btn-light-info npShareLinkBtn"
+                                            data-link="{{route("portal.invoices.show", ["invoice" => $invoice->id])}}"
+                                            title="Linki Kopyala">
+                                        <i class="fa fa-copy me-1"></i>Linki Kopyala
+                                    </button>
+                                    <a href="https://wa.me/?text={{ urlencode('Fatura #' . $invoice->invoice_number . ' - ' . showBalance($invoice->total_price_with_vat, true) . "\n" . route("portal.invoices.show", ["invoice" => $invoice->id])) }}"
+                                       target="_blank"
+                                       class="btn btn-sm btn-success"
+                                       title="WhatsApp ile Paylaş">
+                                        <i class="fab fa-whatsapp fs-4"></i>
+                                    </a>
+                                </div>
                             </div>
                             <!--end::Input group-->
                         </div>
@@ -800,6 +819,19 @@
                     }
                 });
             })
+            $(document).on("click", ".npShareLinkBtn", function () {
+                var link = $(this).data("link");
+                navigator.clipboard.writeText(link).then(function() {
+                    toastr.success("Link panoya kopyalandı!");
+                }).catch(function() {
+                    var tmp = $('<input>');
+                    $('body').append(tmp);
+                    tmp.val(link).select();
+                    document.execCommand('copy');
+                    tmp.remove();
+                    toastr.success("Link panoya kopyalandı!");
+                });
+            });
             $(document).on("click", ".sendToParachuteBtn", function () {
                 let url = $(this).data("url");
 
