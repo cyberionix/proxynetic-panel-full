@@ -829,6 +829,140 @@ class InvoiceController extends Controller
         }
     }
 
+    public function applyDiscount(Request $request, Invoice $invoice)
+    {
+        if ($invoice->status !== 'PENDING') {
+            return $this->errorResponse('İndirim yalnızca bekleyen faturalara uygulanabilir.');
+        }
+
+        $mode = $request->input('mode'); // 'coupon' or 'manual'
+        $itemId = $request->input('item_id'); // null for global, set for per-item
+
+        if ($mode === 'coupon') {
+            $code = $request->input('coupon_code');
+            if (!$code) return $this->errorResponse('Kupon kodu giriniz.');
+
+            $coupon = \App\Models\CouponCode::where('coupon_code', $code)
+                ->where('is_active', 1)
+                ->where('end_date', '>=', now()->format('Y-m-d'))
+                ->first();
+
+            if (!$coupon) return $this->errorResponse('Geçersiz veya süresi dolmuş kupon kodu.');
+
+            $usedCount = Invoice::where('coupon_code_id', $coupon->id)->count();
+            if ($coupon->use_limit && $usedCount >= $coupon->use_limit) {
+                return $this->errorResponse('Bu kupon kodunun kullanım limiti dolmuş.');
+            }
+
+            if ($coupon->product_ids && is_array($coupon->product_ids) && count($coupon->product_ids) > 0) {
+                $invoiceProductIds = $invoice->items()->whereNotNull('product_id')->pluck('product_id')->toArray();
+                $validProducts = array_intersect($invoiceProductIds, $coupon->product_ids);
+                if (empty($validProducts)) {
+                    return $this->errorResponse('Bu kupon kodu faturadaki ürünler için geçerli değil.');
+                }
+            }
+
+            $discountPercent = $coupon->type === 'PERCENT' ? $coupon->amount : null;
+            $discountFixed = $coupon->type === 'FIXED' ? $coupon->amount : null;
+
+            if ($itemId) {
+                return $this->applyDiscountToItem($invoice, $itemId, $discountPercent, $discountFixed, $coupon);
+            }
+
+            return $this->applyDiscountToInvoice($invoice, $discountPercent, $discountFixed, $coupon);
+
+        } elseif ($mode === 'manual') {
+            $percent = (float) $request->input('percent', 0);
+            if ($percent <= 0 || $percent > 100) {
+                return $this->errorResponse('Geçerli bir yüzde giriniz (1-100).');
+            }
+
+            if ($itemId) {
+                return $this->applyDiscountToItem($invoice, $itemId, $percent, null, null);
+            }
+
+            return $this->applyDiscountToInvoice($invoice, $percent, null, null);
+        }
+
+        return $this->errorResponse('Geçersiz indirim modu.');
+    }
+
+    private function applyDiscountToItem(Invoice $invoice, $itemId, $percent, $fixed, $coupon)
+    {
+        $item = InvoiceItem::where('id', $itemId)->where('invoice_id', $invoice->id)->first();
+        if (!$item) return $this->errorResponse('Kalem bulunamadı.');
+
+        $originalPriceWithVat = $item->total_price_with_vat;
+        $originalPrice = $item->total_price;
+
+        if ($percent) {
+            $discountAmount = $originalPriceWithVat * $percent / 100;
+        } else {
+            $discountAmount = min($fixed, $originalPriceWithVat);
+        }
+
+        $ratio = $originalPriceWithVat > 0 ? ($originalPriceWithVat - $discountAmount) / $originalPriceWithVat : 0;
+        $newPriceWithVat = round($originalPriceWithVat - $discountAmount, 2);
+        $newPrice = round($originalPrice * $ratio, 2);
+
+        $item->update([
+            'total_price' => $newPrice,
+            'total_price_with_vat' => $newPriceWithVat,
+        ]);
+
+        $this->recalculateInvoiceTotals($invoice);
+
+        $label = $percent ? "%{$percent}" : showBalance($fixed, true) . ' sabit';
+        return $this->successResponse("Kaleme {$label} indirim uygulandı.");
+    }
+
+    private function applyDiscountToInvoice(Invoice $invoice, $percent, $fixed, $coupon)
+    {
+        $total = $invoice->total_price_with_vat;
+
+        if ($percent) {
+            $discountAmount = round($total * $percent / 100, 2);
+        } else {
+            $discountAmount = min($fixed, $total);
+        }
+
+        $realTotal = round($total - $discountAmount, 2);
+        if ($realTotal <= 0) {
+            return $this->errorResponse('İndirim tutarı fatura toplamını aşıyor.');
+        }
+
+        $updateData = [
+            'discount_amount' => $discountAmount,
+            'real_total' => $realTotal,
+        ];
+
+        if ($coupon) {
+            $updateData['coupon_code_id'] = $coupon->id;
+            $updateData['coupon_code_text'] = $coupon->coupon_code;
+        }
+
+        $invoice->update($updateData);
+
+        $label = $percent ? "%{$percent}" : showBalance($fixed, true) . ' sabit';
+        return $this->successResponse("Faturaya {$label} indirim uygulandı. İndirim: " . showBalance($discountAmount, true));
+    }
+
+    public function removeDiscount(Invoice $invoice)
+    {
+        if ($invoice->status !== 'PENDING') {
+            return $this->errorResponse('Yalnızca bekleyen faturalarda indirim kaldırılabilir.');
+        }
+
+        $invoice->update([
+            'discount_amount' => 0,
+            'real_total' => null,
+            'coupon_code_id' => null,
+            'coupon_code_text' => null,
+        ]);
+
+        return $this->successResponse('İndirim kaldırıldı.');
+    }
+
     private function recalculateInvoiceTotals(Invoice $invoice)
     {
         $totals = $invoice->items()

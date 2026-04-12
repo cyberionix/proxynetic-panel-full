@@ -90,6 +90,12 @@
                                         data-url="{{route("admin.invoices.delete", ["invoice" => $invoice->id])}}">
                                     <i class="fa fa-trash me-1"></i>Sil
                                 </button>
+                                @if($invoice->status === 'PENDING')
+                                    <button type="button"
+                                            class="btn btn-sm btn-light-info text-nowrap globalDiscountBtn">
+                                        <i class="fa fa-percent me-1"></i>İndirim Uygula
+                                    </button>
+                                @endif
                                 @if(!$invoice->formalized_at)
                                     <button type="button"
                                             class="btn btn-sm btn-light-success text-nowrap sendToParachuteBtn"
@@ -244,6 +250,12 @@
                                                     @endif
                                                     @if($invoice->status === 'PENDING')
                                                         <button type="button"
+                                                                class="btn btn-sm btn-icon btn-light-info itemDiscountBtn"
+                                                                data-item-id="{{$item->id}}"
+                                                                title="İndirim uygula">
+                                                            <i class="fa fa-percent fs-7"></i>
+                                                        </button>
+                                                        <button type="button"
                                                                 class="btn btn-sm btn-icon btn-light-danger removeItemBtn"
                                                                 data-item-id="{{$item->id}}"
                                                                 title="Kalemi sil">
@@ -274,8 +286,17 @@
                                                 <div class="fs-6">{{__("subtotal")}}</div>
                                                 <div class="fs-6">{{__("total_vat")}}</div>
                                                 @if($invoice->discount_amount)
-                                                    <div class="fs-6">{{__("İndirim Toplamı")}}</div>
-
+                                                    <div class="fs-6 d-flex align-items-center gap-2">
+                                                        İndirim
+                                                        @if($invoice->coupon_code_text)
+                                                            <span class="badge badge-light-primary badge-sm">{{ $invoice->coupon_code_text }}</span>
+                                                        @endif
+                                                        @if($invoice->status === 'PENDING')
+                                                            <button type="button" class="btn btn-icon btn-sm btn-light-danger removeDiscountBtn" title="İndirimi kaldır" style="width:20px;height:20px;">
+                                                                <i class="fa fa-times fs-9"></i>
+                                                            </button>
+                                                        @endif
+                                                    </div>
                                                 @endif
                                             </div>
                                         </th>
@@ -874,6 +895,134 @@
                                     });
                                 } else {
                                     Swal.fire({ title: "{{__('error')}}", text: res?.message ?? "{{__('form_has_errors')}}", icon: "error", showConfirmButton: 0, showCancelButton: 1, cancelButtonText: "{{__('close')}}" });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
+            function showDiscountDialog(itemId) {
+                Swal.fire({
+                    title: itemId ? 'Kaleme İndirim Uygula' : 'Faturaya İndirim Uygula',
+                    html: `
+                        <div class="text-start">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">İndirim Türü</label>
+                                <div class="d-flex gap-3">
+                                    <label class="form-check form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="radio" name="swal_discount_mode" value="manual" checked>
+                                        <span class="form-check-label">Manuel %</span>
+                                    </label>
+                                    <label class="form-check form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="radio" name="swal_discount_mode" value="coupon">
+                                        <span class="form-check-label">Kupon Kodu</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="swalManualArea">
+                                <label class="form-label fw-bold">İndirim Yüzdesi (%)</label>
+                                <input type="number" id="swalDiscountPercent" class="form-control" min="1" max="100" placeholder="Örn: 10">
+                            </div>
+                            <div id="swalCouponArea" style="display:none;">
+                                <label class="form-label fw-bold">Kupon Kodu</label>
+                                <input type="text" id="swalCouponCode" class="form-control" placeholder="Kupon kodunu giriniz">
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Uygula',
+                    cancelButtonText: 'Vazgeç',
+                    didOpen: function() {
+                        $('input[name="swal_discount_mode"]').on('change', function() {
+                            if ($(this).val() === 'coupon') {
+                                $('#swalManualArea').hide();
+                                $('#swalCouponArea').show();
+                            } else {
+                                $('#swalManualArea').show();
+                                $('#swalCouponArea').hide();
+                            }
+                        });
+                    },
+                    preConfirm: function() {
+                        let mode = $('input[name="swal_discount_mode"]:checked').val();
+                        if (mode === 'manual') {
+                            let pct = parseInt($('#swalDiscountPercent').val());
+                            if (!pct || pct < 1 || pct > 100) {
+                                Swal.showValidationMessage('1-100 arası bir yüzde giriniz.');
+                                return false;
+                            }
+                            return { mode: 'manual', percent: pct };
+                        } else {
+                            let code = $('#swalCouponCode').val().trim();
+                            if (!code) {
+                                Swal.showValidationMessage('Kupon kodu giriniz.');
+                                return false;
+                            }
+                            return { mode: 'coupon', coupon_code: code };
+                        }
+                    }
+                }).then(function(result) {
+                    if (result.isConfirmed && result.value) {
+                        let postData = {
+                            _token: '{{ csrf_token() }}',
+                            mode: result.value.mode
+                        };
+                        if (result.value.mode === 'manual') {
+                            postData.percent = result.value.percent;
+                        } else {
+                            postData.coupon_code = result.value.coupon_code;
+                        }
+                        if (itemId) postData.item_id = itemId;
+
+                        $.ajax({
+                            type: 'POST',
+                            url: '{{ route("admin.invoices.applyDiscount", ["invoice" => $invoice->id]) }}',
+                            dataType: 'json',
+                            data: postData,
+                            beforeSend: function() { alerts.wait.fire(); },
+                            complete: function(data) {
+                                let res = data.responseJSON;
+                                if (res && res.success === true) {
+                                    Swal.fire({ title: '{{ __("success") }}', text: res.message, icon: 'success', timer: 2000, showConfirmButton: false }).then(() => window.location.reload());
+                                } else {
+                                    Swal.fire({ title: '{{ __("error") }}', text: res?.message ?? '', icon: 'error' });
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+            $(document).on('click', '.globalDiscountBtn', function() {
+                showDiscountDialog(null);
+            });
+
+            $(document).on('click', '.itemDiscountBtn', function() {
+                showDiscountDialog($(this).data('item-id'));
+            });
+
+            $(document).on('click', '.removeDiscountBtn', function() {
+                Swal.fire({
+                    title: 'İndirimi Kaldır',
+                    text: 'Faturadaki indirimi kaldırmak istediğinize emin misiniz?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, kaldır',
+                    cancelButtonText: 'Vazgeç'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            type: 'POST',
+                            url: '{{ route("admin.invoices.removeDiscount", ["invoice" => $invoice->id]) }}',
+                            dataType: 'json',
+                            data: { _token: '{{ csrf_token() }}' },
+                            complete: function(data) {
+                                let res = data.responseJSON;
+                                if (res && res.success === true) {
+                                    Swal.fire({ title: '{{ __("success") }}', text: res.message, icon: 'success', timer: 1500, showConfirmButton: false }).then(() => window.location.reload());
+                                } else {
+                                    Swal.fire({ title: '{{ __("error") }}', text: res?.message ?? '', icon: 'error' });
                                 }
                             }
                         });
