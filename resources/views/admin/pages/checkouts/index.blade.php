@@ -110,6 +110,32 @@
                         </div>
                         <!--end::Card title-->
                         <div class="card-toolbar">
+                            <div class="d-flex flex-wrap gap-4 align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded w-14px h-14px me-2" style="background:rgba(59,130,246,0.25);border:1px solid rgba(59,130,246,0.4);"></div>
+                                    <span class="fs-7 fw-semibold text-gray-600">Yeni</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded w-14px h-14px me-2" style="background:rgba(245,158,11,0.25);border:1px solid rgba(245,158,11,0.4);"></div>
+                                    <span class="fs-7 fw-semibold text-gray-600">Bekliyor</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded w-14px h-14px me-2" style="background:rgba(139,92,246,0.25);border:1px solid rgba(139,92,246,0.4);"></div>
+                                    <span class="fs-7 fw-semibold text-gray-600">3D Secure</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded w-14px h-14px me-2" style="background:rgba(16,185,129,0.25);border:1px solid rgba(16,185,129,0.4);"></div>
+                                    <span class="fs-7 fw-semibold text-gray-600">Tamamlandı</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded w-14px h-14px me-2" style="background:rgba(239,68,68,0.25);border:1px solid rgba(239,68,68,0.4);"></div>
+                                    <span class="fs-7 fw-semibold text-gray-600">Başarısız</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded w-14px h-14px me-2" style="background:rgba(107,114,128,0.2);border:1px solid rgba(107,114,128,0.35);"></div>
+                                    <span class="fs-7 fw-semibold text-gray-600">İptal</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <!--end::Card header-->
