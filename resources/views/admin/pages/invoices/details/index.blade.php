@@ -202,6 +202,23 @@
                                                     <span
                                                         class="badge badge-primary badge-sm">{{__("invoice_item_types.".mb_strtolower($item->type))}}</span>
                                                 </div>
+                                                @if($item->discount_percent)
+                                                    <div class="mt-1">
+                                                        <span class="badge badge-light-success badge-sm">
+                                                            <i class="fa fa-percent fs-9 me-1"></i>%{{ number_format($item->discount_percent, 0) }} indirim
+                                                        </span>
+                                                        @if($item->discount_coupon_text)
+                                                            <span class="badge badge-light-info badge-sm">
+                                                                <i class="fa fa-tag fs-9 me-1"></i>{{ $item->discount_coupon_text }}
+                                                            </span>
+                                                        @endif
+                                                        @if($item->original_price_with_vat)
+                                                            <span class="text-muted text-decoration-line-through fs-8 ms-1">
+                                                                {{ showBalance($item->original_price_with_vat, true) }}
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                @endif
                                                 <input type="hidden" name="invoice_item[id][]"
                                                        value="{{$item->id}}">
                                             </td>
@@ -280,14 +297,23 @@
                                                 {{__("add")}}
                                             </button>
                                         </th>
+                                        @php
+                                            $itemDiscountTotal = $invoice->items->sum(function($i) {
+                                                return $i->original_price_with_vat ? ($i->original_price_with_vat - $i->total_price_with_vat) : 0;
+                                            });
+                                            $hasAnyDiscount = $invoice->discount_amount > 0 || $itemDiscountTotal > 0;
+                                        @endphp
                                         <th colspan="2"
                                             class="border-bottom border-bottom-dashed">
                                             <div class="d-flex flex-column align-items-start">
                                                 <div class="fs-6">{{__("subtotal")}}</div>
                                                 <div class="fs-6">{{__("total_vat")}}</div>
-                                                @if($invoice->discount_amount)
+                                                @if($itemDiscountTotal > 0)
+                                                    <div class="fs-6 text-success">Kalem İndirimleri</div>
+                                                @endif
+                                                @if($invoice->discount_amount > 0)
                                                     <div class="fs-6 d-flex align-items-center gap-2">
-                                                        İndirim
+                                                        Fatura İndirimi
                                                         @if($invoice->coupon_code_text)
                                                             <span class="badge badge-light-primary badge-sm">{{ $invoice->coupon_code_text }}</span>
                                                         @endif
@@ -310,12 +336,16 @@
                                                     {{defaultCurrencySymbol()}}<span
                                                         data-kt-element="vat-total">{{showBalance($invoice->total_vat)}}</span>
                                                 </div>
-                                                @if($invoice->discount_amount)
-                                                <div>
-                                                    <span
-                                                        data-kt-element="vat-total"><span class="badge badge-success">-{{defaultCurrencySymbol()}}{{showBalance($invoice->discount_amount)}}</span></span>
-                                                </div>
-                                                    @endif
+                                                @if($itemDiscountTotal > 0)
+                                                    <div>
+                                                        <span class="badge badge-light-success">-{{defaultCurrencySymbol()}}{{showBalance($itemDiscountTotal)}}</span>
+                                                    </div>
+                                                @endif
+                                                @if($invoice->discount_amount > 0)
+                                                    <div>
+                                                        <span class="badge badge-success">-{{defaultCurrencySymbol()}}{{showBalance($invoice->discount_amount)}}</span>
+                                                    </div>
+                                                @endif
                                             </div>
                                         </th>
                                     </tr>

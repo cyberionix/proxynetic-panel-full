@@ -892,22 +892,29 @@ class InvoiceController extends Controller
         $item = InvoiceItem::where('id', $itemId)->where('invoice_id', $invoice->id)->first();
         if (!$item) return $this->errorResponse('Kalem bulunamadı.');
 
-        $originalPriceWithVat = $item->total_price_with_vat;
-        $originalPrice = $item->total_price;
-
-        if ($percent) {
-            $discountAmount = $originalPriceWithVat * $percent / 100;
-        } else {
-            $discountAmount = min($fixed, $originalPriceWithVat);
+        $basePriceWithVat = $item->original_price_with_vat ?? $item->total_price_with_vat;
+        $basePrice = $item->total_price;
+        if ($item->original_price_with_vat) {
+            $basePrice = $basePriceWithVat / (1 + ($item->vat_percent / 100));
         }
 
-        $ratio = $originalPriceWithVat > 0 ? ($originalPriceWithVat - $discountAmount) / $originalPriceWithVat : 0;
-        $newPriceWithVat = round($originalPriceWithVat - $discountAmount, 2);
-        $newPrice = round($originalPrice * $ratio, 2);
+        if ($percent) {
+            $discountAmount = $basePriceWithVat * $percent / 100;
+        } else {
+            $discountAmount = min($fixed, $basePriceWithVat);
+            $percent = $basePriceWithVat > 0 ? round(($discountAmount / $basePriceWithVat) * 100, 2) : 0;
+        }
+
+        $newPriceWithVat = round($basePriceWithVat - $discountAmount, 2);
+        $ratio = $basePriceWithVat > 0 ? $newPriceWithVat / $basePriceWithVat : 0;
+        $newPrice = round($basePrice * $ratio, 2);
 
         $item->update([
             'total_price' => $newPrice,
             'total_price_with_vat' => $newPriceWithVat,
+            'original_price_with_vat' => $basePriceWithVat,
+            'discount_percent' => $percent,
+            'discount_coupon_text' => $coupon?->coupon_code,
         ]);
 
         $this->recalculateInvoiceTotals($invoice);
@@ -924,6 +931,7 @@ class InvoiceController extends Controller
             $discountAmount = round($total * $percent / 100, 2);
         } else {
             $discountAmount = min($fixed, $total);
+            $percent = $total > 0 ? round(($discountAmount / $total) * 100, 2) : 0;
         }
 
         $realTotal = round($total - $discountAmount, 2);
@@ -939,11 +947,13 @@ class InvoiceController extends Controller
         if ($coupon) {
             $updateData['coupon_code_id'] = $coupon->id;
             $updateData['coupon_code_text'] = $coupon->coupon_code;
+        } else {
+            $updateData['coupon_code_text'] = "%{$percent} manuel indirim";
         }
 
         $invoice->update($updateData);
 
-        $label = $percent ? "%{$percent}" : showBalance($fixed, true) . ' sabit';
+        $label = "%{$percent}";
         return $this->successResponse("Faturaya {$label} indirim uygulandı. İndirim: " . showBalance($discountAmount, true));
     }
 
