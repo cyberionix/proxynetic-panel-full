@@ -134,7 +134,7 @@
                                 <!--begin::Col-->
                                 <div class="col-lg-6 text-end customerInformation">
                                     <div class="mb-1">
-                                        <h6><span class="name">{{$invoice->user?->fullName}}</span>
+                                        <h6><a href="{{route('admin.users.show', ['user' => $invoice->user_id])}}" class="name text-hover-primary">{{$invoice->user?->fullName}}</a>
                                         </h6>
                                     </div>
                                     <div class="text-end mb-2">
