@@ -198,6 +198,21 @@
                     </div>
 
                     <div id="cardPaymentArea">
+                        @if(env('SHOPIER_API_KEY'))
+                        <div class="mb-4 text-center">
+                            <form method="POST" action="{{ route('public.invoice.shopierCheckout') }}" id="shopierPublicForm">
+                                @csrf
+                                <input type="hidden" name="token" value="{{ $invoice->share_token }}">
+                                <button type="submit" class="btn btn-primary btn-lg w-100 py-2 fw-bold" id="shopierPayBtn">
+                                    <i class="fa fa-credit-card me-1"></i>Shopier ile Güvenli Öde
+                                </button>
+                                <p class="text-muted mt-2" style="font-size:12px;">Kredi kartı / Banka kartı ile güvenli ödeme</p>
+                            </form>
+                            <div class="d-flex align-items-center my-3">
+                                <hr class="flex-grow-1"><span class="mx-3 text-muted" style="font-size:12px;">veya kart bilgilerinizi girin</span><hr class="flex-grow-1">
+                            </div>
+                        </div>
+                        @endif
                         <form method="POST" action="{{ route('public.invoice.checkout') }}" id="publicCheckoutForm">
                             @csrf
                             <input type="hidden" name="token" value="{{ $invoice->share_token }}">
@@ -349,6 +364,12 @@
             var btn = document.getElementById('payBtn');
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>İşleniyor...';
+        });
+
+        document.getElementById('shopierPublicForm')?.addEventListener('submit', function() {
+            var btn = document.getElementById('shopierPayBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Shopier\'e yönlendiriliyorsunuz...';
         });
     </script>
 </body>

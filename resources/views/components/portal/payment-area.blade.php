@@ -127,6 +127,20 @@
         <!--end::Radio group-->
         @if(Auth::user()->security->is_limit_payment_methods == 0 || (Auth::user()->security->is_limit_payment_methods == 1 && in_array("CREDIT_CARD", Auth::user()->security->payment_methods)))
             <div class="credit-card-option-form-area" style="display: none">
+                @if(env('SHOPIER_API_KEY'))
+                <div class="mb-5 text-center">
+                    <form method="POST" id="shopierCheckoutForm" action="{{route('portal.shopierCheckout')}}">
+                        @csrf
+                        <input type="hidden" name="invoice_address_id" class="shopier_invoice_address_id">
+                        <input type="hidden" name="invoice_id" value="{{$invoice ? $invoice->id : ''}}">
+                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
+                            <i class="fa fa-credit-card me-2"></i>Shopier ile Güvenli Öde
+                        </button>
+                        <p class="text-muted mt-2 fs-8">Kredi kartı / Banka kartı ile güvenli ödeme</p>
+                    </form>
+                    <div class="separator separator-content my-5"><span class="text-muted fs-8">veya kart bilgilerinizi girin</span></div>
+                </div>
+                @endif
                 <div class="d-none" id="encodedFormContent"></div>
                 <form method="POST" id="checkoutForm" action="{{route("portal.checkout")}}">
                 @csrf
@@ -390,29 +404,21 @@
             });
 
             $('#checkoutForm').on('submit', function(event) {
-                event.preventDefault(); // Formun hemen submit olmasını engelle
-
-                // Yeni bir input oluştur
-                const newInput = $('<input>')
-                    .attr('type', 'hidden')
-                    .attr('name', 'invoice_address_id')
-                    .val($("[name='invoice_address_id']").val());
-
-                // Yeni input'u forma ekle
+                event.preventDefault();
+                const newInput = $('<input>').attr('type', 'hidden').attr('name', 'invoice_address_id').val($("[name='invoice_address_id']").val());
                 $(this).append(newInput);
-
-                const newInput2 = $('<input>')
-                    .attr('type', 'hidden')
-                    .attr('name', 'invoice_id')
-                    .val({{$invoice ? $invoice->id : ''}});
-
-                // Yeni input'u forma ekle
+                const newInput2 = $('<input>').attr('type', 'hidden').attr('name', 'invoice_id').val({{$invoice ? $invoice->id : ''}});
                 $(this).append(newInput2);
-
-                // Burada başka işlemler de yapabilirsiniz, örneğin validasyon
-
-                // Formu submit et
                 this.submit();
+            });
+
+            $('#shopierCheckoutForm').on('submit', function(event) {
+                var addrVal = $("[name='invoice_address_id']").val();
+                $(this).find('.shopier_invoice_address_id').val(addrVal);
+                if (!addrVal) {
+                    event.preventDefault();
+                    alerts.error.fire({ text: 'Lütfen fatura adresinizi seçin.' });
+                }
             });
             {{--$(document).on("submit", "#checkoutForm", function (e) {--}}
             {{--    e.preventDefault()--}}

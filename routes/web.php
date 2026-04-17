@@ -224,8 +224,163 @@ Route::get('/kvkk-aydinlatma-metni', function () {
 
 Route::get('/invoice', [\App\Http\Controllers\PublicInvoiceController::class, 'show'])->name('public.invoice.show');
 Route::post('/invoice/checkout', [\App\Http\Controllers\PublicInvoiceController::class, 'checkout'])->name('public.invoice.checkout');
+Route::post('/invoice/shopier-checkout', [\App\Http\Controllers\PublicInvoiceController::class, 'shopierCheckout'])->name('public.invoice.shopierCheckout');
 Route::get('/invoice/eft-iframe', [\App\Http\Controllers\PublicInvoiceController::class, 'eftIframe'])->name('public.invoice.eftIframe');
 Route::any('/invoice/payment-result', [\App\Http\Controllers\PublicInvoiceController::class, 'paymentResult'])->name('public.invoice.paymentResult');
+
+Route::any('/callback-shopier', function (Illuminate\Http\Request $request) {
+    Logger::info("CALLBACK_SHOPIER", ["post_request" => $request->all()]);
+    DB::beginTransaction();
+    try {
+        $shopierService = new \App\Services\ShopierService();
+        if (!$shopierService->verifyCallback($request->all())) {
+            Logger::error("CALLBACK_SHOPIER_BAD_SIGNATURE", ["post_request" => $request->all()]);
+            return redirect()->route('portal.dashboard')->with('payment_result_status', 'error')->with('payment_result_message', 'Ödeme doğrulanamadı.');
+        }
+
+        $checkoutId = $request->platform_order_id - 51;
+        $checkout = Checkout::find($checkoutId);
+        if (!$checkout) {
+            Logger::error("CALLBACK_SHOPIER_CHECKOUT_NOT_FOUND", ["post_request" => $request->all()]);
+            return redirect()->route('portal.dashboard')->with('payment_result_status', 'error')->with('payment_result_message', 'Ödeme kaydı bulunamadı.');
+        }
+
+        if (in_array($checkout->status, ['COMPLETED', 'CANCELLED', 'FAILED'])) {
+            if ($checkout->invoice && @$checkout->extra_params['public_token']) {
+                return redirect(route('public.invoice.show', ['token' => $checkout->extra_params['public_token']]))->with('payment_status', 'success')->with('payment_message', 'Ödemeniz zaten işlenmiş.');
+            }
+            return redirect()->route('portal.dashboard')->with('payment_result_status', 'success')->with('payment_result_message', 'Ödemeniz zaten işlenmiş.');
+        }
+
+        $status = $request->input('status');
+        if ($status === 'success') {
+            $totalAmount = (float) $request->total_order_value;
+
+            if ($checkout->invoice_id) {
+                $invoice = Invoice::find($checkout->invoice_id);
+                if (!$invoice) {
+                    Log::error("CALLBACK_SHOPIER_INVOICE_NOT_FOUND", ["checkout_id" => $checkout->id]);
+                    return redirect()->route('portal.dashboard');
+                }
+
+                $invoice->update([
+                    "invoice_address" => $checkout->extra_params["invoice_address_data"] ?? "",
+                ]);
+
+                $checkout->update([
+                    "amount" => $totalAmount,
+                    "paid_at" => Carbon::now(),
+                    "status" => "COMPLETED",
+                ]);
+            } else {
+                $priceData = @$checkout->extra_params["price_data"];
+                $invoice = Invoice::create([
+                    "invoice_number" => Invoice::generateInvoiceNumber(),
+                    "invoice_date" => Carbon::now(),
+                    "due_date" => Carbon::now(),
+                    "status" => "PAID",
+                    "invoice_address" => @$checkout->extra_params["invoice_address_data"] ?? "",
+                    "user_id" => $checkout->user_id,
+                ]);
+
+                $__total_price = 0;
+                $__total_vat = 0;
+                $__total_price_with_vat = 0;
+                if ($priceData) {
+                    foreach ($priceData as $item) {
+                        $__total_price += $item['price'];
+                        $__total_vat += $item['total_vat'];
+                        $__total_price_with_vat += $item['price_with_vat'];
+                        $productData = $item["product"];
+                        unset($productData['deleted_at'], $productData['created_at'], $productData['updated_at']);
+
+                        $order = new Order();
+                        $order->product_data = $productData;
+                        $order->order_id = Uuid::uuid4()->toString();
+                        $order->start_date = Carbon::now();
+                        $order->end_date = addDurationToDate($item["duration"], $item["duration_unit"], Carbon::now());
+                        $order->status = 'PENDING';
+                        $order->product_id = $productData["id"];
+                        $order->user_id = $checkout->user_id;
+                        $order->save();
+
+                        $orderDetailId = OrderDetail::create([
+                            "order_id" => $order->id,
+                            "is_active" => 1,
+                            "is_hidden" => 0,
+                            "additional_services" => $productData["additional_services"] ?? [],
+                            "price_data" => $item,
+                            "price_id" => $item["id"],
+                            "checkout_id" => $checkout->id,
+                        ]);
+
+                        InvoiceItem::create([
+                            "type" => "NEW",
+                            "name" => $productData["name"] . " | " . $item['duration'] . " " . __(mb_strtolower($item['duration_unit'])),
+                            "total_price" => $item['price'],
+                            "vat_percent" => $productData["vat_percent"],
+                            "total_price_with_vat" => $item['price_with_vat'],
+                            "additional_services" => $productData["additional_services"] ?? [],
+                            "product_id" => $productData["id"],
+                            "price_id" => $item["id"],
+                            "order_id" => $order->id,
+                            "order_detail_id" => $orderDetailId->id,
+                            "invoice_id" => $invoice->id,
+                        ]);
+                    }
+                }
+
+                $checkout->update([
+                    "amount" => $totalAmount,
+                    "paid_at" => Carbon::now(),
+                    "invoice_id" => $invoice->id,
+                    "status" => "COMPLETED",
+                ]);
+
+                $invoice->update([
+                    "total_price" => $__total_price,
+                    "total_vat" => $__total_vat,
+                    "total_price_with_vat" => $__total_price_with_vat,
+                ]);
+
+                if ($checkout->basket) {
+                    $checkout->basket->update(["completed_at" => Carbon::now()]);
+                    $checkout->basket->delete();
+                }
+            }
+
+            event(new CheckoutConfirmed($checkout));
+            $deferred = config('queue.checkout_deferred_connection', 'database');
+            $shopierNotify = new InvoiceCheckoutConfirmedNotification($invoice);
+            $shopierNotify->onConnection($deferred);
+            $checkout->user->notify($shopierNotify);
+            \App\Services\NotificationTemplateService::send('invoice_paid', $checkout->user, [
+                'fatura_no' => $invoice->invoice_number ?? $invoice->id,
+                'tutar' => number_format($invoice->total_price_with_vat ?? 0, 2, ',', '.'),
+                'fatura_url' => url('/invoices/' . $invoice->id),
+            ]);
+
+            DB::commit();
+
+            if (@$checkout->extra_params['public_token']) {
+                return redirect(route('public.invoice.show', ['token' => $checkout->extra_params['public_token']]))->with('payment_status', 'success')->with('payment_message', 'Ödemeniz başarıyla alındı.');
+            }
+            return redirect()->route('portal.dashboard')->with('payment_result_status', 'success')->with('payment_result_message', 'Ödemenizi aldık.');
+        } else {
+            $checkout->update(["status" => "FAILED"]);
+            DB::commit();
+
+            if (@$checkout->extra_params['public_token']) {
+                return redirect(route('public.invoice.show', ['token' => $checkout->extra_params['public_token']]))->with('payment_status', 'error')->with('payment_message', 'Ödeme başarısız.');
+            }
+            return redirect()->route('portal.dashboard')->with('payment_result_status', 'error')->with('payment_result_message', 'Ödeme başarısız oldu.');
+        }
+    } catch (\Exception $e) {
+        DB::rollback();
+        Log::error("CALLBACK_SHOPIER_EXCEPTION", ["error" => $e->getMessage(), "post" => $request->all()]);
+        return redirect()->route('portal.dashboard')->with('payment_result_status', 'error')->with('payment_result_message', 'Ödeme işlenirken hata oluştu.');
+    }
+})->name('shopier.callback');
 
 Route::get('/verify-email-otp/{email}/{code}', [\App\Http\Controllers\Portal\AuthController::class, 'verifyEmailOTP'])->name('auth.verify_email_otp');
 

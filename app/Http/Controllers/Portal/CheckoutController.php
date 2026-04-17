@@ -20,6 +20,7 @@ use App\Notifications\CheckoutConfirmedNotification;
 use App\Notifications\InvoiceCheckoutConfirmedNotification;
 use App\Notifications\NewCheckoutNotificationForAdmin;
 use App\Services\PaytrService;
+use App\Services\ShopierService;
 use App\Traits\AjaxResponses;
 use Carbon\Carbon;
 use Exception;
@@ -211,6 +212,119 @@ class CheckoutController extends Controller
         }
     }
     //end::paytr
+
+    //start::shopier
+    public function shopierCheckout(Request $request)
+    {
+        if (Auth::user()->security->is_limit_payment_methods == 1 && !in_array("CREDIT_CARD", Auth::user()->security->payment_methods)) {
+            return $this->errorResponse("Kredi/Banka kartı ile ödeme yapamazsınız.");
+        }
+
+        $request->validate([
+            "invoice_address_id" => [
+                "required",
+                Rule::exists('user_addresses', 'id')->where(fn($q) => $q->where('user_id', Auth::id())),
+            ],
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $user = Auth::user();
+            $invoiceAddressData = $this->getUserInvoiceAddress($request->invoice_address_id);
+            if (!$invoiceAddressData) {
+                return $this->errorResponse(__('please_choose_a_valid_address'));
+            }
+
+            $netToken = Uuid::uuid4()->toString();
+            $checkoutAmount = 0;
+            $productName = '';
+
+            if ($request->invoice_id) {
+                $invoice = Invoice::where(['id' => $request->invoice_id, 'user_id' => Auth::id()])->first();
+                if (!$invoice) {
+                    return $this->errorResponse('Fatura bulunamadı.');
+                }
+                $invoice->update(['invoice_address' => $invoiceAddressData]);
+                $checkoutAmount = $invoice->total_price_with_vat;
+                $productName = 'Fatura #' . $invoice->invoice_number;
+
+                $checkout = Checkout::create([
+                    'type' => 'CREDIT_CARD',
+                    'status' => '3DS_REDIRECTED',
+                    'amount' => $checkoutAmount,
+                    'uuid_value' => $netToken,
+                    'channel' => 'SHOPIER',
+                    'invoice_id' => $invoice->id,
+                    'user_id' => Auth::id(),
+                    'extra_params' => ['invoice_address_data' => $invoiceAddressData],
+                ]);
+            } else {
+                $basket = $user->basket;
+                if (!$basket || count($basket->items) <= 0) {
+                    return $this->errorResponse(__('you_must_add_at_least_one_item_to_your_cart'));
+                }
+                $basketSummary = $basket->basketSummary();
+                $checkoutAmount = $basketSummary['real_total'] ?? $basketSummary['total'];
+                $productName = 'Sipariş';
+
+                $basketPricesData = [];
+                foreach ($basket->items as $item) {
+                    $servicePrice = 0;
+                    $getAdditionalServices = [];
+                    if ($item->additional_services) {
+                        foreach ($item->additional_services as $key => $additional_service) {
+                            $serviceData = $item->getAdditionalServices($key, $additional_service);
+                            $getAdditionalServices[] = $serviceData;
+                            $servicePrice += $serviceData["price_without_vat"];
+                        }
+                    }
+                    $priceData = $item->price->toArray();
+                    $priceData['price'] = $item->price->price_without_vat + $servicePrice;
+                    $priceData['total_vat'] = ($priceData['price'] * $item->product->vat_percent) / 100;
+                    $priceData['price_with_vat'] = $priceData['price'] + $priceData['total_vat'];
+                    $priceData["product"]["additional_services"] = $getAdditionalServices;
+                    $basketPricesData[] = $priceData;
+                }
+
+                $checkout = Checkout::create([
+                    'type' => 'CREDIT_CARD',
+                    'status' => '3DS_REDIRECTED',
+                    'uuid_value' => $netToken,
+                    'channel' => 'SHOPIER',
+                    'amount' => $checkoutAmount,
+                    'user_id' => Auth::id(),
+                    'basket_id' => $basket->id,
+                    'extra_params' => [
+                        'price_data' => $basketPricesData,
+                        'invoice_address_data' => $invoiceAddressData,
+                    ],
+                ]);
+            }
+
+            $nameParts = explode(' ', $user->full_name ?? 'Müşteri', 2);
+            $shopierService = new ShopierService();
+            $formHtml = $shopierService->generatePaymentForm([
+                'order_id'        => $checkout->id + 51,
+                'product_name'    => $productName,
+                'buyer_id'        => $user->id,
+                'buyer_name'      => $nameParts[0],
+                'buyer_surname'   => $nameParts[1] ?? $nameParts[0],
+                'buyer_email'     => $user->email,
+                'buyer_phone'     => $user->phone ?? '05000000000',
+                'billing_address' => @$invoiceAddressData['address'] . ' ' . @$invoiceAddressData['city']['title'],
+                'billing_city'    => @$invoiceAddressData['city']['title'] ?? 'Istanbul',
+                'amount'          => number_format($checkoutAmount, 2, '.', ''),
+                'callback_url'    => route('shopier.callback'),
+            ]);
+
+            DB::commit();
+            return $formHtml;
+        } catch (\Exception $e) {
+            DB::rollback();
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+    //end::shopier
 
     public function saveBankTransferNotification(Request $request)
     {

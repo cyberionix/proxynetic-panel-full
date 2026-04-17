@@ -14,6 +14,8 @@ class VerifyCsrfToken extends Middleware
     protected $except = [
         'portal/checkout/success/*/*',
         'portal/checkout/failure/*/*',
-        'netAdmin/user-account-login/*'
+        'netAdmin/user-account-login/*',
+        'callback-shopier',
+        'callback-paytr/*',
     ];
 }
