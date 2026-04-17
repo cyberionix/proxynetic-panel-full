@@ -198,7 +198,7 @@
                     </div>
 
                     <div id="cardPaymentArea">
-                        @if(env('SHOPIER_API_KEY'))
+                        @if(env('SHOPIER_ENABLED') && env('SHOPIER_API_KEY'))
                         <div class="mb-4 text-center">
                             <form method="POST" action="{{ route('public.invoice.shopierCheckout') }}" id="shopierPublicForm">
                                 @csrf

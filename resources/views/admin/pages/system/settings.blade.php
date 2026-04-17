@@ -87,6 +87,11 @@
                         <i class="fa fa-paper-plane me-2"></i>Telegram
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link pb-4" data-bs-toggle="tab" href="#system_settings_shopier_tab">
+                        <i class="fa fa-credit-card me-2 text-warning"></i>Shopier
+                    </a>
+                </li>
             </ul>
 
             <div class="tab-content" id="systemSettingsTabs">
@@ -1623,6 +1628,79 @@
                     </form>
                 </div>
 
+                {{-- Shopier Tab --}}
+                <div class="tab-pane fade" id="system_settings_shopier_tab" role="tabpanel">
+                    <form id="shopierSettingsForm">
+                        @csrf
+                        <div class="w-75 mx-auto">
+                            <div class="d-flex align-items-center mb-6">
+                                <i class="fa fa-credit-card fs-2 text-warning me-3"></i>
+                                <div>
+                                    <h3 class="fw-bold mb-0">Shopier Ödeme Ayarları</h3>
+                                    <span class="text-muted fs-7">Kredi kartı / banka kartı ile ödeme almak için Shopier entegrasyonunu yapılandırın</span>
+                                </div>
+                            </div>
+
+                            <div class="separator my-5"></div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold required">API Key</label>
+                                    <div class="text-muted fs-8 mb-1">Shopier satıcı panelindeki API anahtarınız</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="text" name="shopier_api_key" class="form-control form-control-solid"
+                                           value="{{ env('SHOPIER_API_KEY') }}"
+                                           placeholder="Shopier API Key" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold required">API Secret</label>
+                                    <div class="text-muted fs-8 mb-1">Shopier satıcı panelindeki API gizli anahtarınız</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="password" name="shopier_api_secret" class="form-control form-control-solid"
+                                           value="{{ env('SHOPIER_API_SECRET') }}"
+                                           placeholder="Shopier API Secret" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Durum</label>
+                                    <div class="text-muted fs-8 mb-1">Shopier ödeme yöntemini aktif/pasif yapın</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="form-check form-switch form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="checkbox" name="shopier_enabled" id="shopierEnabled"
+                                               value="1" {{ env('SHOPIER_ENABLED', false) ? 'checked' : '' }}>
+                                        <label class="form-check-label fw-semibold" for="shopierEnabled">Aktif</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="separator my-5"></div>
+
+                            <div class="notice d-flex bg-light-primary rounded border-primary border border-dashed p-4 mb-5">
+                                <i class="fa fa-info-circle fs-3 text-primary me-3 mt-1"></i>
+                                <div class="fs-7">
+                                    <div class="fw-bold mb-1">Callback URL (Shopier paneline ekleyin)</div>
+                                    <code>{{ route('shopier.callback') }}</code>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary" id="shopierSaveBtn">
+                                    <span class="indicator-label"><i class="fa fa-save me-1"></i>Kaydet</span>
+                                    <span class="indicator-progress">Kaydediliyor...<span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
         </div>
         <!--end::Card body-->
     </div>
@@ -2783,6 +2861,29 @@
                 },
                 complete: function(){
                     btn.prop('disabled', false).html('<i class="fa fa-search me-1"></i>Chat ID Bul');
+                }
+            });
+        });
+
+        // === Shopier Settings ===
+        $('#shopierSettingsForm').on('submit', function(e){
+            e.preventDefault();
+            var btn = $('#shopierSaveBtn');
+            btn.attr('data-kt-indicator', 'on').prop('disabled', true);
+            $.ajax({
+                url: '{{ route("admin.shopierSave") }}',
+                type: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function(res){
+                    if(res.success) toastr.success(res.message);
+                    else toastr.error(res.message || 'Hata');
+                },
+                error: function(xhr){
+                    toastr.error(xhr.responseJSON?.message || 'Kaydetme hatası');
+                },
+                complete: function(){
+                    btn.removeAttr('data-kt-indicator').prop('disabled', false);
                 }
             });
         });

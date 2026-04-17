@@ -1267,6 +1267,38 @@ class SystemController extends Controller
         }
     }
 
+    public function saveShopierSettings(Request $request)
+    {
+        try {
+            $envPath = base_path('.env');
+            $envContent = file_get_contents($envPath);
+
+            $vars = [
+                'SHOPIER_API_KEY'    => $request->input('shopier_api_key', ''),
+                'SHOPIER_API_SECRET' => $request->input('shopier_api_secret', ''),
+                'SHOPIER_ENABLED'    => $request->has('shopier_enabled') ? 'true' : 'false',
+            ];
+
+            foreach ($vars as $key => $value) {
+                if (preg_match("/^{$key}=.*/m", $envContent)) {
+                    $envContent = preg_replace("/^{$key}=.*/m", "{$key}={$value}", $envContent);
+                } else {
+                    $envContent .= "\n{$key}={$value}";
+                }
+            }
+
+            file_put_contents($envPath, $envContent);
+
+            Artisan::call('config:clear');
+            Artisan::call('config:cache');
+
+            return response()->json(['success' => true, 'message' => 'Shopier ayarları kaydedildi.']);
+        } catch (\Throwable $e) {
+            Log::error('SHOPIER_SETTINGS_SAVE_FAIL', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Hata: ' . $e->getMessage()], 500);
+        }
+    }
+
     public function testTelegram(Request $request)
     {
         try {

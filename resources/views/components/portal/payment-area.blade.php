@@ -127,7 +127,7 @@
         <!--end::Radio group-->
         @if(Auth::user()->security->is_limit_payment_methods == 0 || (Auth::user()->security->is_limit_payment_methods == 1 && in_array("CREDIT_CARD", Auth::user()->security->payment_methods)))
             <div class="credit-card-option-form-area" style="display: none">
-                @if(env('SHOPIER_API_KEY'))
+                @if(env('SHOPIER_ENABLED') && env('SHOPIER_API_KEY'))
                 <div class="mb-5 text-center">
                     <form method="POST" id="shopierCheckoutForm" action="{{route('portal.shopierCheckout')}}">
                         @csrf
