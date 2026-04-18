@@ -18,27 +18,26 @@ class NestpayService
         $this->gatewayUrl = config('nestpay.gateway_url', 'https://istest.asseco-see.com.tr/fim/est3Dgate');
     }
 
-    private function escapeHashValue($value)
-    {
-        $value = str_replace('\\', '\\\\', $value);
-        $value = str_replace('|', '\\|', $value);
-        return $value;
-    }
-
     private function calculateHashVer3(array $params, $storeKey)
     {
-        $hashParams = $params;
-        unset($hashParams['hash'], $hashParams['encoding'], $hashParams['hashAlgorithm']);
+        $paramNames = array_keys($params);
+        natcasesort($paramNames);
 
-        ksort($hashParams);
-
-        $hashParts = [];
-        foreach ($hashParams as $value) {
-            $hashParts[] = $this->escapeHashValue((string)$value);
+        $hashval = '';
+        foreach ($paramNames as $param) {
+            $paramValue = (string)$params[$param];
+            $escapedValue = str_replace('|', '\\|', str_replace('\\', '\\\\', $paramValue));
+            $lowerParam = strtolower($param);
+            if ($lowerParam !== 'hash' && $lowerParam !== 'encoding') {
+                $hashval .= $escapedValue . '|';
+            }
         }
 
-        $hashString = implode('|', $hashParts) . '|' . $this->escapeHashValue($storeKey);
-        $hash = base64_encode(hash('sha512', $hashString, true));
+        $escapedStoreKey = str_replace('|', '\\|', str_replace('\\', '\\\\', $storeKey));
+        $hashval .= $escapedStoreKey;
+
+        $calculatedHashValue = hash('sha512', $hashval);
+        $hash = base64_encode(pack('H*', $calculatedHashValue));
 
         return $hash;
     }
@@ -52,14 +51,14 @@ class NestpayService
 
         $params = [
             'clientid'                        => $this->clientId,
-            'storetype'                       => '3d_pay',
+            'storetype'                       => '3D_PAY',
             'amount'                          => $formattedAmount,
             'currency'                        => '949',
             'oid'                             => (string)$orderId,
             'okUrl'                           => $okUrl,
             'failUrl'                         => $failUrl,
-            'islemtipi'                       => $islemtipi,
-            'taksit'                          => $taksit,
+            'TranType'                        => $islemtipi,
+            'Instalment'                      => $taksit,
             'rnd'                             => $rnd,
             'lang'                            => 'tr',
             'hashAlgorithm'                   => 'ver3',
@@ -77,7 +76,7 @@ class NestpayService
         }
 
         $hash = $this->calculateHashVer3($params, $this->storeKey);
-        $params['hash'] = $hash;
+        $params['HASH'] = $hash;
 
         Log::info('NESTPAY_HASH_DEBUG', [
             'clientId' => $this->clientId,
@@ -85,8 +84,8 @@ class NestpayService
             'amount' => $formattedAmount,
             'okUrl' => $okUrl,
             'failUrl' => $failUrl,
-            'islemtipi' => $islemtipi,
-            'taksit' => $taksit,
+            'TranType' => $islemtipi,
+            'Instalment' => $taksit,
             'rnd' => $rnd,
             'hash' => $hash,
             'hashAlgorithm' => 'ver3',
@@ -110,51 +109,32 @@ class NestpayService
 
     public function verifyCallbackHash(Request $request)
     {
-        $responseHash = $request->input('HASH', '');
-        if (empty($responseHash)) {
+        $retrievedHash = $request->input('HASH', '');
+        if (empty($retrievedHash)) {
             return false;
         }
 
-        $hashAlgorithm = $request->input('HASHPARAMSVAL') !== null ? 'sha1' : 'auto';
-        $hashParamsVal = $request->input('HASHPARAMSVAL', '');
-        $hashParams = $request->input('HASHPARAMS', '');
+        $postParams = $request->all();
+        $paramNames = array_keys($postParams);
+        natcasesort($paramNames);
 
-        if (!empty($hashParamsVal)) {
-            $hashStr = $hashParamsVal . $this->storeKey;
-
-            $calculatedSha1 = base64_encode(sha1($hashStr, true));
-            if (hash_equals($calculatedSha1, $responseHash)) {
-                return true;
-            }
-
-            $calculatedSha512 = base64_encode(hash('sha512', $hashStr, true));
-            if (hash_equals($calculatedSha512, $responseHash)) {
-                return true;
+        $hashval = '';
+        foreach ($paramNames as $param) {
+            $paramValue = (string)($postParams[$param] ?? '');
+            $escapedValue = str_replace('|', '\\|', str_replace('\\', '\\\\', $paramValue));
+            $lowerParam = strtolower($param);
+            if ($lowerParam !== 'hash' && $lowerParam !== 'encoding' && $lowerParam !== 'countdown') {
+                $hashval .= $escapedValue . '|';
             }
         }
 
-        if (!empty($hashParams)) {
-            $checkStr = '';
-            foreach (explode(':', $hashParams) as $p) {
-                $p = trim($p);
-                if ($p !== '') {
-                    $checkStr .= $request->input($p, '');
-                }
-            }
-            $checkStr .= $this->storeKey;
+        $escapedStoreKey = str_replace('|', '\\|', str_replace('\\', '\\\\', $this->storeKey));
+        $hashval .= $escapedStoreKey;
 
-            $calculatedSha1 = base64_encode(sha1($checkStr, true));
-            if (hash_equals($calculatedSha1, $responseHash)) {
-                return true;
-            }
+        $calculatedHashValue = hash('sha512', $hashval);
+        $actualHash = base64_encode(pack('H*', $calculatedHashValue));
 
-            $calculatedSha512 = base64_encode(hash('sha512', $checkStr, true));
-            if (hash_equals($calculatedSha512, $responseHash)) {
-                return true;
-            }
-        }
-
-        return false;
+        return hash_equals($actualHash, $retrievedHash);
     }
 
     public function isPaymentSuccessful(Request $request)
