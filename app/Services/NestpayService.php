@@ -15,7 +15,7 @@ class NestpayService
     {
         $this->clientId = config('nestpay.client_id', '');
         $this->storeKey = config('nestpay.store_key', '');
-        $this->gatewayUrl = config('nestpay.gateway_url', 'https://entegrasyon.asseco-see.com.tr/fim/est3dgate');
+        $this->gatewayUrl = config('nestpay.gateway_url', 'https://entegrasyon.asseco-see.com.tr/fim/est3Dgate');
     }
 
     public function generateFormHtml(array $cardData, $amount, $orderId, $okUrl, $failUrl, $installment = 0)
@@ -38,25 +38,23 @@ class NestpayService
             'taksit' => $taksit,
             'rnd' => $rnd,
             'hash' => $hash,
+            'hashStr_length' => strlen($hashStr),
+            'gatewayUrl' => $this->gatewayUrl,
         ]);
 
         $params = [
-            'clientid'                        => $this->clientId,
-            'storetype'                       => '3d_pay',
-            'amount'                          => $formattedAmount,
-            'currency'                        => '949',
-            'oid'                             => (string)$orderId,
-            'okUrl'                           => $okUrl,
-            'failUrl'                         => $failUrl,
-            'islemtipi'                       => $islemtipi,
-            'taksit'                          => $taksit,
-            'rnd'                             => $rnd,
-            'hash'                            => $hash,
-            'lang'                            => 'tr',
-            'pan'                             => $cardData['card_number'],
-            'Ecom_Payment_Card_ExpDate_Month' => str_pad($cardData['expiry_month'], 2, '0', STR_PAD_LEFT),
-            'Ecom_Payment_Card_ExpDate_Year'  => str_pad($cardData['expiry_year'], 2, '0', STR_PAD_LEFT),
-            'cv2'                             => $cardData['cvv'],
+            'clientid'  => $this->clientId,
+            'storetype' => '3d_pay_hosting',
+            'amount'    => $formattedAmount,
+            'currency'  => '949',
+            'oid'       => (string)$orderId,
+            'okUrl'     => $okUrl,
+            'failUrl'   => $failUrl,
+            'islemtipi' => $islemtipi,
+            'taksit'    => $taksit,
+            'rnd'       => $rnd,
+            'hash'      => $hash,
+            'lang'      => 'tr',
         ];
 
         if (!empty($cardData['card_name'])) {
@@ -64,9 +62,6 @@ class NestpayService
         }
         if (!empty($cardData['email'])) {
             $params['email'] = $cardData['email'];
-        }
-        if (!empty($cardData['phone'])) {
-            $params['tel'] = $cardData['phone'];
         }
 
         $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>3D Secure Yönlendirme</title></head><body>';
