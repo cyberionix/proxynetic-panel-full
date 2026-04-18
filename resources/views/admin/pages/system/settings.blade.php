@@ -1650,7 +1650,7 @@
                                 </div>
                                 <div class="col-md-8">
                                     <input type="text" name="nestpay_client_id" class="form-control form-control-solid"
-                                           value="{{ env('NESTPAY_CLIENT_ID') }}"
+                                           value="{{ config('nestpay.client_id') }}"
                                            placeholder="700700022171">
                                 </div>
                             </div>
@@ -1662,7 +1662,7 @@
                                 </div>
                                 <div class="col-md-8">
                                     <input type="password" name="nestpay_store_key" class="form-control form-control-solid"
-                                           value="{{ env('NESTPAY_STORE_KEY') }}"
+                                           value="{{ config('nestpay.store_key') }}"
                                            placeholder="ETGK" autocomplete="off">
                                 </div>
                             </div>
@@ -1674,7 +1674,7 @@
                                 </div>
                                 <div class="col-md-8">
                                     <input type="url" name="nestpay_gateway_url" class="form-control form-control-solid"
-                                           value="{{ env('NESTPAY_GATEWAY_URL', 'https://entegrasyon.asseco-see.com.tr/fim/est3dgate') }}"
+                                           value="{{ config('nestpay.gateway_url', 'https://entegrasyon.asseco-see.com.tr/fim/est3dgate') }}"
                                            placeholder="https://entegrasyon.asseco-see.com.tr/fim/est3dgate">
                                 </div>
                             </div>
@@ -1687,7 +1687,7 @@
                                 <div class="col-md-8">
                                     <div class="form-check form-switch form-check-custom form-check-solid">
                                         <input class="form-check-input" type="checkbox" name="nestpay_enabled" id="nestpayEnabled"
-                                               value="1" {{ env('NESTPAY_ENABLED') ? 'checked' : '' }}>
+                                               value="1" {{ config('nestpay.enabled') ? 'checked' : '' }}>
                                         <label class="form-check-label fw-semibold" for="nestpayEnabled">Aktif</label>
                                     </div>
                                 </div>

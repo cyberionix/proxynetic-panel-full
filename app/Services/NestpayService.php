@@ -12,9 +12,9 @@ class NestpayService
 
     public function __construct()
     {
-        $this->clientId = env('NESTPAY_CLIENT_ID', '');
-        $this->storeKey = env('NESTPAY_STORE_KEY', '');
-        $this->gatewayUrl = env('NESTPAY_GATEWAY_URL', 'https://entegrasyon.asseco-see.com.tr/fim/est3dgate');
+        $this->clientId = config('nestpay.client_id', '');
+        $this->storeKey = config('nestpay.store_key', '');
+        $this->gatewayUrl = config('nestpay.gateway_url', 'https://entegrasyon.asseco-see.com.tr/fim/est3dgate');
     }
 
     protected function escapeValue($value)
