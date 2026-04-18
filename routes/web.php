@@ -219,15 +219,46 @@ Route::post('/callback-paytr/64a3e520cf', function (Illuminate\Http\Request $req
 
 
 Route::any('/callback-nestpay', function (Illuminate\Http\Request $request) {
-    Logger::info("CALLBACK_NESTPAY", ["post_request" => $request->all()]);
+    $rawBody = file_get_contents('php://input');
+    Logger::info("CALLBACK_NESTPAY", [
+        "post_request" => $request->all(),
+        "raw_body_length" => strlen($rawBody),
+        "raw_body" => substr($rawBody, 0, 2000),
+        "method" => $request->method(),
+        "query" => $request->query(),
+        "post_vars" => $_POST ?? [],
+        "get_vars" => $_GET ?? [],
+    ]);
 
     $nestpayService = new \App\Services\NestpayService();
 
     $oid = $request->input('oid', '');
+    if (empty($oid)) {
+        $oid = $_POST['oid'] ?? $_GET['oid'] ?? '';
+    }
+
     $checkout = Checkout::where('uuid_value', $oid)->first();
 
+    if (!$checkout && !empty($oid)) {
+        $checkout = Checkout::where('uuid_value', $oid)->first();
+    }
+
     if (!$checkout) {
-        Logger::error("CALLBACK_NESTPAY_CHECKOUT_NOT_FOUND", ["post_request" => $request->all()]);
+        $checkout = Checkout::where('status', '3DS_REDIRECTED')
+            ->where('channel', 'NESTPAY')
+            ->orderByDesc('created_at')
+            ->first();
+        Logger::info("CALLBACK_NESTPAY_FALLBACK_CHECKOUT", [
+            "found" => $checkout ? $checkout->id : null,
+            "oid_received" => $oid,
+        ]);
+    }
+
+    if (!$checkout) {
+        Logger::error("CALLBACK_NESTPAY_CHECKOUT_NOT_FOUND", [
+            "oid" => $oid,
+            "post_request" => $request->all(),
+        ]);
         return redirect()->route('portal.dashboard')->with('payment_result_status', 'error')->with('payment_result_message', 'Ödeme kaydı bulunamadı.');
     }
 
