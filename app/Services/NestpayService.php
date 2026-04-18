@@ -18,28 +18,37 @@ class NestpayService
         $this->gatewayUrl = config('nestpay.gateway_url', 'https://istest.asseco-see.com.tr/fim/est3Dgate');
     }
 
+    private function escapeHashValue($value)
+    {
+        $value = str_replace('\\', '\\\\', $value);
+        $value = str_replace('|', '\\|', $value);
+        return $value;
+    }
+
+    private function calculateHashVer3(array $params, $storeKey)
+    {
+        $hashParams = $params;
+        unset($hashParams['hash'], $hashParams['encoding'], $hashParams['hashAlgorithm']);
+
+        ksort($hashParams);
+
+        $hashParts = [];
+        foreach ($hashParams as $value) {
+            $hashParts[] = $this->escapeHashValue((string)$value);
+        }
+
+        $hashString = implode('|', $hashParts) . '|' . $this->escapeHashValue($storeKey);
+        $hash = base64_encode(hash('sha512', $hashString, true));
+
+        return $hash;
+    }
+
     public function generateFormHtml(array $cardData, $amount, $orderId, $okUrl, $failUrl, $installment = 0)
     {
         $rnd = microtime();
         $taksit = ($installment > 1) ? (string)$installment : '';
         $islemtipi = 'Auth';
         $formattedAmount = number_format((float)$amount, 2, '.', '');
-
-        $hashStr = $this->clientId . $orderId . $formattedAmount . $okUrl . $failUrl . $islemtipi . $taksit . $rnd . $this->storeKey;
-        $hash = base64_encode(sha1($hashStr, true));
-
-        Log::info('NESTPAY_HASH_DEBUG', [
-            'clientId' => $this->clientId,
-            'oid' => $orderId,
-            'amount' => $formattedAmount,
-            'okUrl' => $okUrl,
-            'failUrl' => $failUrl,
-            'islemtipi' => $islemtipi,
-            'taksit' => $taksit,
-            'rnd' => $rnd,
-            'hash' => $hash,
-            'gatewayUrl' => $this->gatewayUrl,
-        ]);
 
         $params = [
             'clientid'                        => $this->clientId,
@@ -52,8 +61,8 @@ class NestpayService
             'islemtipi'                       => $islemtipi,
             'taksit'                          => $taksit,
             'rnd'                             => $rnd,
-            'hash'                            => $hash,
             'lang'                            => 'tr',
+            'hashAlgorithm'                   => 'ver3',
             'pan'                             => $cardData['card_number'],
             'Ecom_Payment_Card_ExpDate_Month' => str_pad($cardData['expiry_month'], 2, '0', STR_PAD_LEFT),
             'Ecom_Payment_Card_ExpDate_Year'  => str_pad($cardData['expiry_year'], 2, '0', STR_PAD_LEFT),
@@ -66,6 +75,23 @@ class NestpayService
         if (!empty($cardData['email'])) {
             $params['email'] = $cardData['email'];
         }
+
+        $hash = $this->calculateHashVer3($params, $this->storeKey);
+        $params['hash'] = $hash;
+
+        Log::info('NESTPAY_HASH_DEBUG', [
+            'clientId' => $this->clientId,
+            'oid' => $orderId,
+            'amount' => $formattedAmount,
+            'okUrl' => $okUrl,
+            'failUrl' => $failUrl,
+            'islemtipi' => $islemtipi,
+            'taksit' => $taksit,
+            'rnd' => $rnd,
+            'hash' => $hash,
+            'hashAlgorithm' => 'ver3',
+            'gatewayUrl' => $this->gatewayUrl,
+        ]);
 
         $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>3D Secure Yönlendirme</title></head><body>';
         $html .= '<div style="text-align:center;margin-top:100px;"><p>3D Secure doğrulama sayfasına yönlendiriliyorsunuz...</p>';
@@ -89,14 +115,24 @@ class NestpayService
             return false;
         }
 
+        $hashAlgorithm = $request->input('HASHPARAMSVAL') !== null ? 'sha1' : 'auto';
         $hashParamsVal = $request->input('HASHPARAMSVAL', '');
+        $hashParams = $request->input('HASHPARAMS', '');
+
         if (!empty($hashParamsVal)) {
             $hashStr = $hashParamsVal . $this->storeKey;
-            $calculatedHash = base64_encode(sha1($hashStr, true));
-            return hash_equals($calculatedHash, $responseHash);
+
+            $calculatedSha1 = base64_encode(sha1($hashStr, true));
+            if (hash_equals($calculatedSha1, $responseHash)) {
+                return true;
+            }
+
+            $calculatedSha512 = base64_encode(hash('sha512', $hashStr, true));
+            if (hash_equals($calculatedSha512, $responseHash)) {
+                return true;
+            }
         }
 
-        $hashParams = $request->input('HASHPARAMS', '');
         if (!empty($hashParams)) {
             $checkStr = '';
             foreach (explode(':', $hashParams) as $p) {
@@ -106,8 +142,16 @@ class NestpayService
                 }
             }
             $checkStr .= $this->storeKey;
-            $calculatedHash = base64_encode(sha1($checkStr, true));
-            return hash_equals($calculatedHash, $responseHash);
+
+            $calculatedSha1 = base64_encode(sha1($checkStr, true));
+            if (hash_equals($calculatedSha1, $responseHash)) {
+                return true;
+            }
+
+            $calculatedSha512 = base64_encode(hash('sha512', $checkStr, true));
+            if (hash_equals($calculatedSha512, $responseHash)) {
+                return true;
+            }
         }
 
         return false;
