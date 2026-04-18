@@ -15,7 +15,7 @@ class NestpayService
     {
         $this->clientId = config('nestpay.client_id', '');
         $this->storeKey = config('nestpay.store_key', '');
-        $this->gatewayUrl = config('nestpay.gateway_url', 'https://istest.asseco-see.com.tr/fim/est3Dgate');
+        $this->gatewayUrl = config('nestpay.gateway_url', 'https://sanalpos.isbank.com.tr/fim/est3Dgate');
     }
 
     private function calculateHashVer3(array $params, $storeKey)
