@@ -272,8 +272,41 @@ Route::any('/callback-nestpay', function (Illuminate\Http\Request $request) {
         return redirect($redirectUrl)->with('payment_result_status', 'info')->with('payment_result_message', 'Bu ödeme zaten işlenmiş.');
     }
 
-    if (!$nestpayService->verifyCallbackHash($request)) {
-        Logger::error("CALLBACK_NESTPAY_BAD_HASH", ["post_request" => $request->all()]);
+    $hashResult = $nestpayService->verifyCallbackHash($request);
+    $mdStatus = $request->input('mdStatus', '');
+    $procReturnCode = $request->input('ProcReturnCode', '');
+    $errMsg = $request->input('ErrMsg', '');
+    $responseVal = $request->input('Response', '');
+
+    Logger::info("CALLBACK_NESTPAY_VERIFY", [
+        "hash_ok" => $hashResult,
+        "mdStatus" => $mdStatus,
+        "ProcReturnCode" => $procReturnCode,
+        "ErrMsg" => $errMsg,
+        "Response" => $responseVal,
+        "checkout_id" => $checkout->id,
+        "HASHPARAMS" => $request->input('HASHPARAMS', ''),
+        "HASHPARAMSVAL" => $request->input('HASHPARAMSVAL', ''),
+    ]);
+
+    if (empty($mdStatus) && empty($procReturnCode)) {
+        Logger::error("CALLBACK_NESTPAY_NO_PAYMENT_DATA", [
+            "checkout_id" => $checkout->id,
+            "all_params" => $request->all(),
+        ]);
+        $checkout->update(['status' => 'FAILED']);
+        $msg = '3D doğrulama işlemi tamamlanamadı. Lütfen test kart bilgilerini kullanarak tekrar deneyiniz.';
+        if ($publicToken) {
+            return redirect($redirectUrl)->with('payment_status', 'error')->with('payment_message', $msg);
+        }
+        return redirect($redirectUrl)->with('payment_result_status', 'error')->with('payment_result_message', $msg);
+    }
+
+    if (!$hashResult) {
+        Logger::error("CALLBACK_NESTPAY_BAD_HASH", [
+            "post_request" => $request->all(),
+            "checkout_id" => $checkout->id,
+        ]);
         $checkout->update(['status' => 'FAILED']);
         $msg = 'Ödeme doğrulama hatası. Lütfen tekrar deneyiniz.';
         if ($publicToken) {
@@ -283,18 +316,19 @@ Route::any('/callback-nestpay', function (Illuminate\Http\Request $request) {
     }
 
     if (!$nestpayService->isPaymentSuccessful($request)) {
-        $errMsg = $request->input('ErrMsg', 'Ödeme başarısız.');
+        $displayErr = !empty($errMsg) ? $errMsg : 'Ödeme başarısız.';
         Logger::error("CALLBACK_NESTPAY_PAYMENT_FAILED", [
             "checkout_id" => $checkout->id,
-            "mdStatus" => $request->input('mdStatus'),
-            "ProcReturnCode" => $request->input('ProcReturnCode'),
+            "mdStatus" => $mdStatus,
+            "ProcReturnCode" => $procReturnCode,
             "ErrMsg" => $errMsg,
+            "Response" => $responseVal,
         ]);
         $checkout->update(['status' => 'FAILED']);
         if ($publicToken) {
-            return redirect($redirectUrl)->with('payment_status', 'error')->with('payment_message', 'Ödeme başarısız: ' . $errMsg);
+            return redirect($redirectUrl)->with('payment_status', 'error')->with('payment_message', 'Ödeme başarısız: ' . $displayErr);
         }
-        return redirect($redirectUrl)->with('payment_result_status', 'error')->with('payment_result_message', 'Ödeme başarısız: ' . $errMsg);
+        return redirect($redirectUrl)->with('payment_result_status', 'error')->with('payment_result_message', 'Ödeme başarısız: ' . $displayErr);
     }
 
     DB::beginTransaction();

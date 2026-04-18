@@ -84,17 +84,33 @@ class NestpayService
 
     public function verifyCallbackHash(Request $request)
     {
-        $hashParamsVal = $request->input('HASHPARAMSVAL', '');
         $responseHash = $request->input('HASH', '');
-
         if (empty($responseHash)) {
             return false;
         }
 
-        $hashStr = $hashParamsVal . $this->storeKey;
-        $calculatedHash = base64_encode(sha1($hashStr, true));
+        $hashParamsVal = $request->input('HASHPARAMSVAL', '');
+        if (!empty($hashParamsVal)) {
+            $hashStr = $hashParamsVal . $this->storeKey;
+            $calculatedHash = base64_encode(sha1($hashStr, true));
+            return hash_equals($calculatedHash, $responseHash);
+        }
 
-        return hash_equals($calculatedHash, $responseHash);
+        $hashParams = $request->input('HASHPARAMS', '');
+        if (!empty($hashParams)) {
+            $checkStr = '';
+            foreach (explode(':', $hashParams) as $p) {
+                $p = trim($p);
+                if ($p !== '') {
+                    $checkStr .= $request->input($p, '');
+                }
+            }
+            $checkStr .= $this->storeKey;
+            $calculatedHash = base64_encode(sha1($checkStr, true));
+            return hash_equals($calculatedHash, $responseHash);
+        }
+
+        return false;
     }
 
     public function isPaymentSuccessful(Request $request)
