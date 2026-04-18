@@ -188,6 +188,11 @@
                             <button type="button" class="btn btn-outline-primary active" id="tabCard" onclick="showPaymentTab('card')">
                                 <i class="fa fa-credit-card me-1"></i>Kredi Kartı
                             </button>
+                            @if(env('NESTPAY_ENABLED', false))
+                            <button type="button" class="btn btn-outline-primary" id="tabNestpay" onclick="showPaymentTab('nestpay')">
+                                <i class="fa fa-university me-1"></i>İşbank Kartı
+                            </button>
+                            @endif
                             <button type="button" class="btn btn-outline-primary" id="tabEft" onclick="showPaymentTab('eft')">
                                 <i class="fa fa-building-columns me-1"></i>Havale / EFT
                             </button>
@@ -198,21 +203,6 @@
                     </div>
 
                     <div id="cardPaymentArea">
-                        @if(env('SHOPIER_ENABLED') && env('SHOPIER_API_KEY'))
-                        <div class="mb-4 text-center">
-                            <form method="POST" action="{{ route('public.invoice.shopierCheckout') }}" id="shopierPublicForm">
-                                @csrf
-                                <input type="hidden" name="token" value="{{ $invoice->share_token }}">
-                                <button type="submit" class="btn btn-primary btn-lg w-100 py-2 fw-bold" id="shopierPayBtn">
-                                    <i class="fa fa-credit-card me-1"></i>Shopier ile Güvenli Öde
-                                </button>
-                                <p class="text-muted mt-2" style="font-size:12px;">Kredi kartı / Banka kartı ile güvenli ödeme</p>
-                            </form>
-                            <div class="d-flex align-items-center my-3">
-                                <hr class="flex-grow-1"><span class="mx-3 text-muted" style="font-size:12px;">veya kart bilgilerinizi girin</span><hr class="flex-grow-1">
-                            </div>
-                        </div>
-                        @endif
                         <form method="POST" action="{{ route('public.invoice.checkout') }}" id="publicCheckoutForm">
                             @csrf
                             <input type="hidden" name="token" value="{{ $invoice->share_token }}">
@@ -266,6 +256,73 @@
                         </form>
                     </div>
 
+                    @if(env('NESTPAY_ENABLED', false))
+                    <div id="nestpayPaymentArea" style="display:none;">
+                        <form method="POST" action="{{ route('public.invoice.nestpayCheckout') }}" id="publicNestpayForm">
+                            @csrf
+                            <input type="hidden" name="token" value="{{ $invoice->share_token }}">
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Kart Üzerindeki İsim</label>
+                                <input type="text" class="form-control" name="card_name" value="{{ $invoice->user?->full_name }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Kart Numarası</label>
+                                <div class="position-relative">
+                                    <input type="text" class="form-control" name="card_number" placeholder="XXXX XXXX XXXX XXXX" maxlength="16" required>
+                                    <div class="position-absolute top-50 end-0 translate-middle-y me-3 d-flex gap-1">
+                                        <img src="https://cdn.jsdelivr.net/gh/nicepay-dev/nicepay-images@main/visa.svg" alt="Visa" height="20" onerror="this.style.display='none'">
+                                        <img src="https://cdn.jsdelivr.net/gh/nicepay-dev/nicepay-images@main/mastercard.svg" alt="MC" height="20" onerror="this.style.display='none'">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-3">
+                                    <label class="form-label fw-semibold">Ay</label>
+                                    <select name="card_exp_month" class="form-select" required>
+                                        <option value="">Ay</option>
+                                        @for($m = 1; $m <= 12; $m++)
+                                            <option value="{{ $m }}">{{ str_pad($m, 2, '0', STR_PAD_LEFT) }}</option>
+                                        @endfor
+                                    </select>
+                                </div>
+                                <div class="col-3">
+                                    <label class="form-label fw-semibold">Yıl</label>
+                                    <select name="card_exp_year" class="form-select" required>
+                                        <option value="">Yıl</option>
+                                        @for($y = (int)date('y'); $y <= (int)date('y') + 10; $y++)
+                                            <option value="{{ $y }}">20{{ str_pad($y, 2, '0', STR_PAD_LEFT) }}</option>
+                                        @endfor
+                                    </select>
+                                </div>
+                                <div class="col-3">
+                                    <label class="form-label fw-semibold">CVV</label>
+                                    <input type="text" class="form-control" name="card_cvv" placeholder="***" maxlength="3" required>
+                                </div>
+                                <div class="col-3">
+                                    <label class="form-label fw-semibold">Taksit</label>
+                                    <select name="installment" class="form-select">
+                                        <option value="0">Tek Çekim</option>
+                                        <option value="2">2 Taksit</option>
+                                        <option value="3">3 Taksit</option>
+                                        <option value="6">6 Taksit</option>
+                                        <option value="9">9 Taksit</option>
+                                        <option value="12">12 Taksit</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="text-muted" style="font-size:12px;"><i class="fa fa-shield-halved me-1 text-success"></i>Ödemeniz İşbank 3D Secure ile güvenli şekilde işlenir.</span>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold" id="nestpayPayBtn">
+                                <i class="fa fa-university me-1"></i>{{ showBalance($invoice->total_price_with_vat, true) }} Öde
+                            </button>
+                        </form>
+                    </div>
+                    @endif
+
                     <div id="eftPaymentArea" style="display:none;">
                         <div class="text-center py-3" id="eftLoading">
                             <button type="button" class="btn btn-success btn-lg px-5" id="eftStartBtn" onclick="loadEftIframe()">
@@ -315,9 +372,13 @@
 
         function showPaymentTab(tab) {
             document.getElementById('tabCard').classList.toggle('active', tab === 'card');
+            var tabNestpay = document.getElementById('tabNestpay');
+            if (tabNestpay) tabNestpay.classList.toggle('active', tab === 'nestpay');
             document.getElementById('tabEft').classList.toggle('active', tab === 'eft');
             document.getElementById('tabBalance').classList.toggle('active', tab === 'balance');
             document.getElementById('cardPaymentArea').style.display = tab === 'card' ? 'block' : 'none';
+            var nestpayArea = document.getElementById('nestpayPaymentArea');
+            if (nestpayArea) nestpayArea.style.display = tab === 'nestpay' ? 'block' : 'none';
             document.getElementById('eftPaymentArea').style.display = tab === 'eft' ? 'block' : 'none';
             document.getElementById('balancePaymentArea').style.display = tab === 'balance' ? 'block' : 'none';
         }
@@ -366,11 +427,12 @@
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>İşleniyor...';
         });
 
-        document.getElementById('shopierPublicForm')?.addEventListener('submit', function() {
-            var btn = document.getElementById('shopierPayBtn');
+        document.getElementById('publicNestpayForm')?.addEventListener('submit', function() {
+            var btn = document.getElementById('nestpayPayBtn');
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Shopier\'e yönlendiriliyorsunuz...';
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>İşleniyor...';
         });
+
     </script>
 </body>
 </html>

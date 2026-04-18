@@ -15,7 +15,7 @@ class VerifyCsrfToken extends Middleware
         'portal/checkout/success/*/*',
         'portal/checkout/failure/*/*',
         'netAdmin/user-account-login/*',
-        'callback-shopier',
         'callback-paytr/*',
+        'callback-nestpay',
     ];
 }

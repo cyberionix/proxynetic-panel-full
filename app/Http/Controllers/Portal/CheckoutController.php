@@ -19,8 +19,8 @@ use App\Models\UserAddress;
 use App\Notifications\CheckoutConfirmedNotification;
 use App\Notifications\InvoiceCheckoutConfirmedNotification;
 use App\Notifications\NewCheckoutNotificationForAdmin;
+use App\Services\NestpayService;
 use App\Services\PaytrService;
-use App\Services\ShopierService;
 use App\Traits\AjaxResponses;
 use Carbon\Carbon;
 use Exception;
@@ -213,23 +213,45 @@ class CheckoutController extends Controller
     }
     //end::paytr
 
-    //start::shopier
-    public function shopierCheckout(Request $request)
+    //start::nestpay
+    public function nestpayCheckout(Request $request)
     {
         if (Auth::user()->security->is_limit_payment_methods == 1 && !in_array("CREDIT_CARD", Auth::user()->security->payment_methods)) {
-            return $this->errorResponse("Kredi/Banka kartı ile ödeme yapamazsınız.");
+            return $this->errorResponse("Kredi/Banka kartı ile ödeme yapamazsınız. Lütfen diğer ödeme yöntemleri ile devam ediniz.");
         }
 
         $request->validate([
+            'card_name' => 'required',
+            'card_number' => 'required|numeric|digits:16',
+            'card_exp_month' => 'required|numeric',
+            'card_exp_year' => 'required|numeric|digits:2',
+            'card_cvv' => 'required|numeric|digits:3',
+            'installment' => 'nullable|numeric|min:0|max:12',
             "invoice_address_id" => [
                 "required",
-                Rule::exists('user_addresses', 'id')->where(fn($q) => $q->where('user_id', Auth::id())),
+                Rule::exists('user_addresses', 'id')->where(function ($query) {
+                    $query->where('user_id', Auth::id());
+                }),
             ],
+        ], [
+            "card_name.required" => __('card_information_is_incorrect'),
+            "card_number.required" => __('card_information_is_incorrect'),
+            "card_number.numeric" => __('card_information_is_incorrect'),
+            "card_number.digits" => __('card_information_is_incorrect'),
+            "card_exp_month.required" => __('card_information_is_incorrect'),
+            "card_exp_month.numeric" => __('card_information_is_incorrect'),
+            "card_exp_year.required" => __('card_information_is_incorrect'),
+            "card_exp_year.numeric" => __('card_information_is_incorrect'),
+            "card_exp_year.digits" => __('card_information_is_incorrect'),
+            "card_cvv.required" => __('card_information_is_incorrect'),
+            "card_cvv.numeric" => __('card_information_is_incorrect'),
+            "card_cvv.digits" => __('card_information_is_incorrect'),
+            "invoice_address_id.required" => __('custom_field_is_required', ['name' => __('invoice_address')]),
+            "invoice_address_id.exists" => __('please_choose_a_valid_address'),
         ]);
 
         DB::beginTransaction();
         try {
-            $user = Auth::user();
             $invoiceAddressData = $this->getUserInvoiceAddress($request->invoice_address_id);
             if (!$invoiceAddressData) {
                 return $this->errorResponse(__('please_choose_a_valid_address'));
@@ -237,35 +259,44 @@ class CheckoutController extends Controller
 
             $netToken = Uuid::uuid4()->toString();
             $checkoutAmount = 0;
-            $productName = '';
 
             if ($request->invoice_id) {
-                $invoice = Invoice::where(['id' => $request->invoice_id, 'user_id' => Auth::id()])->first();
+                $invoice = Invoice::where(["id" => $request->invoice_id, "user_id" => Auth::id()])->first();
                 if (!$invoice) {
-                    return $this->errorResponse('Fatura bulunamadı.');
+                    return $this->errorResponse("Fatura bulunamadı. Sayfayı yenileyip tekrar deneyiniz.");
                 }
-                $invoice->update(['invoice_address' => $invoiceAddressData]);
-                $checkoutAmount = $invoice->total_price_with_vat;
-                $productName = 'Fatura #' . $invoice->invoice_number;
+
+                $invoice->update(["invoice_address" => $invoiceAddressData]);
 
                 $checkout = Checkout::create([
                     'type' => 'CREDIT_CARD',
                     'status' => '3DS_REDIRECTED',
-                    'amount' => $checkoutAmount,
+                    'amount' => $invoice->total_price_with_vat,
                     'uuid_value' => $netToken,
-                    'channel' => 'SHOPIER',
                     'invoice_id' => $invoice->id,
                     'user_id' => Auth::id(),
-                    'extra_params' => ['invoice_address_data' => $invoiceAddressData],
+                    'channel' => 'NESTPAY',
+                    'extra_params' => [
+                        'invoice_address_data' => $invoiceAddressData,
+                        'nestpay_oid' => $netToken,
+                    ],
                 ]);
+
+                $checkoutAmount = $invoice->total_price_with_vat;
             } else {
-                $basket = $user->basket;
+                $basket = Auth::user()->basket;
                 if (!$basket || count($basket->items) <= 0) {
-                    return $this->errorResponse(__('you_must_add_at_least_one_item_to_your_cart'));
+                    return $this->errorResponse(__("you_must_add_at_least_one_item_to_your_cart"));
                 }
-                $basketSummary = $basket->basketSummary();
-                $checkoutAmount = $basketSummary['real_total'] ?? $basketSummary['total'];
-                $productName = 'Sipariş';
+
+                $checkout = Checkout::create([
+                    'type' => 'CREDIT_CARD',
+                    'status' => '3DS_REDIRECTED',
+                    'uuid_value' => $netToken,
+                    'channel' => 'NESTPAY',
+                    'user_id' => Auth::id(),
+                    'basket_id' => $basket->id,
+                ]);
 
                 $basketPricesData = [];
                 foreach ($basket->items as $item) {
@@ -286,36 +317,35 @@ class CheckoutController extends Controller
                     $basketPricesData[] = $priceData;
                 }
 
-                $checkout = Checkout::create([
-                    'type' => 'CREDIT_CARD',
-                    'status' => '3DS_REDIRECTED',
-                    'uuid_value' => $netToken,
-                    'channel' => 'SHOPIER',
-                    'amount' => $checkoutAmount,
-                    'user_id' => Auth::id(),
-                    'basket_id' => $basket->id,
-                    'extra_params' => [
-                        'price_data' => $basketPricesData,
-                        'invoice_address_data' => $invoiceAddressData,
+                $basketSummary = $basket->basketSummary();
+                $checkoutAmount = $basketSummary['real_total'] ?? 0;
+
+                $checkout->update([
+                    "amount" => $checkoutAmount,
+                    "extra_params" => [
+                        "price_data" => $basketPricesData,
+                        "invoice_address_data" => $invoiceAddressData,
+                        "nestpay_oid" => $netToken,
                     ],
                 ]);
             }
 
-            $nameParts = explode(' ', $user->full_name ?? 'Müşteri', 2);
-            $shopierService = new ShopierService();
-            $formHtml = $shopierService->generatePaymentForm([
-                'order_id'        => $checkout->id + 51,
-                'product_name'    => $productName,
-                'buyer_id'        => $user->id,
-                'buyer_name'      => $nameParts[0],
-                'buyer_surname'   => $nameParts[1] ?? $nameParts[0],
-                'buyer_email'     => $user->email,
-                'buyer_phone'     => $user->phone ?? '05000000000',
-                'billing_address' => @$invoiceAddressData['address'] . ' ' . @$invoiceAddressData['city']['title'],
-                'billing_city'    => @$invoiceAddressData['city']['title'] ?? 'Istanbul',
-                'amount'          => number_format($checkoutAmount, 2, '.', ''),
-                'callback_url'    => route('shopier.callback'),
-            ]);
+            $cardData = [
+                'card_name' => $request->card_name,
+                'card_number' => $request->card_number,
+                'expiry_month' => $request->card_exp_month,
+                'expiry_year' => $request->card_exp_year,
+                'cvv' => $request->card_cvv,
+                'email' => Auth::user()->email,
+                'phone' => Auth::user()->phone ?? '',
+            ];
+
+            $okUrl = url('/callback-nestpay');
+            $failUrl = url('/callback-nestpay');
+            $installment = (int)($request->installment ?? 0);
+
+            $nestpayService = new NestpayService();
+            $formHtml = $nestpayService->generateFormHtml($cardData, $checkoutAmount, $netToken, $okUrl, $failUrl, $installment);
 
             DB::commit();
             return $formHtml;
@@ -324,7 +354,16 @@ class CheckoutController extends Controller
             return $this->errorResponse($e->getMessage());
         }
     }
-    //end::shopier
+
+    public function nestpayPaymentResult(Request $request)
+    {
+        if (isset($request->fail_message)) {
+            return redirect()->route("portal.dashboard")->with('payment_result_status', 'error')->with("payment_result_message", "Ödemenizi alamadık. " . $request->fail_message);
+        } else {
+            return redirect()->route("portal.dashboard")->with('payment_result_status', 'success')->with("payment_result_message", "Ödemenizi aldık.");
+        }
+    }
+    //end::nestpay
 
     public function saveBankTransferNotification(Request $request)
     {

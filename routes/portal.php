@@ -54,7 +54,7 @@ Route::middleware(["logRequest", "updateLastSeen"])->group(function () {
         Route::get('/district/search', [\App\Http\Controllers\Portal\DistrictController::class, "search"])->name("district.search");
 
         Route::post('/checkout', [CheckoutController::class, 'checkout'])->name('checkout');
-        Route::post('/shopier-checkout', [CheckoutController::class, 'shopierCheckout'])->name('shopierCheckout');
+        Route::post('/nestpay-checkout', [CheckoutController::class, 'nestpayCheckout'])->name('nestpayCheckout');
         Route::post('/save-bank-transfer-notification', [CheckoutController::class, 'saveBankTransferNotification'])->name('save_bank_transfer_notification');
         Route::post('/eft-iframe-token', [CheckoutController::class, 'eftIframeToken'])->name('eftIframeToken');
         Route::post('/payment-with-balance', [CheckoutController::class, 'paymentWithBalance'])->name('paymentWithBalance');

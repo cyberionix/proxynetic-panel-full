@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Checkout;
 use App\Models\Invoice;
+use App\Services\NestpayService;
 use App\Services\PaytrService;
-use App\Services\ShopierService;
 use App\Traits\AjaxResponses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -106,6 +106,83 @@ class PublicInvoiceController extends Controller
         }
     }
 
+    public function nestpayCheckout(Request $request)
+    {
+        $request->validate([
+            'token' => 'required|string',
+            'card_name' => 'required',
+            'card_number' => 'required|numeric|digits:16',
+            'card_exp_month' => 'required|numeric',
+            'card_exp_year' => 'required|numeric|digits:2',
+            'card_cvv' => 'required|numeric|digits:3',
+            'installment' => 'nullable|numeric|min:0|max:12',
+        ], [
+            'card_name.required' => 'Kart üzerindeki isim zorunludur.',
+            'card_number.required' => 'Kart numarası zorunludur.',
+            'card_number.numeric' => 'Kart numarası geçersiz.',
+            'card_number.digits' => 'Kart numarası 16 haneli olmalıdır.',
+            'card_exp_month.required' => 'Son kullanma ayı zorunludur.',
+            'card_exp_year.required' => 'Son kullanma yılı zorunludur.',
+            'card_cvv.required' => 'CVV zorunludur.',
+            'card_cvv.digits' => 'CVV 3 haneli olmalıdır.',
+        ]);
+
+        $invoice = Invoice::where('share_token', $request->token)->firstOrFail();
+        $invoice->load('items', 'user');
+
+        if ($invoice->status === 'PAID') {
+            return back()->with('error', 'Bu fatura zaten ödenmiş.');
+        }
+        if ($invoice->status === 'CANCELLED') {
+            return back()->with('error', 'Bu fatura iptal edilmiş.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $netToken = Uuid::uuid4()->toString();
+
+            $checkout = Checkout::create([
+                'type' => 'CREDIT_CARD',
+                'status' => '3DS_REDIRECTED',
+                'amount' => $invoice->total_price_with_vat,
+                'uuid_value' => $netToken,
+                'invoice_id' => $invoice->id,
+                'user_id' => $invoice->user_id,
+                'channel' => 'NESTPAY',
+                'extra_params' => [
+                    'invoice_address_data' => $invoice->invoice_address,
+                    'public_token' => $invoice->share_token,
+                    'nestpay_oid' => $netToken,
+                ],
+            ]);
+
+            $user = $invoice->user;
+
+            $cardData = [
+                'card_name' => $request->card_name,
+                'card_number' => $request->card_number,
+                'expiry_month' => $request->card_exp_month,
+                'expiry_year' => $request->card_exp_year,
+                'cvv' => $request->card_cvv,
+                'email' => $user->email ?? 'noreply@proxynetic.com',
+                'phone' => $user->phone ?? '',
+            ];
+
+            $okUrl = url('/callback-nestpay');
+            $failUrl = url('/callback-nestpay');
+            $installment = (int)($request->installment ?? 0);
+
+            $nestpayService = new NestpayService();
+            $formHtml = $nestpayService->generateFormHtml($cardData, $invoice->total_price_with_vat, $netToken, $okUrl, $failUrl, $installment);
+
+            DB::commit();
+            return $formHtml;
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->with('error', 'Ödeme işlemi başlatılırken bir hata oluştu: ' . $e->getMessage());
+        }
+    }
+
     public function eftIframe(Request $request)
     {
         $token = $request->query('token');
@@ -158,67 +235,6 @@ class PublicInvoiceController extends Controller
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json(['success' => false, 'message' => 'Havale/EFT başlatılamadı: ' . $e->getMessage()]);
-        }
-    }
-
-    public function shopierCheckout(Request $request)
-    {
-        $request->validate([
-            'token' => 'required|string',
-        ]);
-
-        $invoice = Invoice::where('share_token', $request->token)->firstOrFail();
-        $invoice->load('items', 'user');
-
-        if ($invoice->status === 'PAID') {
-            return back()->with('error', 'Bu fatura zaten ödenmiş.');
-        }
-        if ($invoice->status === 'CANCELLED') {
-            return back()->with('error', 'Bu fatura iptal edilmiş.');
-        }
-
-        DB::beginTransaction();
-        try {
-            $netToken = Uuid::uuid4()->toString();
-
-            $checkout = Checkout::create([
-                'type' => 'CREDIT_CARD',
-                'status' => '3DS_REDIRECTED',
-                'amount' => $invoice->total_price_with_vat,
-                'uuid_value' => $netToken,
-                'channel' => 'SHOPIER',
-                'invoice_id' => $invoice->id,
-                'user_id' => $invoice->user_id,
-                'extra_params' => [
-                    'invoice_address_data' => $invoice->invoice_address,
-                    'public_token' => $invoice->share_token,
-                ],
-            ]);
-
-            $user = $invoice->user;
-            $nameParts = explode(' ', $user->full_name ?? 'Müşteri', 2);
-            $invoiceAddress = $invoice->invoice_address;
-
-            $shopierService = new ShopierService();
-            $formHtml = $shopierService->generatePaymentForm([
-                'order_id'        => $checkout->id + 51,
-                'product_name'    => 'Fatura #' . $invoice->invoice_number,
-                'buyer_id'        => $user->id ?? 0,
-                'buyer_name'      => $nameParts[0],
-                'buyer_surname'   => $nameParts[1] ?? $nameParts[0],
-                'buyer_email'     => $user->email ?? 'noreply@proxynetic.com',
-                'buyer_phone'     => $user->phone ?? '05000000000',
-                'billing_address' => @$invoiceAddress['address'] . ' ' . @$invoiceAddress['city']['title'],
-                'billing_city'    => @$invoiceAddress['city']['title'] ?? 'Istanbul',
-                'amount'          => number_format($invoice->total_price_with_vat, 2, '.', ''),
-                'callback_url'    => route('shopier.callback'),
-            ]);
-
-            DB::commit();
-            return $formHtml;
-        } catch (\Exception $e) {
-            DB::rollback();
-            return back()->with('error', 'Shopier ödeme başlatılamadı: ' . $e->getMessage());
         }
     }
 
