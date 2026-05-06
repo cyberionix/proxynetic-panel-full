@@ -3504,6 +3504,7 @@
             }
             function npLtv4Term(idx, line) {
                 var el = document.querySelector('[data-np-ltv4-terminal="' + idx + '"]');
+                if (!el) el = document.querySelector('[data-np-ltv4-terminal="0"]');
                 if (!el) return;
                 var ts = new Date().toLocaleTimeString();
                 var cur = el.textContent.trim();
@@ -3562,8 +3563,13 @@
             $(document).on('click', '[data-np-ltv4-copy]', function () {
                 npLtv4Copy($(this).attr('data-np-ltv4-copy'));
             });
-            function npLtv4RunConnectivity(idx, action, tunnelId) {
-                npLtv4Term(idx, 'Sunucu üzerinden test çalışıyor…');
+            function npLtv4RunConnectivity(idx, action, tunnelId, $btn) {
+                var tidLabel = tunnelId ? ' [#' + tunnelId + ']' : '';
+                if ($btn) {
+                    $btn.removeClass('btn-light-primary btn-light-success btn-light-danger').addClass('btn-light-warning');
+                    $btn.find('i').removeClass('fa-plug fa-check fa-times').addClass('fa-spinner fa-spin');
+                }
+                npLtv4Term(idx, 'Sunucu üzerinden test çalışıyor…' + tidLabel);
                 var pdata = { _token: v4Csrf, action: action };
                 if (tunnelId) {
                     pdata.tunnel_id = tunnelId;
@@ -3576,24 +3582,31 @@
                     complete: function (xhr) {
                         var res = xhr.responseJSON;
                         if (!res || res.success !== true) {
-                            npLtv4Term(idx, 'Hata: ' + (res && res.message ? res.message : 'İstek başarısız'));
+                            npLtv4Term(idx, '❌ FAIL' + tidLabel + ': ' + (res && res.message ? res.message : 'İstek başarısız'));
+                            if ($btn) { $btn.removeClass('btn-light-warning btn-light-success btn-light-primary').addClass('btn-light-danger'); $btn.find('i').removeClass('fa-spinner fa-spin fa-plug fa-check').addClass('fa-times'); }
                             return;
                         }
                         var line = res.line || res.message || 'Tamamlandı.';
-                        var prefix = (res.ok === false) ? 'UYARI: ' : '';
-                        npLtv4Term(idx, prefix + line);
+                        if (res.ok === false) {
+                            npLtv4Term(idx, '❌ FAIL' + tidLabel + ': ' + line);
+                            if ($btn) { $btn.removeClass('btn-light-warning btn-light-success btn-light-primary').addClass('btn-light-danger'); $btn.find('i').removeClass('fa-spinner fa-spin fa-plug fa-check').addClass('fa-times'); }
+                        } else {
+                            var ms = res.ms ? ' (' + res.ms + 'ms)' : '';
+                            npLtv4Term(idx, '✅ SUCCESS' + tidLabel + ': ' + line + ms);
+                            if ($btn) { $btn.removeClass('btn-light-warning btn-light-danger btn-light-primary').addClass('btn-light-success'); $btn.find('i').removeClass('fa-spinner fa-spin fa-plug fa-times').addClass('fa-check'); }
+                        }
                     }
                 });
             }
             $(document).on('click', '[data-np-ltv4-proxy-test]', function () {
                 var idx = String($(this).data('np-ltv4-proxy-test'));
                 var tid = $(this).attr('data-np-ltv4-tunnel-id') || '';
-                npLtv4RunConnectivity(idx, 'proxy', tid);
+                npLtv4RunConnectivity(idx, 'proxy', tid, $(this));
             });
             $(document).on('click', '[data-np-ltv4-ping-test]', function () {
                 var idx = String($(this).data('np-ltv4-ping-test'));
                 var tid = $(this).attr('data-np-ltv4-tunnel-id') || '';
-                npLtv4RunConnectivity(idx, 'ping', tid);
+                npLtv4RunConnectivity(idx, 'ping', tid, $(this));
             });
 
             $(document).on('change', '[data-np-ltv4-auth] [name="is_active"]', function () {

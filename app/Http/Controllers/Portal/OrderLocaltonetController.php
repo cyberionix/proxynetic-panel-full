@@ -786,7 +786,20 @@ class OrderLocaltonetController extends Controller
             return $this->errorResponse($proxy['errorMessage'] ?? 'Proxy bilgisi alınamadı.');
         }
 
+        // serverIp may be 127.0.0.1 (localtonet client internal); use snapshot selected_ip
+        if (is_array($proxy) && ($proxy["serverIp"] ?? "") === "127.0.0.1") {
+            $pi = $order->product_info ?? [];
+            $tunnelIds = $order->getAllLocaltonetProxyIds();
+            $snapshots = $pi["localtonet_v4_snapshots"] ?? [];
+            $idx = $tunnelId ? array_search((int) $tunnelId, array_map("intval", $tunnelIds), true) : 0;
+            $snapIp = trim((string) ($snapshots[$idx]["selected_ip"] ?? ""));
+            if ($snapIp !== "") {
+                $proxy["serverIp"] = $snapIp;
+            }
+        }
+
         $proxyUrl = $this->buildLocaltonetGuzzleProxyUrl($proxy);
+
         if ($proxyUrl === null) {
             return $this->errorResponse('Proxy adresi eksik.');
         }
