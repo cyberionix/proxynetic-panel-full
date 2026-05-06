@@ -21,6 +21,8 @@ class PriceController extends Controller
             $result[] = [
                 "id" => $item->id,
                 'name' => $item->duration . " " . __(mb_strtolower($item->duration_unit)) . " (" . showBalance($item->price, true) . ")",
+                'duration' => $item->duration,
+                'duration_unit' => $item->duration_unit,
             ];
         }
 

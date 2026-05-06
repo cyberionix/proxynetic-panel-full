@@ -69,6 +69,9 @@ Route::group(['prefix' => 'netAdmin', 'as' => 'admin.'], function () {
         Route::post('/telegram/save', [SystemController::class, 'saveTelegramSettings'])->name('telegramSave');
         Route::post('/telegram/test', [SystemController::class, 'testTelegram'])->name('telegramTest');
         Route::post('/telegram/find-chat-id', [SystemController::class, 'findTelegramChatId'])->name('telegramFindChatId');
+        Route::post('/parasut/save', [SystemController::class, 'saveParasutSettings'])->name('parasutSave');
+        Route::post('/parasut/test', [SystemController::class, 'testParasutConnection'])->name('parasutTest');
+        Route::post('/nestpay/save', [SystemController::class, 'saveNestpaySettings'])->name('nestpaySave');
         Route::get('/test', function (\App\Library\EInvoiceManager $EInvoiceManager, \Illuminate\Http\Request $request) {
 
             $ipAddress = $request->ip();
@@ -207,6 +210,7 @@ dd($data->is_proxy || $data->is_vpn);
             Route::post('/three-proxy-change-port/{order}', [OrderController::class, 'threeProxyChangePort'])->name('threeProxyChangePort');
             Route::post('/pproxyu-update-info/{order}', [OrderController::class, 'pproxyuUpdateInfo'])->name('pproxyuUpdateInfo');
             Route::post('/bulk-action', [OrderController::class, 'bulkAction'])->name('bulkAction');
+            Route::post('/create-renewal-invoice/{order}', [OrderController::class, 'createRenewalInvoice'])->name('createRenewalInvoice');
         });
         Route::group(['prefix' => 'invoices', 'as' => 'invoices.'], function () {
             Route::get('/', [InvoiceController::class, "index"])->name("index");
@@ -217,12 +221,19 @@ dd($data->is_proxy || $data->is_vpn);
             Route::post('/ajax', [InvoiceController::class, "ajax"])->name("ajax");
             Route::get('/status-counts', [InvoiceController::class, "statusCounts"])->name("statusCounts");
             Route::post('/bulk-action', [InvoiceController::class, "bulkAction"])->name("bulkAction");
+            Route::get('/view-as-customer/{invoice}', [InvoiceController::class, "viewAsCustomer"])->name("viewAsCustomer");
             Route::get('/{invoice}', [InvoiceController::class, "show"])->name("show");
             Route::post('/update/{invoice}', [InvoiceController::class, "update"])->name("update");
             Route::post('/delete/{invoice}', [InvoiceController::class, "delete"])->name("delete");
             Route::post('/formalize/{invoice}', [InvoiceController::class, "formalize"])->name("formalize");
             Route::post('/toggle-payment-status/{invoice}', [InvoiceController::class, "togglePaymentStatus"])->name("togglePaymentStatus");
             Route::get('/pdf/{invoice}', [InvoiceController::class, 'showPdf'])->name('showPdf');
+            Route::post('/split-item/{invoice}', [InvoiceController::class, "splitItem"])->name("splitItem");
+            Route::post('/remove-item/{invoice}', [InvoiceController::class, "removeItem"])->name("removeItem");
+            Route::post('/add-item/{invoice}', [InvoiceController::class, "addItem"])->name("addItem");
+            Route::post('/apply-discount/{invoice}', [InvoiceController::class, "applyDiscount"])->name("applyDiscount");
+            Route::post('/remove-discount/{invoice}', [InvoiceController::class, "removeDiscount"])->name("removeDiscount");
+            Route::post('/remove-item-discount/{invoice}', [InvoiceController::class, "removeItemDiscount"])->name("removeItemDiscount");
         });
         Route::group(['prefix' => 'coupons', 'as' => 'couponCodes.'], function () {
             Route::get('/', [CouponCodeController::class, "index"])->name("index");
@@ -351,6 +362,9 @@ dd($data->is_proxy || $data->is_vpn);
             Route::post('/update/department/{support}', [SupportController::class, 'updateDepartment'])->name("updateDepartment");
             Route::post('/lock/{support}', [SupportController::class, 'lock'])->name("lock");
             Route::post('/unlock/{support}', [SupportController::class, 'unlock'])->name("unlock");
+            Route::post('/resolve/{support}', [SupportController::class, 'resolve'])->name("resolve");
+            Route::post('/change-order/{support}', [SupportController::class, 'changeOrder'])->name("changeOrder");
+            Route::get('/user-orders/{user}', [SupportController::class, 'getUserOrders'])->name("getUserOrders");
             Route::post('/delete/{support}', [SupportController::class, 'delete'])->name("delete");
         });
 

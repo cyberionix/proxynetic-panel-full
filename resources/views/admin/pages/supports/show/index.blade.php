@@ -45,6 +45,9 @@
                             <!--end::Input-->
                         </div>
                         <div class="col-xl-6 text-end">
+                            @if($support->status !== 'RESOLVED')
+                                <button class="btn btn-success btn-sm resolveBtn" data-url="{{route("admin.supports.resolve", ["support" => $support->id])}}" data-swal-text="Destek talebini çözümlendi olarak işaretlemek istediğinize emin misiniz?"><i class="fa fa-check-circle me-1"></i>Çözümlendi</button>
+                            @endif
                             @if($support->is_locked == 1)
                                 <button class="btn btn-danger btn-sm lockBtn" data-url="{{route("admin.supports.unlock", ["support" => $support->id])}}" data-swal-text="Destek Talebinin kilidini kaldırmak istediğinize emin misiniz?"><i class="fa fa-lock-open me-1"></i>Kilidi Kaldır</button>
                             @else
@@ -103,8 +106,8 @@
                                                 <!--begin::Text-->
                                                 <div class="d-flex align-items-center">
                                                     <!--begin::Username-->
-                                                    <div class="text-gray-800 fw-bold fs-5 me-3"
-                                                         data-np-message="name"></div>
+                                                    <a class="text-gray-800 text-hover-primary fw-bold fs-5 me-3"
+                                                       data-np-message="name" href="#" target="_blank"></a>
                                                     <!--end::Username-->
                                                     <span class="badge badge-success" data-np-message="badge"></span>
                                                 </div>
@@ -150,66 +153,88 @@
             <div class="card">
                 <div class="card-body">
                     <div>
-                        <label class="form-label text-gray-800 fw-bold fs-6 mb-3">{{__("related_service")}}</label>
-                        @if($support->order)
-                            <div class="border border-dashed border-gray-300 rounded p-4">
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="symbol symbol-40px me-3">
-                                        <div class="symbol-label bg-light-primary">
-                                            <i class="fa fa-box text-primary fs-5"></i>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label text-gray-800 fw-bold fs-6 mb-0">{{__("related_service")}}</label>
+                            <button class="btn btn-light-primary btn-sm py-1 px-3" id="changeOrderBtn" title="İlişkili hizmeti değiştir">
+                                <i class="fa fa-exchange-alt fs-8 me-1"></i>Değiştir
+                            </button>
+                        </div>
+                        <div id="orderDisplayArea">
+                            @if($support->order)
+                                <div class="border border-dashed border-gray-300 rounded p-4">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="symbol symbol-40px me-3">
+                                            <div class="symbol-label bg-light-primary">
+                                                <i class="fa fa-box text-primary fs-5"></i>
+                                            </div>
                                         </div>
+                                        <div class="flex-grow-1">
+                                            <span class="text-gray-800 fw-bold fs-6 d-block">{{ $support->order->product_data['name'] ?? '-' }}</span>
+                                            @if(!empty($support->order->product_data['category']['name']))
+                                                <span class="text-muted fw-semibold fs-7">{{ $support->order->product_data['category']['name'] }}</span>
+                                            @endif
+                                        </div>
+                                        <a class="btn btn-icon btn-light-primary btn-sm"
+                                           target="_blank"
+                                           href="{{route("admin.orders.show", ["order" => $support->order->id])}}"
+                                           title="Siparişi Görüntüle">
+                                            <i class="fa fa-external-link-alt fs-7"></i>
+                                        </a>
                                     </div>
-                                    <div class="flex-grow-1">
-                                        <span class="text-gray-800 fw-bold fs-6 d-block">{{ $support->order->product_data['name'] ?? '-' }}</span>
-                                        @if(!empty($support->order->product_data['category']['name']))
-                                            <span class="text-muted fw-semibold fs-7">{{ $support->order->product_data['category']['name'] }}</span>
-                                        @endif
-                                    </div>
-                                    <a class="btn btn-icon btn-light-primary btn-sm"
-                                       target="_blank"
-                                       href="{{route("admin.orders.show", ["order" => $support->order->id])}}"
-                                       title="Siparişi Görüntüle">
-                                        <i class="fa fa-external-link-alt fs-7"></i>
-                                    </a>
+                                    <div class="separator separator-dashed mb-3"></div>
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0" style="width:90px">Sipariş No</td>
+                                                <td class="text-gray-800 fw-bold fs-7 py-1"><span class="badge badge-light-primary badge-sm">#{{ $support->order->id }}</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0">Durum</td>
+                                                <td class="py-1">{!! $support->order->drawStatus('badge-sm') !!}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0">Teslimat</td>
+                                                <td class="py-1">{!! $support->order->drawDeliveryStatus('badge-sm') !!}</td>
+                                            </tr>
+                                            @if($support->order->end_date)
+                                            <tr>
+                                                <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0">Bitiş</td>
+                                                <td class="text-gray-800 fs-7 py-1">
+                                                    <i class="fa fa-calendar-alt text-muted fs-8 me-1"></i>{{ $support->order->end_date->format('d.m.Y') }}
+                                                </td>
+                                            </tr>
+                                            @endif
+                                            @if($support->order->getTotalAmount())
+                                            <tr>
+                                                <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0">Tutar</td>
+                                                <td class="text-gray-800 fw-bold fs-7 py-1">{{ number_format($support->order->getTotalAmount(), 2, ',', '.') }} ₺</td>
+                                            </tr>
+                                            @endif
+                                        </tbody>
+                                    </table>
                                 </div>
-                                <div class="separator separator-dashed mb-3"></div>
-                                <table class="table table-sm table-borderless mb-0">
-                                    <tbody>
-                                        <tr>
-                                            <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0" style="width:90px">Sipariş No</td>
-                                            <td class="text-gray-800 fw-bold fs-7 py-1"><span class="badge badge-light-primary badge-sm">#{{ $support->order->id }}</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0">Durum</td>
-                                            <td class="py-1">{!! $support->order->drawStatus('badge-sm') !!}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0">Teslimat</td>
-                                            <td class="py-1">{!! $support->order->drawDeliveryStatus('badge-sm') !!}</td>
-                                        </tr>
-                                        @if($support->order->end_date)
-                                        <tr>
-                                            <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0">Bitiş</td>
-                                            <td class="text-gray-800 fs-7 py-1">
-                                                <i class="fa fa-calendar-alt text-muted fs-8 me-1"></i>{{ $support->order->end_date->format('d.m.Y') }}
-                                            </td>
-                                        </tr>
-                                        @endif
-                                        @if($support->order->getTotalAmount())
-                                        <tr>
-                                            <td class="text-gray-500 fw-semibold fs-7 py-1 ps-0">Tutar</td>
-                                            <td class="text-gray-800 fw-bold fs-7 py-1">{{ number_format($support->order->getTotalAmount(), 2, ',', '.') }} ₺</td>
-                                        </tr>
-                                        @endif
-                                    </tbody>
-                                </table>
+                            @else
+                                <div class="border border-dashed border-gray-300 rounded p-4 text-center">
+                                    <i class="fa fa-inbox text-gray-300 fs-2x d-block mb-2"></i>
+                                    <span class="text-gray-400 fw-semibold fs-7">İlişkili sipariş yok</span>
+                                </div>
+                            @endif
+                        </div>
+                        <div id="orderSelectArea" class="d-none">
+                            <div class="border border-dashed border-primary rounded p-4">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <span class="text-primary fw-bold fs-7"><i class="fa fa-exchange-alt me-1"></i>Hizmet Seçin</span>
+                                    <button class="btn btn-icon btn-light btn-xs" id="cancelChangeOrder" title="İptal"><i class="fa fa-times fs-8"></i></button>
+                                </div>
+                                <select class="form-select form-select-sm mb-3" id="orderSelectDropdown">
+                                    <option value="">Yükleniyor...</option>
+                                </select>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-primary btn-sm flex-grow-1" id="saveOrderChange"><i class="fa fa-check me-1"></i>Kaydet</button>
+                                    <button class="btn btn-light-danger btn-sm" id="removeOrderLink" title="İlişkiyi kaldır"><i class="fa fa-unlink me-1"></i>Kaldır</button>
+                                </div>
                             </div>
-                        @else
-                            <div class="border border-dashed border-gray-300 rounded p-4 text-center">
-                                <i class="fa fa-inbox text-gray-300 fs-2x d-block mb-2"></i>
-                                <span class="text-gray-400 fw-semibold fs-7">İlişkili sipariş yok</span>
-                            </div>
-                        @endif
+                        </div>
                     </div>
                     <div class="separator separator-dashed my-3"></div>
                     <div>
@@ -379,18 +404,19 @@
                     let isAdmin = !!item.admin_id,
                         isAutoReply = !!item.is_auto_reply,
                         createdAt = moment(item.created_at).format(defaultDateTimeFormat());
+                    let nameEl = itemTemplate.find("[data-np-message='name']");
                     if (isAutoReply) {
-                        itemTemplate.find("[data-np-message='name']").text("Otomatik Mesaj");
+                        nameEl.text("Otomatik Mesaj").attr("href", "#").removeAttr("target");
                         itemTemplate.find("[data-np-message='badge']").removeClass("badge-primary badge-success").addClass("badge-warning").text("Otomatik");
                         itemTemplate.find("[data-np-message='date']").removeClass("badge-primary badge-success").addClass("badge-warning").text(createdAt);
                         itemTemplate.find("[data-np-message='user-ip']").addClass("d-none");
                     } else if (isAdmin) {
-                        itemTemplate.find("[data-np-message='name']").text(item.admin.full_name);
+                        nameEl.text(item.admin.full_name).attr("href", "#").removeAttr("target");
                         itemTemplate.find("[data-np-message='badge']").removeClass("badge-primary badge-warning").addClass("badge-success").text("{{__("staff")}}");
                         itemTemplate.find("[data-np-message='date']").removeClass("badge-primary badge-warning").addClass("badge-success").text(createdAt);
                         itemTemplate.find("[data-np-message='user-ip']").addClass("d-none");
                     } else {
-                        itemTemplate.find("[data-np-message='name']").text(userFullName);
+                        nameEl.text(userFullName).attr("href", "{{ route('admin.users.show', ['user' => $support->user_id]) }}").attr("target", "_blank");
                         itemTemplate.find("[data-np-message='badge']").removeClass("badge-success badge-warning").addClass("badge-primary").text("Müşteri");
                         itemTemplate.find("[data-np-message='date']").removeClass("badge-success badge-warning").addClass("badge-primary").text(createdAt);
                         itemTemplate.find("[data-np-message='user-ip']").text("IP: " + item?.user_ip).attr("data-ip-lookup", item?.user_ip || "");
@@ -541,7 +567,82 @@
                     });
                 }
             })
-            $(document).on("click", ".lockBtn, .deleteBtn", function () {
+            $('#changeOrderBtn').on('click', function () {
+                $('#orderDisplayArea').addClass('d-none');
+                $('#orderSelectArea').removeClass('d-none');
+                var dropdown = $('#orderSelectDropdown');
+                dropdown.html('<option value="">Yükleniyor...</option>').prop('disabled', true);
+                $.ajax({
+                    type: 'GET',
+                    url: '{{ route("admin.supports.getUserOrders", ["user" => $support->user_id]) }}',
+                    dataType: 'json',
+                    success: function (res) {
+                        dropdown.html('<option value="">-- Sipariş Seçin --</option>');
+                        if (res.success && res.orders) {
+                            res.orders.forEach(function (o) {
+                                var label = '#' + o.id + ' - ' + o.name;
+                                if (o.category) label += ' (' + o.category + ')';
+                                if (o.end_date) label += ' - ' + o.end_date;
+                                var selected = o.id == {{ $support->order_id ?? 0 }} ? ' selected' : '';
+                                dropdown.append('<option value="' + o.id + '"' + selected + '>' + label + '</option>');
+                            });
+                        }
+                        dropdown.prop('disabled', false);
+                    },
+                    error: function () {
+                        dropdown.html('<option value="">Hata oluştu</option>');
+                    }
+                });
+            });
+
+            $('#cancelChangeOrder').on('click', function () {
+                $('#orderSelectArea').addClass('d-none');
+                $('#orderDisplayArea').removeClass('d-none');
+            });
+
+            function submitOrderChange(orderId) {
+                $.ajax({
+                    type: 'POST',
+                    url: '{{ route("admin.supports.changeOrder", ["support" => $support->id]) }}',
+                    data: { _token: '{{ csrf_token() }}', order_id: orderId },
+                    dataType: 'json',
+                    success: function (res) {
+                        if (res.success) {
+                            toastr.success(res.message);
+                            setTimeout(function () { window.location.reload(); }, 800);
+                        } else {
+                            toastr.error(res.message);
+                        }
+                    },
+                    error: function (xhr) {
+                        var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Bir hata oluştu.';
+                        toastr.error(msg);
+                    }
+                });
+            }
+
+            $('#saveOrderChange').on('click', function () {
+                var orderId = $('#orderSelectDropdown').val();
+                if (!orderId) {
+                    toastr.warning('Lütfen bir sipariş seçin.');
+                    return;
+                }
+                submitOrderChange(orderId);
+            });
+
+            $('#removeOrderLink').on('click', function () {
+                alerts.confirm.fire({
+                    title: "{{__('warning')}}",
+                    html: 'İlişkili hizmeti kaldırmak istediğinize emin misiniz?',
+                    confirmButtonText: "{{__('yes')}}",
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        submitOrderChange(null);
+                    }
+                });
+            });
+
+            $(document).on("click", ".lockBtn, .deleteBtn, .resolveBtn", function () {
                 let element = $(this),
                     ajaxUrl = element.data("url"),
                     swalText = element.data("swal-text"),

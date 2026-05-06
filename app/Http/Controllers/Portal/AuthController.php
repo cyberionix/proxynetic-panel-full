@@ -71,13 +71,15 @@ class AuthController extends Controller
             if(!$user) return $this->errorResponse(__("your_details_are_incorrect") . ". " . __("please_try_again"));
             if ($user->is_banned) return $this->errorResponse("Giriş yapılamıyor. Hesabınız yasaklanmıştır.");
 
+            $intendedUrl = redirect()->intended(route("portal.dashboard"))->getTargetUrl();
+
             if (Auth::attempt($request->only('email', 'password'))) {
                 $request->session()->regenerate();
-                return $this->successResponse(__('login_successful').' '.__('redirecting'), ["redirectUrl" => route("portal.dashboard")]);
+                return $this->successResponse(__('login_successful').' '.__('redirecting'), ["redirectUrl" => $intendedUrl]);
             }else{
                 if (Auth::attempt(['email' => $user->email, 'password' => $request->password])) {
                     $request->session()->regenerate();
-                    return $this->successResponse(__('login_successful').' '.__('redirecting'), ["redirectUrl" => route("portal.dashboard")]);
+                    return $this->successResponse(__('login_successful').' '.__('redirecting'), ["redirectUrl" => $intendedUrl]);
                 }
                 return $this->errorResponse(__("your_details_are_incorrect") . ". " . __("please_try_again"));
             }

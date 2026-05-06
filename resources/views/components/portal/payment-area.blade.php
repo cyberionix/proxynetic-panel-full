@@ -93,7 +93,7 @@
                            checked="checked"
                            value="CREDIT_CARD"/>
                     <!--end::Input-->
-                    Kredi/Banka Kartı
+                    <i class="fa fa-university me-1"></i>İş Bankası Kredi Kartı
                 </label>
                 <!--end::Radio-->
         @endif
@@ -127,198 +127,108 @@
         <!--end::Radio group-->
         @if(Auth::user()->security->is_limit_payment_methods == 0 || (Auth::user()->security->is_limit_payment_methods == 1 && in_array("CREDIT_CARD", Auth::user()->security->payment_methods)))
             <div class="credit-card-option-form-area" style="display: none">
-                <div class="d-none" id="encodedFormContent"></div>
-                <form method="POST" id="checkoutForm" action="{{route("portal.checkout")}}">
+                <form method="POST" id="checkoutForm" action="{{route('portal.nestpayCheckout')}}">
                 @csrf
-                <!--begin::Input group-->
                     <div class="d-flex flex-column mb-7 fv-row">
-                        <!--begin::Label-->
                         <label class="d-flex align-items-center fs-6 fw-bold form-label mb-2">
                             <span class="required">{{__("name_on_card")}}</span>
-
-                    </label>
-                    <!--end::Label-->
-                    <input type="text" class="form-control form-control-solid" placeholder=""
-                           name="card_name"
-                           value="{{auth()->user()->full_name}}"/>
-                </div>
-                <!--end::Input group-->
-                <!--begin::Input group-->
-                <div class="d-flex flex-column mb-7 fv-row">
-                    <!--begin::Label-->
-                    <label class="required fs-6 fw-bold form-label mb-2">{{__("card_number")}}</label>
-                    <!--end::Label-->
-                    <!--begin::Input wrapper-->
-                    <div class="position-relative">
-                        <!--begin::Input-->
-                        <input type="text" class="form-control form-control-solid"
-                               placeholder="XXXX XXXX XXXX XXXX"
-                               value=""
-                               name="card_number"/>
-                        <!--end::Input-->
-                        <!--begin::Card logos-->
-                        <div class="position-absolute translate-middle-y top-50 end-0 me-5">
-                            <img src="{{assetPortal('')}}/media/svg/card-logos/visa.svg" alt=""
-                                 class="h-25px"/>
-                            <img src="{{assetPortal('')}}/media/svg/card-logos/mastercard.svg"
-                                 alt=""
-                                 class="h-25px"/>
-                        </div>
-                        <!--end::Card logos-->
-                    </div>
-                    <!--end::Input wrapper-->
-                </div>
-                <!--end::Input group-->
-                <!--begin::Input group-->
-                <div class="row mb-10">
-                    <!--begin::Col-->
-                    <div class="col-md-8 fv-row">
-                        <!--begin::Label-->
-                        <label class="required fs-6 fw-bold form-label mb-2">SKT</label>
-                        <!--end::Label-->
-                        <!--begin::Row-->
-                        <div class="row fv-row">
-                            <!--begin::Col-->
-                            <div class="col-6">
-                                <select name="card_exp_month" class="form-select form-select-solid"
-                                        data-control="select2"
-                                        data-hide-search="true" data-placeholder="Ay">
-                                    <option></option>
-                                    <option value="1">01</option>
-                                    <option value="2">02</option>
-                                    <option value="3">03</option>
-                                    <option value="4">04</option>
-                                    <option value="5">05</option>
-                                    <option value="6">06</option>
-                                    <option value="7">07</option>
-                                    <option value="8">08</option>
-                                    <option value="9">09</option>
-                                    <option value="10">10</option>
-                                    <option value="11">11</option>
-                                    <option value="12">12</option>
-                                </select>
-                            </div>
-                            <!--end::Col-->
-                            <!--begin::Col-->
-                            <div class="col-6">
-                                <select name="card_exp_year" class="form-select form-select-solid"
-                                        data-control="select2"
-                                        data-hide-search="true" data-placeholder="Yıl">
-                                    <option></option>
-                                    @php($currentYear = date('Y'))
-                                    @for($i=0; $i <= 30; $i++)
-                                        <option
-                                            value="{{mb_substr($currentYear+$i,mb_strlen($currentYear+$i)-2)}}">{{$currentYear+$i}}</option>
-                                    @endfor
-                                </select>
-                            </div>
-                            <!--end::Col-->
-                        </div>
-                        <!--end::Row-->
-                    </div>
-                    <!--end::Col-->
-                    <!--begin::Col-->
-                    <div class="col-md-4 fv-row">
-                        <!--begin::Label-->
-                        <label class="d-flex align-items-center fs-6 fw-bold form-label mb-2">
-                            <span class="required">CVV</span>
-                            <i class="fas fa-exclamation-circle ms-2 fs-7" data-bs-toggle="tooltip"
-                               title="Kartın arka yüzünde yer alan 3 haneli güvenlik kodunu girmelisiniz."></i>
                         </label>
-                        <!--end::Label-->
-                        <!--begin::Input wrapper-->
-                        <div class="position-relative">
-                            <!--begin::Input-->
-                            <input type="text" class="form-control form-control-solid" minlength="3"
-                                   maxlength="3"
-                                   placeholder="CVV" name="card_cvv"/>
-                            <!--end::Input-->
-                            <!--begin::CVV icon-->
-                            <div class="position-absolute translate-middle-y top-50 end-0 me-3">
-                                <!--begin::Svg Icon | path: icons/duotune/finance/fin002.svg-->
-                                <span class="svg-icon svg-icon-2hx">
-																		<svg xmlns="http://www.w3.org/2000/svg"
-                                                                             width="24" height="24" viewBox="0 0 24 24"
-                                                                             fill="none">
-																			<path d="M22 7H2V11H22V7Z"
-                                                                                  fill="currentColor"/>
-																			<path opacity="0.3"
-                                                                                  d="M21 19H3C2.4 19 2 18.6 2 18V6C2 5.4 2.4 5 3 5H21C21.6 5 22 5.4 22 6V18C22 18.6 21.6 19 21 19ZM14 14C14 13.4 13.6 13 13 13H5C4.4 13 4 13.4 4 14C4 14.6 4.4 15 5 15H13C13.6 15 14 14.6 14 14ZM16 15.5C16 16.3 16.7 17 17.5 17H18.5C19.3 17 20 16.3 20 15.5C20 14.7 19.3 14 18.5 14H17.5C16.7 14 16 14.7 16 15.5Z"
-                                                                                  fill="currentColor"/>
-																		</svg>
-																	</span>
-                                <!--end::Svg Icon-->
-                            </div>
-                            <!--end::CVV icon-->
-                        </div>
-                        <!--end::Input wrapper-->
+                        <input type="text" class="form-control form-control-solid" placeholder=""
+                               name="card_name"
+                               value="{{auth()->user()->full_name}}"/>
                     </div>
-                    <!--end::Col-->
-                </div>
-                <!--end::Input group-->
-                <!--begin::Input group-->
-                <div class="d-flex flex-stack">
-                    <span class="text-primary"><b>{{__("pay")}}</b> butonuna tıkladıktan sonra doğrulama işlemi için bankanızın 3D sayfasına yönlendirileceksiniz.</span>
-                </div>
-                <!--end::Input group-->
-                <!--begin::Actions-->
-                <div class="text-center pt-15">
-                    <button type="submit" class="btn btn-primary">
-                        <span class="indicator-label ">{{__("make_a_payment")}}</span>
-                        <span class="indicator-progress">{{__("please_wait")}}...
-															<span
-                                                                class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
-                    </button>
-                </div>
-                <!--end::Actions-->
-            </form>
-        </div>
-    @endif
+                    <div class="d-flex flex-column mb-7 fv-row">
+                        <label class="required fs-6 fw-bold form-label mb-2">{{__("card_number")}}</label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control form-control-solid"
+                                   placeholder="XXXX XXXX XXXX XXXX"
+                                   value=""
+                                   name="card_number"/>
+                            <div class="position-absolute translate-middle-y top-50 end-0 me-5">
+                                <img src="{{assetPortal('')}}/media/svg/card-logos/visa.svg" alt=""
+                                     class="h-25px"/>
+                                <img src="{{assetPortal('')}}/media/svg/card-logos/mastercard.svg"
+                                     alt=""
+                                     class="h-25px"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-7">
+                        <div class="col-md-4 fv-row">
+                            <label class="required fs-6 fw-bold form-label mb-2">SKT Ay</label>
+                            <select name="card_exp_month" class="form-select form-select-solid"
+                                    data-control="select2"
+                                    data-hide-search="true" data-placeholder="Ay">
+                                <option></option>
+                                @for($i=1; $i<=12; $i++)
+                                    <option value="{{$i}}">{{str_pad($i,2,'0',STR_PAD_LEFT)}}</option>
+                                @endfor
+                            </select>
+                        </div>
+                        <div class="col-md-4 fv-row">
+                            <label class="required fs-6 fw-bold form-label mb-2">SKT Yıl</label>
+                            <select name="card_exp_year" class="form-select form-select-solid"
+                                    data-control="select2"
+                                    data-hide-search="true" data-placeholder="Yıl">
+                                <option></option>
+                                @php($currentYear = date('Y'))
+                                @for($i=0; $i <= 30; $i++)
+                                    <option
+                                        value="{{mb_substr($currentYear+$i,mb_strlen($currentYear+$i)-2)}}">{{$currentYear+$i}}</option>
+                                @endfor
+                            </select>
+                        </div>
+                        <div class="col-md-4 fv-row">
+                            <label class="d-flex align-items-center fs-6 fw-bold form-label mb-2">
+                                <span class="required">CVV</span>
+                                <i class="fas fa-exclamation-circle ms-2 fs-7" data-bs-toggle="tooltip"
+                                   title="Kartın arka yüzünde yer alan 3 haneli güvenlik kodunu girmelisiniz."></i>
+                            </label>
+                            <div class="position-relative">
+                                <input type="text" class="form-control form-control-solid" minlength="3"
+                                       maxlength="3"
+                                       placeholder="CVV" name="card_cvv"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-column mb-7 fv-row">
+                        <label class="fs-6 fw-bold form-label mb-2">Taksit Seçeneği</label>
+                        <select name="installment" class="form-select form-select-solid" data-control="select2" data-hide-search="true">
+                            <option value="0">Tek Çekim</option>
+                            <option value="2">2 Taksit</option>
+                            <option value="3">3 Taksit</option>
+                            <option value="6">6 Taksit</option>
+                            <option value="9">9 Taksit</option>
+                            <option value="12">12 Taksit</option>
+                        </select>
+                    </div>
+                    <div class="d-flex flex-stack">
+                        <span class="text-primary"><b>{{__("pay")}}</b> butonuna tıkladıktan sonra doğrulama işlemi için bankanızın 3D Secure sayfasına yönlendirileceksiniz.</span>
+                    </div>
+                    <div class="text-center pt-15">
+                        <button type="submit" class="btn btn-primary">
+                            <span class="indicator-label"><i class="fa fa-university me-1"></i>{{__("make_a_payment")}}</span>
+                            <span class="indicator-progress">{{__("please_wait")}}...
+                                <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        @endif
     @if(Auth::user()->security->is_limit_payment_methods == 0 || (Auth::user()->security->is_limit_payment_methods == 1 && in_array("TRANSFER", Auth::user()->security->payment_methods)))
         <div class="transfer-eft-option-form-area" style="display: none">
-            <h3>Banka Hesap Bilgileri</h3>
-            <div class="table-responsive">
-                <table class="table table-bordered">
-
-                    <tbody>
-                    <tr>
-                        <td class="fw-bold text-end">Banka:</td>
-                        <td>QNB Finansbank A.Ş.</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-end">Hesap Sahibi:</td>
-                        <td><span data-text="SAĞLAM PROXY YAZILIM HİZMETLERİ LTD ŞTİ"
-                                  class="copy-text cursor-pointer text-hover-primary"><i
-                                    class="fa fa-copy fw-bold"></i></span> SAĞLAM PROXY YAZILIM HİZMETLERİ
-                            LTD ŞTİ
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-end">IBAN:</td>
-                        <td><span data-text="TR110011111111114343123111"
-                                  class="copy-text cursor-pointer text-hover-primary"><i
-                                    class="fa fa-copy fw-bold"></i></span> TR11 0011 1111 1111 4343
-                            1231 11
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-end">Açıklama:</td>
-                        <td><span data-text="{{auth()->user()->full_name}}"
-                                  class="copy-text cursor-pointer text-hover-primary"><i
-                                    class="fa fa-copy fw-bold"></i></span> {{mb_strtoupper(auth()->user()->full_name)}}
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="w-100 mb-3 mt-1 d-flex justify-content-center">
-                <button
-                    class="submit-transfer-button btn btn-primary d-flex align-items-center {{$hasPendingCheckout ? "disabled" : ""}}">
-                    <i
-                        class="fa fa-check-circle"></i> {{__("payment_notification")}}
+            <div class="text-center" id="eftStartArea">
+                <button type="button" class="btn btn-primary btn-lg px-5" id="portalEftStartBtn" onclick="loadPortalEftIframe()">
+                    <i class="fa fa-building-columns me-2"></i>Havale/EFT ile Ödeme Başlat
                 </button>
+                <p class="text-muted mt-3 fs-7">PayTR güvenli altyapısı ile banka havalesi yapabilirsiniz.</p>
             </div>
-            <span class="text-primary fw-bold">Havale yöntemi ile yaptığınız ödemeler mesai saatleri içerisinde ortalama 2 saat içinde onaylanacaktır.</span>
+            <div id="portalEftIframeArea" style="display:none;">
+                <script src="https://www.paytr.com/js/iframeResizer.min.js"></script>
+                <iframe id="portalEftIframe" frameborder="0" scrolling="no" style="width:100%; min-height:400px;"></iframe>
+            </div>
+            <div id="portalEftError" class="alert alert-danger mt-3" style="display:none;"></div>
         </div>
     @endif
     @if(Auth::user()->security->is_limit_payment_methods == 0 || (Auth::user()->security->is_limit_payment_methods == 1 && in_array("WALLET", Auth::user()->security->payment_methods)))
@@ -374,19 +284,16 @@
     <script>
         $(document).ready(function () {
             $(document).on('click', 'input[name="payment_method"]', function () {
-                if ($('input[name="payment_method"]:checked').attr('value') === 'CREDIT_CARD') {
-                    $('.transfer-eft-option-form-area').hide(300);
-                    $('.wallet-option-form-area').hide(300);
+                var val = $('input[name="payment_method"]:checked').attr('value');
+                $('.credit-card-option-form-area').hide(300);
+                $('.transfer-eft-option-form-area').hide(300);
+                $('.wallet-option-form-area').hide(300);
+                if (val === 'CREDIT_CARD') {
                     $('.credit-card-option-form-area').fadeIn();
-                } else if ($('input[name="payment_method"]:checked').attr('value') === 'TRANSFER') {
-                    $('.credit-card-option-form-area').hide(300);
-                    $('.wallet-option-form-area').hide(300);
+                } else if (val === 'TRANSFER') {
                     $('.transfer-eft-option-form-area').fadeIn();
-                } else if ($('input[name="payment_method"]:checked').attr('value') === 'WALLET') {
-                    $('.credit-card-option-form-area').hide(300);
-                    $('.transfer-eft-option-form-area').hide(300);
+                } else if (val === 'WALLET') {
                     $('.wallet-option-form-area').fadeIn();
-
                 }
             })
             $('.copy-text').click(function () {
@@ -422,30 +329,14 @@
             });
 
             $('#checkoutForm').on('submit', function(event) {
-                event.preventDefault(); // Formun hemen submit olmasını engelle
-
-                // Yeni bir input oluştur
-                const newInput = $('<input>')
-                    .attr('type', 'hidden')
-                    .attr('name', 'invoice_address_id')
-                    .val($("[name='invoice_address_id']").val());
-
-                // Yeni input'u forma ekle
+                event.preventDefault();
+                const newInput = $('<input>').attr('type', 'hidden').attr('name', 'invoice_address_id').val($("[name='invoice_address_id']").val());
                 $(this).append(newInput);
-
-                const newInput2 = $('<input>')
-                    .attr('type', 'hidden')
-                    .attr('name', 'invoice_id')
-                    .val({{$invoice ? $invoice->id : ''}});
-
-                // Yeni input'u forma ekle
+                const newInput2 = $('<input>').attr('type', 'hidden').attr('name', 'invoice_id').val({{$invoice ? $invoice->id : ''}});
                 $(this).append(newInput2);
-
-                // Burada başka işlemler de yapabilirsiniz, örneğin validasyon
-
-                // Formu submit et
                 this.submit();
             });
+
             {{--$(document).on("submit", "#checkoutForm", function (e) {--}}
             {{--    e.preventDefault()--}}
             {{--    let form = $(this),--}}
@@ -488,47 +379,50 @@
             {{--        }--}}
             {{--    })--}}
             {{--})--}}
-            $(document).on('click', '.submit-transfer-button', function (e) {
-                e.preventDefault();
-                alerts.confirm.fire({
-                    text: 'Lütfen bu işlemi yapmadan önce ödemeyi başarılı bir şekilde tamamladığınıza emin olun.',
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            type: "POST",
-                            url: '{{route('portal.save_bank_transfer_notification')}}',
-                            dataType: "json",
-                            data: {
-                                _token: '{{csrf_token()}}',
-                                invoice_address_id: $("[name='invoice_address_id']").val(),
-                                invoice_id: "{{$invoice ? $invoice->id : null}}"
-                            },
-                            complete: function (data, status) {
-                                res = data.responseJSON;
-                                if (res.success === true) {
-                                    Swal.fire({
-                                        title: "{{__('success')}}",
-                                        text: res?.message ?? "",
-                                        icon: "success",
-                                        showConfirmButton: 0,
-                                        showCancelButton: 1,
-                                        cancelButtonText: "{{__('close')}}"
-                                    }).then((r) => window.location.reload())
-                                } else {
-                                    Swal.fire({
-                                        title: "{{__('error')}}",
-                                        text: res?.message ?? "",
-                                        icon: "error",
-                                        showConfirmButton: 0,
-                                        showCancelButton: 1,
-                                        cancelButtonText: "{{__('close')}}",
-                                    })
-                                }
+            window.portalEftLoaded = false;
+            window.loadPortalEftIframe = function() {
+                if (window.portalEftLoaded) return;
+                var btn = $('#portalEftStartBtn');
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Yükleniyor...');
+                $('#portalEftError').hide();
+
+                var invoiceAddressId = $("[name='invoice_address_id']").val();
+                if (!invoiceAddressId) {
+                    btn.prop('disabled', false).html('<i class="fa fa-building-columns me-2"></i>Havale/EFT ile Ödeme Başlat');
+                    $('#portalEftError').text('Lütfen önce fatura adresinizi seçin.').show();
+                    return;
+                }
+
+                $.ajax({
+                    type: "POST",
+                    url: '{{route("portal.eftIframeToken")}}',
+                    dataType: "json",
+                    data: {
+                        _token: '{{csrf_token()}}',
+                        invoice_address_id: invoiceAddressId,
+                        invoice_id: "{{$invoice ? $invoice->id : null}}"
+                    },
+                    success: function(res) {
+                        if (res.success && res.data && res.data.iframe_token) {
+                            window.portalEftLoaded = true;
+                            $('#eftStartArea').hide();
+                            var iframe = document.getElementById('portalEftIframe');
+                            iframe.src = 'https://www.paytr.com/odeme/api/' + res.data.iframe_token;
+                            $('#portalEftIframeArea').show();
+                            if (typeof iFrameResize === 'function') {
+                                iFrameResize({}, '#portalEftIframe');
                             }
-                        })
+                        } else {
+                            btn.prop('disabled', false).html('<i class="fa fa-building-columns me-2"></i>Havale/EFT ile Ödeme Başlat');
+                            $('#portalEftError').text(res.message || 'Bir hata oluştu.').show();
+                        }
+                    },
+                    error: function() {
+                        btn.prop('disabled', false).html('<i class="fa fa-building-columns me-2"></i>Havale/EFT ile Ödeme Başlat');
+                        $('#portalEftError').text('Bağlantı hatası. Lütfen tekrar deneyin.').show();
                     }
-                })
-            });
+                });
+            };
 
             $(document).on('click', '.submit-wallet-button', function (e) {
                 e.preventDefault();

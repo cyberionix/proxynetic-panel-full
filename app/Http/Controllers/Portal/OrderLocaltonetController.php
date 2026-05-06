@@ -786,20 +786,21 @@ class OrderLocaltonetController extends Controller
             return $this->errorResponse($proxy['errorMessage'] ?? 'Proxy bilgisi alınamadı.');
         }
 
-        // serverIp may be 127.0.0.1 (localtonet client internal); use snapshot selected_ip
-        if (is_array($proxy) && ($proxy["serverIp"] ?? "") === "127.0.0.1") {
+        $serverIp = trim((string) ($proxy['serverIp'] ?? ''));
+        if ($serverIp === '127.0.0.1' || $serverIp === 'localhost' || $serverIp === '') {
             $pi = $order->product_info ?? [];
-            $tunnelIds = $order->getAllLocaltonetProxyIds();
-            $snapshots = $pi["localtonet_v4_snapshots"] ?? [];
-            $idx = $tunnelId ? array_search((int) $tunnelId, array_map("intval", $tunnelIds), true) : 0;
-            $snapIp = trim((string) ($snapshots[$idx]["selected_ip"] ?? ""));
-            if ($snapIp !== "") {
-                $proxy["serverIp"] = $snapIp;
+            $allTids = $pi['localtonet_v4_proxy_ids'] ?? [];
+            $snaps = $pi['localtonet_v4_snapshots'] ?? [];
+            $tid = $tunnelId ?? (int) ($order->getLocaltonetProxyId() ?? 0);
+            $snapIdx = array_search($tid, $allTids);
+            $snap = ($snapIdx !== false && isset($snaps[$snapIdx])) ? $snaps[$snapIdx] : ($snaps[0] ?? []);
+            $realIp = trim((string) ($snap['selected_ip'] ?? ''));
+            if ($realIp !== '' && filter_var($realIp, FILTER_VALIDATE_IP)) {
+                $proxy['serverIp'] = $realIp;
             }
         }
 
         $proxyUrl = $this->buildLocaltonetGuzzleProxyUrl($proxy);
-
         if ($proxyUrl === null) {
             return $this->errorResponse('Proxy adresi eksik.');
         }
@@ -1079,9 +1080,10 @@ class OrderLocaltonetController extends Controller
         return $this->errorResponse($result['message'] ?? 'Güncelleme başarısız.');
     }
 
-    public function proxyCheck(Order $order): JsonResponse
+    public function proxyCheck(Order $order, Request $request): JsonResponse
     {
-        $cacheKey = 'proxy_check_' . $order->id . '_' . (Auth::guard('admin')->check() ? 'admin' : Auth::id());
+        $proxyIndex = (int) $request->input('proxy_index', 0);
+        $cacheKey = 'proxy_check_' . $order->id . '_' . $proxyIndex . '_' . (Auth::guard('admin')->check() ? 'admin' : Auth::id());
         if (Cache::has($cacheKey)) {
             $remaining = (int) ceil(Cache::get($cacheKey) - microtime(true));
             return $this->errorResponse('Lütfen ' . max(1, $remaining) . ' saniye bekleyin.');
@@ -1094,11 +1096,11 @@ class OrderLocaltonetController extends Controller
         if ($order->isThreeProxyDelivery()) {
             $list = $order->getThreeProxyDisplayList();
             if (!empty($list)) {
-                $first = $list[0];
-                $ip = $first['ip'] ?? '';
-                $port = $first['http_port'] ?? '';
-                $user = $first['username'] ?? '';
-                $pass = $first['password'] ?? '';
+                $item = $list[$proxyIndex] ?? $list[0];
+                $ip = $item['ip'] ?? '';
+                $port = $item['http_port'] ?? '';
+                $user = $item['username'] ?? '';
+                $pass = $item['password'] ?? '';
                 if ($ip && $port) {
                     $proxyString = "{$ip}:{$port}";
                     if ($user && $pass) {
@@ -1111,6 +1113,14 @@ class OrderLocaltonetController extends Controller
             $result = $proxyData['result'] ?? [];
             if (!empty($result['serverIp']) && !empty($result['serverPort'])) {
                 $ip = $result['serverIp'];
+                if ($ip === '127.0.0.1' || $ip === 'localhost') {
+                    $pi = $order->product_info ?? [];
+                    $snap = ($pi['localtonet_v4_snapshots'][0] ?? null) ?: ($pi['localtonet_v4_snapshot'] ?? []);
+                    $realIp = trim((string) ($snap['selected_ip'] ?? ''));
+                    if ($realIp !== '' && filter_var($realIp, FILTER_VALIDATE_IP)) {
+                        $ip = $realIp;
+                    }
+                }
                 $port = $result['serverPort'];
                 $proxyString = "{$ip}:{$port}";
                 if (!empty($result['authentication']['isActive'])) {

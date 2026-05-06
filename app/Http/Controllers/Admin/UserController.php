@@ -127,7 +127,7 @@ class UserController extends Controller
                 "<span data-id='" . $item->id . "'>" . $item->id . "</span>",
                 "<a href='" . $userUrl . "'>" . $item->full_name . "</a>",
                 "<a href='" . $userUrl . "' class='text-gray-600 text-hover-primary'>" . $item->email . "</a>",
-                $item->lastLoginIp(),
+                $item->lastLoginIp() ? '<span class="badge badge-secondary badge-lg" data-ip-lookup="' . e($item->lastLoginIp()) . '" style="position:relative;cursor:pointer;">' . e($item->lastLoginIp()) . '</span>' : '',
                 $userGroup,
                 $lastSeenAt,
                 $process
@@ -268,7 +268,10 @@ class UserController extends Controller
 
     public function accountLogin(User $user)
     {
-        Auth::guard('web')->login($user);
+        $guard = Auth::guard('web');
+        $guard->setUser($user);
+        session()->put($guard->getName(), $user->getAuthIdentifier());
+
         return $this->successResponse(__('login_successful'), ["redirectUrl" => route("portal.dashboard")]);
     }
 

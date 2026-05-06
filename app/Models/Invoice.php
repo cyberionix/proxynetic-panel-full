@@ -22,12 +22,18 @@ class Invoice extends Model
         "e_document_info" => "json",
         "formalized_at" => "datetime:Y-m-d H:i:s",
         "invoice_date" => "date",
-        "due_date" => "date"
+        "due_date" => "date",
+        "no_auto_merge" => "boolean",
     ];
 
     protected static function boot()
     {
         parent::boot();
+        static::creating(function ($invoice) {
+            if (empty($invoice->share_token)) {
+                $invoice->share_token = base64_encode(random_bytes(32));
+            }
+        });
         static::created(function ($invoice) {
             if (static::$skipCreatedNotification) return;
             if ($invoice->user && $invoice->status === 'PENDING') {

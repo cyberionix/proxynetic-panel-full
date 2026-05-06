@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Traits\AjaxResponses;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Ramsey\Uuid\Uuid;
@@ -22,6 +23,15 @@ use Ramsey\Uuid\Uuid;
 class InvoiceController extends Controller
 {
     use AjaxResponses;
+
+    public function viewAsCustomer(Invoice $invoice)
+    {
+        $guard = Auth::guard('web');
+        $guard->setUser($invoice->user);
+        session()->put($guard->getName(), $invoice->user->getAuthIdentifier());
+
+        return redirect()->route('portal.invoices.show', ['invoice' => $invoice->id]);
+    }
 
     public function index()
     {
@@ -520,6 +530,41 @@ class InvoiceController extends Controller
                 Invoice::whereIn('id', $ids)->delete();
                 return response()->json(['success' => true, 'message' => "{$count} fatura silindi."]);
 
+            case 'merge':
+                if (count($ids) < 2) {
+                    return response()->json(['success' => false, 'message' => 'Birleştirme için en az 2 fatura seçmelisiniz.']);
+                }
+
+                $userIds = $invoices->pluck('user_id')->unique();
+                if ($userIds->count() > 1) {
+                    return response()->json(['success' => false, 'message' => 'Farklı müşterilere ait faturalar birleştirilemez.']);
+                }
+
+                $nonPending = $invoices->where('status', '!=', 'PENDING');
+                if ($nonPending->isNotEmpty()) {
+                    return response()->json(['success' => false, 'message' => 'Sadece "Bekliyor" durumundaki faturalar birleştirilebilir.']);
+                }
+
+                DB::beginTransaction();
+                try {
+                    $master = $invoices->sortBy('id')->first();
+                    $others = $invoices->where('id', '!=', $master->id);
+
+                    foreach ($others as $other) {
+                        InvoiceItem::where('invoice_id', $other->id)->update(['invoice_id' => $master->id]);
+                        $other->delete();
+                    }
+
+                    $this->recalculateInvoiceTotals($master);
+
+                    DB::commit();
+                    $mergedCount = count($ids);
+                    return response()->json(['success' => true, 'message' => "{$mergedCount} fatura #{$master->invoice_number} altında birleştirildi."]);
+                } catch (\Exception $e) {
+                    DB::rollback();
+                    return response()->json(['success' => false, 'message' => 'Birleştirme hatası: ' . $e->getMessage()]);
+                }
+
             default:
                 return response()->json(['success' => false, 'message' => 'Geçersiz işlem.']);
         }
@@ -686,5 +731,317 @@ class InvoiceController extends Controller
 
         return die('PDF Bulunamadı.');
 
+    }
+
+    public function splitItem(Request $request, Invoice $invoice)
+    {
+        $request->validate([
+            'item_id' => 'required|integer|exists:invoice_items,id',
+        ]);
+
+        $item = InvoiceItem::where('id', $request->item_id)
+            ->where('invoice_id', $invoice->id)
+            ->first();
+
+        if (!$item) {
+            return $this->errorResponse('Kalem bu faturada bulunamadı.');
+        }
+
+        if ($invoice->items()->count() <= 1) {
+            return $this->errorResponse('Tek kalemli faturadan ayırma yapılamaz.');
+        }
+
+        if ($invoice->status !== 'PENDING') {
+            return $this->errorResponse('Yalnızca bekleyen faturalardan kalem ayırılabilir.');
+        }
+
+        DB::beginTransaction();
+        try {
+            Invoice::$skipCreatedNotification = true;
+            $newInvoice = Invoice::create([
+                "invoice_number" => Invoice::generateInvoiceNumber(),
+                "invoice_date" => $invoice->invoice_date,
+                "due_date" => $invoice->due_date,
+                "status" => "PENDING",
+                "no_auto_merge" => true,
+                "total_price" => $item->total_price,
+                "total_vat" => $item->total_price_with_vat - $item->total_price,
+                "total_price_with_vat" => $item->total_price_with_vat,
+                "user_id" => $invoice->user_id,
+                "invoice_address" => $invoice->invoice_address,
+            ]);
+            Invoice::$skipCreatedNotification = false;
+
+            $item->update(['invoice_id' => $newInvoice->id]);
+
+            $this->recalculateInvoiceTotals($invoice);
+
+            DB::commit();
+
+            return $this->successResponse(
+                "Kalem yeni fatura #{$newInvoice->invoice_number} olarak ayrıldı.",
+                ["redirectUrl" => route("admin.invoices.show", ["invoice" => $invoice->id])]
+            );
+        } catch (\Exception $e) {
+            Invoice::$skipCreatedNotification = false;
+            DB::rollback();
+            return $this->errorResponse('Hata: ' . $e->getMessage());
+        }
+    }
+
+    public function removeItem(Request $request, Invoice $invoice)
+    {
+        $request->validate([
+            'item_id' => 'required|integer|exists:invoice_items,id',
+        ]);
+
+        $item = InvoiceItem::where('id', $request->item_id)
+            ->where('invoice_id', $invoice->id)
+            ->first();
+
+        if (!$item) {
+            return $this->errorResponse('Kalem bu faturada bulunamadı.');
+        }
+
+        if ($invoice->status !== 'PENDING') {
+            return $this->errorResponse('Yalnızca bekleyen faturalardan kalem silinebilir.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $item->delete();
+
+            if ($invoice->items()->count() === 0) {
+                $invoice->delete();
+                DB::commit();
+                return $this->successResponse('Kalem silindi, fatura boş kaldığı için silindi.', [
+                    "redirectUrl" => route("admin.invoices.index")
+                ]);
+            }
+
+            $this->recalculateInvoiceTotals($invoice);
+
+            DB::commit();
+            return $this->successResponse('Kalem başarıyla silindi.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return $this->errorResponse('Hata: ' . $e->getMessage());
+        }
+    }
+
+    public function applyDiscount(Request $request, Invoice $invoice)
+    {
+        if ($invoice->status !== 'PENDING') {
+            return $this->errorResponse('İndirim yalnızca bekleyen faturalara uygulanabilir.');
+        }
+
+        $mode = $request->input('mode'); // 'coupon' or 'manual'
+        $itemId = $request->input('item_id'); // null for global, set for per-item
+
+        if ($mode === 'coupon') {
+            $code = $request->input('coupon_code');
+            if (!$code) return $this->errorResponse('Kupon kodu giriniz.');
+
+            $coupon = \App\Models\CouponCode::where('coupon_code', $code)
+                ->where('is_active', 1)
+                ->where('end_date', '>=', now()->format('Y-m-d'))
+                ->first();
+
+            if (!$coupon) return $this->errorResponse('Geçersiz veya süresi dolmuş kupon kodu.');
+
+            $usedCount = Invoice::where('coupon_code_id', $coupon->id)->count();
+            if ($coupon->use_limit && $usedCount >= $coupon->use_limit) {
+                return $this->errorResponse('Bu kupon kodunun kullanım limiti dolmuş.');
+            }
+
+            if ($coupon->product_ids && is_array($coupon->product_ids) && count($coupon->product_ids) > 0) {
+                $invoiceProductIds = $invoice->items()->whereNotNull('product_id')->pluck('product_id')->toArray();
+                $validProducts = array_intersect($invoiceProductIds, $coupon->product_ids);
+                if (empty($validProducts)) {
+                    return $this->errorResponse('Bu kupon kodu faturadaki ürünler için geçerli değil.');
+                }
+            }
+
+            $discountPercent = $coupon->type === 'PERCENT' ? $coupon->amount : null;
+            $discountFixed = $coupon->type === 'FIXED' ? $coupon->amount : null;
+
+            if ($itemId) {
+                return $this->applyDiscountToItem($invoice, $itemId, $discountPercent, $discountFixed, $coupon);
+            }
+
+            return $this->applyDiscountToInvoice($invoice, $discountPercent, $discountFixed, $coupon);
+
+        } elseif ($mode === 'manual') {
+            $percent = (float) $request->input('percent', 0);
+            if ($percent <= 0 || $percent > 100) {
+                return $this->errorResponse('Geçerli bir yüzde giriniz (1-100).');
+            }
+
+            if ($itemId) {
+                return $this->applyDiscountToItem($invoice, $itemId, $percent, null, null);
+            }
+
+            return $this->applyDiscountToInvoice($invoice, $percent, null, null);
+        }
+
+        return $this->errorResponse('Geçersiz indirim modu.');
+    }
+
+    private function applyDiscountToItem(Invoice $invoice, $itemId, $percent, $fixed, $coupon)
+    {
+        $item = InvoiceItem::where('id', $itemId)->where('invoice_id', $invoice->id)->first();
+        if (!$item) return $this->errorResponse('Kalem bulunamadı.');
+
+        $basePriceWithVat = $item->original_price_with_vat ?? $item->total_price_with_vat;
+        $basePrice = $item->total_price;
+        if ($item->original_price_with_vat) {
+            $basePrice = $basePriceWithVat / (1 + ($item->vat_percent / 100));
+        }
+
+        if ($percent) {
+            $discountAmount = $basePriceWithVat * $percent / 100;
+        } else {
+            $discountAmount = min($fixed, $basePriceWithVat);
+            $percent = $basePriceWithVat > 0 ? round(($discountAmount / $basePriceWithVat) * 100, 2) : 0;
+        }
+
+        $newPriceWithVat = round($basePriceWithVat - $discountAmount, 2);
+        $ratio = $basePriceWithVat > 0 ? $newPriceWithVat / $basePriceWithVat : 0;
+        $newPrice = round($basePrice * $ratio, 2);
+
+        $item->update([
+            'total_price' => $newPrice,
+            'total_price_with_vat' => $newPriceWithVat,
+            'original_price_with_vat' => $basePriceWithVat,
+            'discount_percent' => $percent,
+            'discount_coupon_text' => $coupon?->coupon_code,
+        ]);
+
+        $this->recalculateInvoiceTotals($invoice);
+
+        $label = $percent ? "%{$percent}" : showBalance($fixed, true) . ' sabit';
+        return $this->successResponse("Kaleme {$label} indirim uygulandı.");
+    }
+
+    private function applyDiscountToInvoice(Invoice $invoice, $percent, $fixed, $coupon)
+    {
+        $total = $invoice->total_price_with_vat;
+
+        if ($percent) {
+            $discountAmount = round($total * $percent / 100, 2);
+        } else {
+            $discountAmount = min($fixed, $total);
+            $percent = $total > 0 ? round(($discountAmount / $total) * 100, 2) : 0;
+        }
+
+        $realTotal = round($total - $discountAmount, 2);
+        if ($realTotal <= 0) {
+            return $this->errorResponse('İndirim tutarı fatura toplamını aşıyor.');
+        }
+
+        $updateData = [
+            'discount_amount' => $discountAmount,
+            'real_total' => $realTotal,
+        ];
+
+        if ($coupon) {
+            $updateData['coupon_code_id'] = $coupon->id;
+            $updateData['coupon_code_text'] = $coupon->coupon_code;
+        } else {
+            $updateData['coupon_code_text'] = "%{$percent} manuel indirim";
+        }
+
+        $invoice->update($updateData);
+
+        $label = "%{$percent}";
+        return $this->successResponse("Faturaya {$label} indirim uygulandı. İndirim: " . showBalance($discountAmount, true));
+    }
+
+    public function addItem(Request $request, Invoice $invoice)
+    {
+        if ($invoice->status !== 'PENDING') {
+            return $this->errorResponse('Yalnızca bekleyen faturalara kalem eklenebilir.');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'amount' => 'required|numeric|min:0.01',
+            'vat_percent' => 'required|numeric|min:0',
+        ]);
+
+        $amountWithVat = (float) $request->input('amount');
+        $vatPercent = (float) $request->input('vat_percent');
+        $priceWithoutVat = $amountWithVat / (1 + ($vatPercent / 100));
+
+        $item = InvoiceItem::create([
+            'type' => 'CUSTOM',
+            'name' => $request->input('name'),
+            'total_price' => round($priceWithoutVat, 2),
+            'vat_percent' => $vatPercent,
+            'total_price_with_vat' => round($amountWithVat, 2),
+            'invoice_id' => $invoice->id,
+        ]);
+
+        $this->recalculateInvoiceTotals($invoice);
+
+        return $this->successResponse('Kalem başarıyla eklendi.');
+    }
+
+    public function removeItemDiscount(Request $request, Invoice $invoice)
+    {
+        if ($invoice->status !== 'PENDING') {
+            return $this->errorResponse('Yalnızca bekleyen faturalarda indirim kaldırılabilir.');
+        }
+
+        $item = InvoiceItem::where('id', $request->input('item_id'))
+            ->where('invoice_id', $invoice->id)
+            ->first();
+
+        if (!$item) return $this->errorResponse('Kalem bulunamadı.');
+        if (!$item->original_price_with_vat) return $this->errorResponse('Bu kalemde indirim yok.');
+
+        $originalPriceWithVat = $item->original_price_with_vat;
+        $originalPrice = $originalPriceWithVat / (1 + ($item->vat_percent / 100));
+
+        $item->update([
+            'total_price' => round($originalPrice, 2),
+            'total_price_with_vat' => $originalPriceWithVat,
+            'discount_percent' => null,
+            'discount_coupon_text' => null,
+            'original_price_with_vat' => null,
+        ]);
+
+        $this->recalculateInvoiceTotals($invoice);
+
+        return $this->successResponse('Kalem indirimi kaldırıldı.');
+    }
+
+    public function removeDiscount(Invoice $invoice)
+    {
+        if ($invoice->status !== 'PENDING') {
+            return $this->errorResponse('Yalnızca bekleyen faturalarda indirim kaldırılabilir.');
+        }
+
+        $invoice->update([
+            'discount_amount' => 0,
+            'real_total' => null,
+            'coupon_code_id' => null,
+            'coupon_code_text' => null,
+        ]);
+
+        return $this->successResponse('İndirim kaldırıldı.');
+    }
+
+    private function recalculateInvoiceTotals(Invoice $invoice)
+    {
+        $totals = $invoice->items()
+            ->selectRaw('SUM(total_price) as total_price, SUM(total_price_with_vat - total_price) as total_vat, SUM(total_price_with_vat) as total_price_with_vat')
+            ->first();
+
+        $invoice->update([
+            'total_price' => $totals->total_price ?? 0,
+            'total_vat' => $totals->total_vat ?? 0,
+            'total_price_with_vat' => $totals->total_price_with_vat ?? 0,
+        ]);
     }
 }

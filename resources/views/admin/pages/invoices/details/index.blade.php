@@ -53,54 +53,73 @@
                             <!--end::Input group-->
                             <!--begin::Input group-->
                             <div
-                                class="d-flex align-items-center justify-content-end flex-equal order-3 fw-row gap-2">
+                                class="d-flex align-items-center justify-content-end flex-equal order-3 fw-row gap-2 flex-wrap">
                                 @if($invoice->status == 'PAID')
-                                    <button type="button" class="btn btn-sm btn-success pe-none">
+                                    <button type="button" class="btn btn-sm btn-success pe-none text-nowrap">
                                         <i class="fa fa-check-circle text-white me-1"></i>Ödendi
                                     </button>
                                     <button type="button"
-                                            class="btn btn-sm btn-light-warning togglePaymentStatusBtn"
+                                            class="btn btn-sm btn-light-warning text-nowrap togglePaymentStatusBtn"
                                             data-url="{{route("admin.invoices.togglePaymentStatus", ["invoice" => $invoice->id])}}"
                                             data-status="PENDING">
-                                        <i class="fa fa-times-circle"></i> Ödenmedi Yap
+                                        <i class="fa fa-times-circle me-1"></i>Ödenmedi Yap
                                     </button>
                                 @elseif($invoice->status == 'CANCELLED')
-                                    <button type="button" class="btn btn-sm btn-secondary pe-none">
+                                    <button type="button" class="btn btn-sm btn-secondary pe-none text-nowrap">
                                         <i class="fa fa-ban text-white me-1"></i>İptal Edildi
                                     </button>
                                     <button type="button"
-                                            class="btn btn-sm btn-light-success togglePaymentStatusBtn"
+                                            class="btn btn-sm btn-light-success text-nowrap togglePaymentStatusBtn"
                                             data-url="{{route("admin.invoices.togglePaymentStatus", ["invoice" => $invoice->id])}}"
                                             data-status="PAID">
-                                        <i class="fa fa-check-circle"></i> Ödendi Yap
+                                        <i class="fa fa-check-circle me-1"></i>Ödendi Yap
                                     </button>
                                 @else
-                                    <button type="button" class="btn btn-sm btn-danger pe-none">
+                                    <button type="button" class="btn btn-sm btn-danger pe-none text-nowrap">
                                         <i class="fa fa-clock text-white me-1"></i>Ödenmedi
                                     </button>
                                     <button type="button"
-                                            class="btn btn-sm btn-light-success togglePaymentStatusBtn"
+                                            class="btn btn-sm btn-light-success text-nowrap togglePaymentStatusBtn"
                                             data-url="{{route("admin.invoices.togglePaymentStatus", ["invoice" => $invoice->id])}}"
                                             data-status="PAID">
-                                        <i class="fa fa-check-circle"></i> Ödendi Yap
+                                        <i class="fa fa-check-circle me-1"></i>Ödendi Yap
                                     </button>
                                 @endif
                                 <button type="button"
-                                        class="btn btn-sm btn-light-danger invoiceDeleteBtn"
+                                        class="btn btn-sm btn-light-danger text-nowrap invoiceDeleteBtn"
                                         data-url="{{route("admin.invoices.delete", ["invoice" => $invoice->id])}}">
-                                    <i class="fa fa-trash"></i>{{__("delete")}}</button>
+                                    <i class="fa fa-trash me-1"></i>Sil
+                                </button>
+                                @if($invoice->status === 'PENDING')
+                                    <button type="button"
+                                            class="btn btn-sm btn-light-info text-nowrap globalDiscountBtn">
+                                        <i class="fa fa-percent me-1"></i>İndirim Uygula
+                                    </button>
+                                @endif
                                 @if(!$invoice->formalized_at)
                                     <button type="button"
-                                            class="btn btn-sm btn-light-success sendToParachuteBtn"
+                                            class="btn btn-sm btn-light-success text-nowrap sendToParachuteBtn"
                                             data-url="{{route("admin.invoices.formalize", ["invoice" => $invoice->id])}}">
-                                        <i class="fa fa-paper-plane"></i>Resmileştir
+                                        <i class="fa fa-paper-plane me-1"></i>Resmileştir
                                     </button>
                                 @else
-                                    <a type="button"
-                                       class="btn btn-sm btn-light-success"
+                                    <a class="btn btn-sm btn-light-success text-nowrap"
                                        href="{{route("admin.invoices.showPdf", ["invoice" => $invoice->id])}}">
-                                        <i class="fa fa-file-pdf"></i>PDF Görüntüle
+                                        <i class="fa fa-file-pdf me-1"></i>PDF
                                     </a>
+                                @endif
+                                @if($invoice->share_token)
+                                <a href="{{route("public.invoice.show", ["token" => $invoice->share_token])}}"
+                                   target="_blank"
+                                   class="btn btn-sm btn-light-primary text-nowrap">
+                                    <i class="fa fa-external-link-alt me-1"></i>Faturaya Git
+                                </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-light-info text-nowrap npShareLinkBtn"
+                                        data-link="{{route("public.invoice.show", ["token" => $invoice->share_token])}}"
+                                        title="Linki Kopyala">
+                                    <i class="fa fa-copy me-1"></i>Paylaş
+                                </button>
                                 @endif
                             </div>
                             <!--end::Input group-->
@@ -113,54 +132,41 @@
                         <div class="mb-0">
                             <!--begin::Row-->
                             <div class="row gx-10 mb-9">
-                                <!--begin::Col-->
-                                <div class="col-lg-6">
-                                    <x-invoice-address-area/>
-                                </div>
-                                <!--end::Col-->
-                                <!--begin::Col-->
-                                <div class="col-lg-6 text-end customerInformation">
+                                <!--begin::Col - Müşteri (sol)-->
+                                <div class="col-lg-6 customerInformation">
                                     <div class="mb-1">
-                                        <h6><span class="name">{{$invoice->user?->fullName}}</span>
+                                        <h6><a href="{{route('admin.users.show', ['user' => $invoice->user_id])}}" class="name text-hover-primary">{{$invoice->user?->fullName}}</a>
                                         </h6>
                                     </div>
-                                    <div class="text-end mb-2">
-                                                            <span
-                                                                class="badge badge-success cursor-pointer editAddressBtn">{{__("edit_:name", ["name" => __("address")])}}</span>
+                                    <div class="mb-2">
+                                        <span class="badge badge-success cursor-pointer editAddressBtn">{{__("edit_:name", ["name" => __("address")])}}</span>
                                     </div>
                                     <div class="mb-4 invoiceAddressArea">
-                                                            <span
-                                                                class="d-none invoice_type">{{@$invoice->invoice_address["invoice_type"]}}</span>
-                                        <span
-                                            class="address">{!! @$invoice->invoice_address["address"] !!}</span>
+                                        <span class="d-none invoice_type">{{@$invoice->invoice_address["invoice_type"]}}</span>
+                                        <span class="address">{!! @$invoice->invoice_address["address"] !!}</span>
                                         <div>
-                                                                <span
-                                                                    class="district">{{@$invoice->invoice_address["district"]["title"]}}</span>
-                                            <span
-                                                class="city">{{@$invoice->invoice_address["city"]["title"]}}</span>
+                                            <span class="district">{{@$invoice->invoice_address["district"]["title"]}}</span>
+                                            <span class="city">{{@$invoice->invoice_address["city"]["title"]}}</span>
                                         </div>
                                         <div>
-                                                                <span
-                                                                    class="country">{{@$invoice->invoice_address["country"]["title"]}}</span>
+                                            <span class="country">{{@$invoice->invoice_address["country"]["title"]}}</span>
                                         </div>
-                                        <div
-                                            class="{{@$invoice->invoice_address["invoice_type"] == "CORPORATE" ? "d-none" : ""}}">
-                                                                <span
-                                                                    class="identity_number">{{@$invoice->invoice_address["tax_number"]}}</span>
+                                        <div class="{{@$invoice->invoice_address["invoice_type"] == "CORPORATE" ? "d-none" : ""}}">
+                                            <span class="identity_number">{{@$invoice->invoice_address["tax_number"]}}</span>
                                         </div>
-                                        <div
-                                            class="{{@$invoice->invoice_address["invoice_type"] == "INDIVIDUAL" ? "d-none" : ""}}">
-                                                                <span
-                                                                    class="tax_number">{{@$invoice->invoice_address["tax_number"]}}</span>
-                                            <span
-                                                class="tax_office">{{@$invoice->invoice_address["tax_office"]}}</span>
+                                        <div class="{{@$invoice->invoice_address["invoice_type"] == "INDIVIDUAL" ? "d-none" : ""}}">
+                                            <span class="tax_number">{{@$invoice->invoice_address["tax_number"]}}</span>
+                                            <span class="tax_office">{{@$invoice->invoice_address["tax_office"]}}</span>
                                         </div>
-                                        <div
-                                            class="{{@$invoice->invoice_address["invoice_type"] == "INDIVIDUAL" ? "d-none" : ""}}">
-                                                                <span
-                                                                    class="company_name">{{@$invoice->invoice_address["company_name"]}}</span>
+                                        <div class="{{@$invoice->invoice_address["invoice_type"] == "INDIVIDUAL" ? "d-none" : ""}}">
+                                            <span class="company_name">{{@$invoice->invoice_address["company_name"]}}</span>
                                         </div>
                                     </div>
+                                </div>
+                                <!--end::Col-->
+                                <!--begin::Col - Düzenleyen (sağ)-->
+                                <div class="col-lg-6 text-end">
+                                    <x-invoice-address-area/>
                                 </div>
                                 <!--end::Col-->
                             </div>
@@ -196,6 +202,30 @@
                                                     <span
                                                         class="badge badge-primary badge-sm">{{__("invoice_item_types.".mb_strtolower($item->type))}}</span>
                                                 </div>
+                                                @if($item->discount_percent)
+                                                    <div class="mt-1 d-flex align-items-center gap-1 flex-wrap">
+                                                        <span class="badge badge-light-success badge-sm">
+                                                            <i class="fa fa-percent fs-9 me-1"></i>%{{ number_format($item->discount_percent, 0) }}
+                                                            @if($item->discount_coupon_text)
+                                                                ({{ $item->discount_coupon_text }})
+                                                            @endif
+                                                        </span>
+                                                        @if($item->original_price_with_vat)
+                                                            <span class="text-muted text-decoration-line-through fs-8">
+                                                                {{ showBalance($item->original_price_with_vat, true) }}
+                                                            </span>
+                                                        @endif
+                                                        @if($invoice->status === 'PENDING')
+                                                            <button type="button"
+                                                                    class="btn btn-icon btn-sm btn-light-danger removeItemDiscountBtn"
+                                                                    data-item-id="{{$item->id}}"
+                                                                    title="İndirimi kaldır"
+                                                                    style="width:18px;height:18px;min-width:18px;">
+                                                                <i class="fa fa-times" style="font-size:8px;"></i>
+                                                            </button>
+                                                        @endif
+                                                    </div>
+                                                @endif
                                                 <input type="hidden" name="invoice_item[id][]"
                                                        value="{{$item->id}}">
                                             </td>
@@ -233,18 +263,29 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <div class="mt-1">
-                                                    <button type="button"
-                                                            class="btn btn-sm btn-icon btn-active-color-primary d-none"
-                                                            data-kt-element="remove-item">
-                                                        <i class="ki-duotone ki-trash fs-3 ">
-                                                            <span class="path1"></span>
-                                                            <span class="path2"></span>
-                                                            <span class="path3"></span>
-                                                            <span class="path4"></span>
-                                                            <span class="path5"></span>
-                                                        </i>
-                                                    </button>
+                                                <div class="mt-1 d-flex gap-1">
+                                                    @if($invoice->status === 'PENDING' && $invoice->items->count() > 1)
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-icon btn-light-warning splitItemBtn"
+                                                                data-item-id="{{$item->id}}"
+                                                                title="Ayrı faturaya ayır">
+                                                            <i class="fa fa-external-link-alt fs-7"></i>
+                                                        </button>
+                                                    @endif
+                                                    @if($invoice->status === 'PENDING')
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-icon btn-light-info itemDiscountBtn"
+                                                                data-item-id="{{$item->id}}"
+                                                                title="İndirim uygula">
+                                                            <i class="fa fa-percent fs-7"></i>
+                                                        </button>
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-icon btn-light-danger removeItemBtn"
+                                                                data-item-id="{{$item->id}}"
+                                                                title="Kalemi sil">
+                                                            <i class="fa fa-trash fs-7"></i>
+                                                        </button>
+                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>
@@ -255,22 +296,38 @@
                                     <tfoot>
                                     <tr class="border-top border-top-dashed align-top fs-6 fw-bold text-gray-700">
                                         <th>
-                                            <button type="button" class="btn btn-light-primary me-3 d-none"
-                                                    data-kt-element="add-item">
-														<span class="svg-icon svg-icon-2">
-															<i class="fa fa-plus"></i>
-														</span>
-                                                {{__("add")}}
-                                            </button>
+                                            @if($invoice->status === 'PENDING')
+                                                <button type="button" class="btn btn-icon btn-sm btn-light-primary addItemBtn" title="Kalem Ekle">
+                                                    <i class="fa fa-plus fs-7"></i>
+                                                </button>
+                                            @endif
                                         </th>
+                                        @php
+                                            $itemDiscountTotal = $invoice->items->sum(function($i) {
+                                                return $i->original_price_with_vat ? ($i->original_price_with_vat - $i->total_price_with_vat) : 0;
+                                            });
+                                            $hasAnyDiscount = $invoice->discount_amount > 0 || $itemDiscountTotal > 0;
+                                        @endphp
                                         <th colspan="2"
                                             class="border-bottom border-bottom-dashed">
                                             <div class="d-flex flex-column align-items-start">
                                                 <div class="fs-6">{{__("subtotal")}}</div>
                                                 <div class="fs-6">{{__("total_vat")}}</div>
-                                                @if($invoice->discount_amount)
-                                                    <div class="fs-6">{{__("İndirim Toplamı")}}</div>
-
+                                                @if($itemDiscountTotal > 0)
+                                                    <div class="fs-6 text-success">Kalem İndirimleri</div>
+                                                @endif
+                                                @if($invoice->discount_amount > 0)
+                                                    <div class="fs-6 d-flex align-items-center gap-2">
+                                                        Fatura İndirimi
+                                                        @if($invoice->coupon_code_text)
+                                                            <span class="badge badge-light-primary badge-sm">{{ $invoice->coupon_code_text }}</span>
+                                                        @endif
+                                                        @if($invoice->status === 'PENDING')
+                                                            <button type="button" class="btn btn-icon btn-sm btn-light-danger removeDiscountBtn" title="İndirimi kaldır" style="width:20px;height:20px;">
+                                                                <i class="fa fa-times fs-9"></i>
+                                                            </button>
+                                                        @endif
+                                                    </div>
                                                 @endif
                                             </div>
                                         </th>
@@ -284,12 +341,16 @@
                                                     {{defaultCurrencySymbol()}}<span
                                                         data-kt-element="vat-total">{{showBalance($invoice->total_vat)}}</span>
                                                 </div>
-                                                @if($invoice->discount_amount)
-                                                <div>
-                                                    <span
-                                                        data-kt-element="vat-total"><span class="badge badge-success">-{{defaultCurrencySymbol()}}{{showBalance($invoice->discount_amount)}}</span></span>
-                                                </div>
-                                                    @endif
+                                                @if($itemDiscountTotal > 0)
+                                                    <div>
+                                                        <span class="badge badge-light-success">-{{defaultCurrencySymbol()}}{{showBalance($itemDiscountTotal)}}</span>
+                                                    </div>
+                                                @endif
+                                                @if($invoice->discount_amount > 0)
+                                                    <div>
+                                                        <span class="badge badge-success">-{{defaultCurrencySymbol()}}{{showBalance($invoice->discount_amount)}}</span>
+                                                    </div>
+                                                @endif
                                             </div>
                                         </th>
                                     </tr>
@@ -800,6 +861,326 @@
                     }
                 });
             })
+            $(document).on("click", ".npShareLinkBtn", function () {
+                var link = $(this).data("link");
+                navigator.clipboard.writeText(link).then(function() {
+                    toastr.success("Link panoya kopyalandı!");
+                }).catch(function() {
+                    var tmp = $('<input>');
+                    $('body').append(tmp);
+                    tmp.val(link).select();
+                    document.execCommand('copy');
+                    tmp.remove();
+                    toastr.success("Link panoya kopyalandı!");
+                });
+            });
+            $(document).on("click", ".splitItemBtn", function () {
+                let itemId = $(this).data("item-id");
+                Swal.fire({
+                    icon: 'warning',
+                    title: "{{__('warning')}}",
+                    text: 'Bu kalemi ayrı bir faturaya ayırmak istediğinize emin misiniz?',
+                    showConfirmButton: 1,
+                    showCancelButton: 1,
+                    cancelButtonText: "{{__('close')}}",
+                    confirmButtonText: "{{__('yes')}}",
+                }).then((result) => {
+                    if (result.isConfirmed === true) {
+                        $.ajax({
+                            type: "POST",
+                            url: "{{ route('admin.invoices.splitItem', ['invoice' => $invoice->id]) }}",
+                            dataType: "json",
+                            data: { _token: "{{csrf_token()}}", item_id: itemId },
+                            complete: function (data) {
+                                let res = data.responseJSON;
+                                if (res && res.success === true) {
+                                    Swal.fire({ title: "{{__('success')}}", text: res.message, icon: "success", showConfirmButton: 0, showCancelButton: 1, cancelButtonText: "{{__('close')}}" }).then(() => window.location.reload());
+                                } else {
+                                    Swal.fire({ title: "{{__('error')}}", text: res?.message ?? "{{__('form_has_errors')}}", icon: "error", showConfirmButton: 0, showCancelButton: 1, cancelButtonText: "{{__('close')}}" });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
+            $(document).on("click", ".removeItemBtn", function () {
+                let itemId = $(this).data("item-id");
+                Swal.fire({
+                    icon: 'warning',
+                    title: "{{__('warning')}}",
+                    text: 'Bu kalemi faturadan silmek istediğinize emin misiniz? Faturada tek kalem varsa fatura da silinir.',
+                    showConfirmButton: 1,
+                    showCancelButton: 1,
+                    cancelButtonText: "{{__('close')}}",
+                    confirmButtonText: "{{__('yes')}}",
+                }).then((result) => {
+                    if (result.isConfirmed === true) {
+                        $.ajax({
+                            type: "POST",
+                            url: "{{ route('admin.invoices.removeItem', ['invoice' => $invoice->id]) }}",
+                            dataType: "json",
+                            data: { _token: "{{csrf_token()}}", item_id: itemId },
+                            complete: function (data) {
+                                let res = data.responseJSON;
+                                if (res && res.success === true) {
+                                    Swal.fire({ title: "{{__('success')}}", text: res.message, icon: "success", showConfirmButton: 0, showCancelButton: 1, cancelButtonText: "{{__('close')}}" }).then(() => {
+                                        if (res.redirectUrl) window.location.href = res.redirectUrl;
+                                        else window.location.reload();
+                                    });
+                                } else {
+                                    Swal.fire({ title: "{{__('error')}}", text: res?.message ?? "{{__('form_has_errors')}}", icon: "error", showConfirmButton: 0, showCancelButton: 1, cancelButtonText: "{{__('close')}}" });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
+            function showDiscountDialog(itemId) {
+                Swal.fire({
+                    title: itemId ? 'Kaleme İndirim Uygula' : 'Faturaya İndirim Uygula',
+                    html: `
+                        <div class="text-start">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">İndirim Türü</label>
+                                <div class="d-flex gap-3">
+                                    <label class="form-check form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="radio" name="swal_discount_mode" value="manual" checked>
+                                        <span class="form-check-label">Manuel %</span>
+                                    </label>
+                                    <label class="form-check form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="radio" name="swal_discount_mode" value="coupon">
+                                        <span class="form-check-label">Kupon Kodu</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="swalManualArea">
+                                <label class="form-label fw-bold">İndirim Yüzdesi (%)</label>
+                                <input type="number" id="swalDiscountPercent" class="form-control" min="1" max="100" placeholder="Örn: 10">
+                            </div>
+                            <div id="swalCouponArea" style="display:none;">
+                                <label class="form-label fw-bold">Kupon Kodu</label>
+                                <input type="text" id="swalCouponCode" class="form-control" placeholder="Kupon kodunu giriniz">
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Uygula',
+                    cancelButtonText: 'Vazgeç',
+                    didOpen: function() {
+                        $('input[name="swal_discount_mode"]').on('change', function() {
+                            if ($(this).val() === 'coupon') {
+                                $('#swalManualArea').hide();
+                                $('#swalCouponArea').show();
+                            } else {
+                                $('#swalManualArea').show();
+                                $('#swalCouponArea').hide();
+                            }
+                        });
+                    },
+                    preConfirm: function() {
+                        let mode = $('input[name="swal_discount_mode"]:checked').val();
+                        if (mode === 'manual') {
+                            let pct = parseInt($('#swalDiscountPercent').val());
+                            if (!pct || pct < 1 || pct > 100) {
+                                Swal.showValidationMessage('1-100 arası bir yüzde giriniz.');
+                                return false;
+                            }
+                            return { mode: 'manual', percent: pct };
+                        } else {
+                            let code = $('#swalCouponCode').val().trim();
+                            if (!code) {
+                                Swal.showValidationMessage('Kupon kodu giriniz.');
+                                return false;
+                            }
+                            return { mode: 'coupon', coupon_code: code };
+                        }
+                    }
+                }).then(function(result) {
+                    if (result.isConfirmed && result.value) {
+                        let postData = {
+                            _token: '{{ csrf_token() }}',
+                            mode: result.value.mode
+                        };
+                        if (result.value.mode === 'manual') {
+                            postData.percent = result.value.percent;
+                        } else {
+                            postData.coupon_code = result.value.coupon_code;
+                        }
+                        if (itemId) postData.item_id = itemId;
+
+                        $.ajax({
+                            type: 'POST',
+                            url: '{{ route("admin.invoices.applyDiscount", ["invoice" => $invoice->id]) }}',
+                            dataType: 'json',
+                            data: postData,
+                            beforeSend: function() { alerts.wait.fire(); },
+                            complete: function(data) {
+                                let res = data.responseJSON;
+                                if (res && res.success === true) {
+                                    Swal.fire({ title: '{{ __("success") }}', text: res.message, icon: 'success', timer: 2000, showConfirmButton: false }).then(() => window.location.reload());
+                                } else {
+                                    Swal.fire({ title: '{{ __("error") }}', text: res?.message ?? '', icon: 'error' });
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+            $(document).on('click', '.addItemBtn', function() {
+                var vatOptions = '';
+                @foreach(getVats() as $vat)
+                    vatOptions += '<option value="{{ $vat }}" {{ $vat == 20 ? "selected" : "" }}>{{ $vat }}</option>';
+                @endforeach
+
+                var newRow = `
+                    <tr class="border-bottom border-bottom-dashed newItemRow" data-kt-element="item">
+                        <td>
+                            <div class="mt-3">
+                                <input type="text" class="form-control form-control-sm newItemName" placeholder="Kalem adı giriniz..." autofocus>
+                            </div>
+                            <input type="hidden" name="invoice_item[id][]" value="new">
+                        </td>
+                        <td>
+                            <div class="w-125px">
+                                <input class="form-control text-end priceInput newItemPrice" data-kt-element="price" value="" name="invoice_item[price][]" placeholder="0,00" type="text">
+                            </div>
+                        </td>
+                        <td>
+                            <div class="w-75px">
+                                <select class="form-select newItemVat" data-kt-element="vat_percent" name="invoice_item[vat_percent][]">
+                                    ${vatOptions}
+                                </select>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="input-group mb-5">
+                                <span class="input-group-text">{{ defaultCurrencySymbol() }}</span>
+                                <input class="form-control priceInput newItemAmount" data-kt-element="total" value="" name="invoice_item[amount][]" placeholder="0,00" type="text">
+                            </div>
+                        </td>
+                        <td>
+                            <div class="mt-1 d-flex gap-1">
+                                <button type="button" class="btn btn-sm btn-icon btn-light-success saveNewItemBtn" title="Kaydet">
+                                    <i class="fa fa-check fs-7"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-icon btn-light-danger cancelNewItemBtn" title="İptal">
+                                    <i class="fa fa-times fs-7"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                $('#invoiceItemTable tbody').append(newRow);
+                $('#invoiceItemTable tbody .newItemRow:last .newItemName').focus();
+            });
+
+            $(document).on('click', '.cancelNewItemBtn', function() {
+                $(this).closest('.newItemRow').remove();
+            });
+
+            $(document).on('click', '.saveNewItemBtn', function() {
+                var row = $(this).closest('.newItemRow');
+                var name = row.find('.newItemName').val().trim();
+                var amount = row.find('.newItemAmount').val().replace(',', '.');
+                var vat = row.find('.newItemVat').val();
+
+                if (!name) { toastr.error('Kalem adı giriniz.'); return; }
+                if (!amount || parseFloat(amount) <= 0) { toastr.error('Geçerli bir tutar giriniz.'); return; }
+
+                var btn = $(this);
+                btn.prop('disabled', true);
+
+                $.ajax({
+                    type: 'POST',
+                    url: '{{ route("admin.invoices.addItem", ["invoice" => $invoice->id]) }}',
+                    dataType: 'json',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        name: name,
+                        amount: parseFloat(amount),
+                        vat_percent: vat
+                    },
+                    complete: function(data) {
+                        let res = data.responseJSON;
+                        if (res && res.success === true) {
+                            toastr.success(res.message);
+                            window.location.reload();
+                        } else {
+                            toastr.error(res?.message ?? 'Hata oluştu');
+                            btn.prop('disabled', false);
+                        }
+                    }
+                });
+            });
+
+            $(document).on('click', '.globalDiscountBtn', function() {
+                showDiscountDialog(null);
+            });
+
+            $(document).on('click', '.itemDiscountBtn', function() {
+                showDiscountDialog($(this).data('item-id'));
+            });
+
+            $(document).on('click', '.removeItemDiscountBtn', function() {
+                var itemId = $(this).data('item-id');
+                Swal.fire({
+                    title: 'Kalem İndirimi Kaldır',
+                    text: 'Bu kalemdeki indirimi kaldırmak istediğinize emin misiniz?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, kaldır',
+                    cancelButtonText: 'Vazgeç'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            type: 'POST',
+                            url: '{{ route("admin.invoices.removeItemDiscount", ["invoice" => $invoice->id]) }}',
+                            dataType: 'json',
+                            data: { _token: '{{ csrf_token() }}', item_id: itemId },
+                            complete: function(data) {
+                                let res = data.responseJSON;
+                                if (res && res.success === true) {
+                                    Swal.fire({ title: '{{ __("success") }}', text: res.message, icon: 'success', timer: 1500, showConfirmButton: false }).then(() => window.location.reload());
+                                } else {
+                                    Swal.fire({ title: '{{ __("error") }}', text: res?.message ?? '', icon: 'error' });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
+            $(document).on('click', '.removeDiscountBtn', function() {
+                Swal.fire({
+                    title: 'İndirimi Kaldır',
+                    text: 'Faturadaki indirimi kaldırmak istediğinize emin misiniz?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, kaldır',
+                    cancelButtonText: 'Vazgeç'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            type: 'POST',
+                            url: '{{ route("admin.invoices.removeDiscount", ["invoice" => $invoice->id]) }}',
+                            dataType: 'json',
+                            data: { _token: '{{ csrf_token() }}' },
+                            complete: function(data) {
+                                let res = data.responseJSON;
+                                if (res && res.success === true) {
+                                    Swal.fire({ title: '{{ __("success") }}', text: res.message, icon: 'success', timer: 1500, showConfirmButton: false }).then(() => window.location.reload());
+                                } else {
+                                    Swal.fire({ title: '{{ __("error") }}', text: res?.message ?? '', icon: 'error' });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
             $(document).on("click", ".sendToParachuteBtn", function () {
                 let url = $(this).data("url");
 

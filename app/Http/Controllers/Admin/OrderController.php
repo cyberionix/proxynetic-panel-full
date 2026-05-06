@@ -848,6 +848,145 @@ class OrderController extends Controller
         return response()->json(['success' => true, 'message' => "{$count} sipariş işlem gördü."]);
     }
 
+    public function createRenewalInvoice(Order $order)
+    {
+        $order->loadMissing(['product', 'user', 'activeDetail']);
+
+        if (!$order->activeDetail || !$order->activeDetail->price) {
+            return $this->errorResponse('Bu siparişe ait aktif fiyat bilgisi bulunamadı.');
+        }
+
+        $hasPending = InvoiceItem::where('type', 'RENEW')
+            ->where('order_id', $order->id)
+            ->whereHas('invoice', fn($q) => $q->where('status', 'PENDING'))
+            ->exists();
+
+        if ($hasPending) {
+            return $this->errorResponse('Bu sipariş için zaten bekleyen bir yenileme faturası mevcut.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $priceData = $order->activeDetail->price->toArray();
+            unset($priceData['deleted_at'], $priceData['created_at'], $priceData['updated_at']);
+
+            $priceData['price'] = $order->activeDetail->price->price_without_vat;
+            $priceData['total_vat'] = ($priceData['price'] * $order->product->vat_percent) / 100;
+            $priceData['price_with_vat'] = $priceData['price'] + $priceData['total_vat'];
+
+            $durationUnit = $priceData['duration_unit'] ?? 'MONTHLY';
+
+            $additionalServices = null;
+            foreach ($order->getAllActiveDetailsAdditionalServices() as $service) {
+                if (isset($service['renew']) && $service['renew']) {
+                    $additionalServices[] = getAdditionalServices($order->product, $service['name'], $service['value']);
+                }
+            }
+
+            $isConsolidated = false;
+            $settings = $this->loadAutoInvoiceSettings();
+            $invoice = $this->findConsolidatableInvoice($order->user_id, $settings);
+
+            if ($invoice) {
+                $isConsolidated = true;
+            } else {
+                Invoice::$skipCreatedNotification = true;
+                $invoice = Invoice::create([
+                    'invoice_number' => Invoice::generateInvoiceNumber(),
+                    'invoice_date' => Carbon::now(),
+                    'due_date' => $order->end_date ?? Carbon::now()->addWeek(),
+                    'status' => 'PENDING',
+                    'total_price' => $priceData['price'],
+                    'total_vat' => $priceData['total_vat'],
+                    'total_price_with_vat' => $priceData['price_with_vat'],
+                    'user_id' => $order->user_id,
+                ]);
+                Invoice::$skipCreatedNotification = false;
+            }
+
+            $orderDetail = OrderDetail::create([
+                'order_id' => $order->id,
+                'is_active' => 0,
+                'price_data' => $priceData,
+                'price_id' => $order->activeDetail->price_id,
+                'additional_services' => $additionalServices,
+            ]);
+
+            InvoiceItem::create([
+                'type' => 'RENEW',
+                'name' => $order->product->name . ' | ' . $priceData['duration'] . ' ' . __(mb_strtolower($durationUnit)),
+                'total_price' => $priceData['price'],
+                'vat_percent' => $order->product->vat_percent,
+                'total_price_with_vat' => $priceData['price_with_vat'],
+                'product_id' => $order->product_id,
+                'price_id' => $order->activeDetail->price_id,
+                'order_id' => $order->id,
+                'order_detail_id' => $orderDetail->id,
+                'invoice_id' => $invoice->id,
+            ]);
+
+            if ($isConsolidated) {
+                $this->recalculateInvoiceTotals($invoice);
+            }
+
+            DB::commit();
+
+            $msg = $isConsolidated
+                ? "Mevcut fatura #{$invoice->invoice_number} ile birleştirildi."
+                : "Yenileme faturası #{$invoice->invoice_number} başarıyla oluşturuldu.";
+
+            return $this->successResponse(
+                $msg,
+                ['redirectUrl' => route('admin.invoices.show', ['invoice' => $invoice->id])]
+            );
+        } catch (\Exception $e) {
+            Invoice::$skipCreatedNotification = false;
+            DB::rollback();
+            return $this->errorResponse('Fatura oluşturulurken hata: ' . $e->getMessage());
+        }
+    }
+
+    private function loadAutoInvoiceSettings(): array
+    {
+        $path = config_path('auto_invoice_settings.php');
+        if (is_file($path)) {
+            $data = require $path;
+            if (is_array($data)) return $data;
+        }
+        return [];
+    }
+
+    private function findConsolidatableInvoice($userId, $settings)
+    {
+        if (!($settings['invoice_consolidation_enabled'] ?? false)) {
+            return null;
+        }
+
+        $windowHours = (int) ($settings['consolidation_window_hours'] ?? 1);
+        $cutoff = Carbon::now()->subHours($windowHours);
+
+        return Invoice::where('user_id', $userId)
+            ->where('status', 'PENDING')
+            ->where('no_auto_merge', false)
+            ->where('created_at', '>=', $cutoff)
+            ->whereHas('items', fn($q) => $q->where('type', 'RENEW'))
+            ->orderByDesc('created_at')
+            ->first();
+    }
+
+    private function recalculateInvoiceTotals(Invoice $invoice)
+    {
+        $totals = $invoice->items()
+            ->selectRaw('SUM(total_price) as total_price, SUM(total_price_with_vat - total_price) as total_vat, SUM(total_price_with_vat) as total_price_with_vat')
+            ->first();
+
+        $invoice->update([
+            'total_price' => $totals->total_price ?? 0,
+            'total_vat' => $totals->total_vat ?? 0,
+            'total_price_with_vat' => $totals->total_price_with_vat ?? 0,
+        ]);
+    }
+
     public function delete(Order $order)
     {
         $order->deleteServiceAndRevoke();

@@ -218,9 +218,260 @@ Route::post('/callback-paytr/64a3e520cf', function (Illuminate\Http\Request $req
 });
 
 
+Route::any('/callback-nestpay', function (Illuminate\Http\Request $request) {
+    $rawBody = file_get_contents('php://input');
+    Logger::info("CALLBACK_NESTPAY", [
+        "post_request" => $request->all(),
+        "raw_body_length" => strlen($rawBody),
+        "raw_body" => substr($rawBody, 0, 2000),
+        "method" => $request->method(),
+        "query" => $request->query(),
+        "post_vars" => $_POST ?? [],
+        "get_vars" => $_GET ?? [],
+    ]);
+
+    $nestpayService = new \App\Services\NestpayService();
+
+    $oid = $request->input('oid', '');
+    if (empty($oid)) {
+        $oid = $_POST['oid'] ?? $_GET['oid'] ?? '';
+    }
+
+    $checkout = Checkout::where('uuid_value', $oid)->first();
+
+    if (!$checkout && !empty($oid)) {
+        $checkout = Checkout::where('uuid_value', $oid)->first();
+    }
+
+    if (!$checkout) {
+        $checkout = Checkout::where('status', '3DS_REDIRECTED')
+            ->where('channel', 'NESTPAY')
+            ->orderByDesc('created_at')
+            ->first();
+        Logger::info("CALLBACK_NESTPAY_FALLBACK_CHECKOUT", [
+            "found" => $checkout ? $checkout->id : null,
+            "oid_received" => $oid,
+        ]);
+    }
+
+    if (!$checkout) {
+        Logger::error("CALLBACK_NESTPAY_CHECKOUT_NOT_FOUND", [
+            "oid" => $oid,
+            "post_request" => $request->all(),
+        ]);
+        return redirect()->route('portal.dashboard')->with('payment_result_status', 'error')->with('payment_result_message', 'Ödeme kaydı bulunamadı.');
+    }
+
+    $redirectUrl = route('portal.dashboard');
+    $publicToken = $checkout->extra_params['public_token'] ?? null;
+    if ($publicToken) {
+        $redirectUrl = route('public.invoice.show', ['token' => $publicToken]);
+    }
+
+    if (in_array($checkout->status, ['COMPLETED', 'CANCELLED', 'FAILED'])) {
+        return redirect($redirectUrl)->with('payment_result_status', 'info')->with('payment_result_message', 'Bu ödeme zaten işlenmiş.');
+    }
+
+    $hashResult = $nestpayService->verifyCallbackHash($request);
+    $mdStatus = $request->input('mdStatus', '');
+    $procReturnCode = $request->input('ProcReturnCode', '');
+    $errMsg = $request->input('ErrMsg', '');
+    $responseVal = $request->input('Response', '');
+
+    Logger::info("CALLBACK_NESTPAY_VERIFY", [
+        "hash_ok" => $hashResult,
+        "mdStatus" => $mdStatus,
+        "ProcReturnCode" => $procReturnCode,
+        "ErrMsg" => $errMsg,
+        "Response" => $responseVal,
+        "checkout_id" => $checkout->id,
+        "HASHPARAMS" => $request->input('HASHPARAMS', ''),
+        "HASHPARAMSVAL" => $request->input('HASHPARAMSVAL', ''),
+    ]);
+
+    if (empty($mdStatus) && empty($procReturnCode)) {
+        Logger::error("CALLBACK_NESTPAY_NO_PAYMENT_DATA", [
+            "checkout_id" => $checkout->id,
+            "all_params" => $request->all(),
+        ]);
+        $checkout->update(['status' => 'FAILED']);
+        $msg = '3D doğrulama işlemi tamamlanamadı. Lütfen test kart bilgilerini kullanarak tekrar deneyiniz.';
+        if ($publicToken) {
+            return redirect($redirectUrl)->with('payment_status', 'error')->with('payment_message', $msg);
+        }
+        return redirect($redirectUrl)->with('payment_result_status', 'error')->with('payment_result_message', $msg);
+    }
+
+    if (!$hashResult) {
+        Logger::error("CALLBACK_NESTPAY_BAD_HASH", [
+            "post_request" => $request->all(),
+            "checkout_id" => $checkout->id,
+        ]);
+        $checkout->update(['status' => 'FAILED']);
+        $msg = 'Ödeme doğrulama hatası. Lütfen tekrar deneyiniz.';
+        if ($publicToken) {
+            return redirect($redirectUrl)->with('payment_status', 'error')->with('payment_message', $msg);
+        }
+        return redirect($redirectUrl)->with('payment_result_status', 'error')->with('payment_result_message', $msg);
+    }
+
+    if (!$nestpayService->isPaymentSuccessful($request)) {
+        $displayErr = !empty($errMsg) ? $errMsg : 'Ödeme başarısız.';
+        Logger::error("CALLBACK_NESTPAY_PAYMENT_FAILED", [
+            "checkout_id" => $checkout->id,
+            "mdStatus" => $mdStatus,
+            "ProcReturnCode" => $procReturnCode,
+            "ErrMsg" => $errMsg,
+            "Response" => $responseVal,
+        ]);
+        $checkout->update(['status' => 'FAILED']);
+        if ($publicToken) {
+            return redirect($redirectUrl)->with('payment_status', 'error')->with('payment_message', 'Ödeme başarısız: ' . $displayErr);
+        }
+        return redirect($redirectUrl)->with('payment_result_status', 'error')->with('payment_result_message', 'Ödeme başarısız: ' . $displayErr);
+    }
+
+    DB::beginTransaction();
+    try {
+        $totalAmount = (float)$request->input('amount', $checkout->amount);
+
+        if ($checkout->invoice_id) {
+            $invoice = Invoice::find($checkout->invoice_id);
+            if (!$invoice) {
+                Log::error("CALLBACK_NESTPAY_INVOICE_NOT_FOUND", ["user_id" => $checkout->user_id, "checkout_id" => $checkout->id]);
+                DB::rollback();
+                if ($publicToken) {
+                    return redirect($redirectUrl)->with('payment_status', 'error')->with('payment_message', 'Fatura bulunamadı.');
+                }
+                return redirect($redirectUrl)->with('payment_result_status', 'error')->with('payment_result_message', 'Fatura bulunamadı.');
+            }
+
+            $invoice->update([
+                "invoice_address" => $checkout->extra_params["invoice_address_data"] ?? "",
+            ]);
+
+            $checkout->update([
+                "amount" => $totalAmount,
+                "paid_at" => Carbon::now(),
+                "status" => "COMPLETED",
+            ]);
+        } else {
+            $priceData = @$checkout->extra_params["price_data"];
+
+            $invoice = Invoice::create([
+                "invoice_number" => Invoice::generateInvoiceNumber(),
+                "invoice_date" => Carbon::now(),
+                "due_date" => Carbon::now(),
+                "status" => "PAID",
+                "invoice_address" => @$checkout->extra_params["invoice_address_data"] ?? "",
+                "user_id" => $checkout->user_id,
+            ]);
+
+            $__total_price = 0;
+            $__total_vat = 0;
+            $__total_price_with_vat = 0;
+            foreach ($priceData as $item) {
+                $__total_price += $item['price'];
+                $__total_vat += $item['total_vat'];
+                $__total_price_with_vat += $item['price_with_vat'];
+
+                $productData = $item["product"];
+                unset($productData['deleted_at'], $productData['created_at'], $productData['updated_at']);
+
+                $order = new Order();
+                $order->product_data = $productData;
+                $order->order_id = Uuid::uuid4()->toString();
+                $order->start_date = Carbon::now();
+                $order->end_date = addDurationToDate($item["duration"], $item["duration_unit"], Carbon::now());
+                $order->status = 'PENDING';
+                $order->product_id = $productData["id"];
+                $order->user_id = $checkout->user_id;
+                $order->save();
+
+                $orderDetailId = OrderDetail::create([
+                    "order_id" => $order->id,
+                    "is_active" => 1,
+                    "is_hidden" => 0,
+                    "additional_services" => $productData["additional_services"],
+                    "price_data" => $item,
+                    "price_id" => $item["id"],
+                    "checkout_id" => $checkout->id,
+                ]);
+
+                InvoiceItem::create([
+                    "type" => "NEW",
+                    "name" => $productData["name"] . " | " . $item['duration'] . " " . __(mb_strtolower($item['duration_unit'])),
+                    "total_price" => $item['price'],
+                    "vat_percent" => $productData["vat_percent"],
+                    "total_price_with_vat" => $item['price_with_vat'],
+                    "additional_services" => $productData["additional_services"],
+                    "product_id" => $productData["id"],
+                    "price_id" => $item["id"],
+                    "order_id" => $order->id,
+                    "order_detail_id" => $orderDetailId->id,
+                    "invoice_id" => $invoice->id,
+                ]);
+            }
+
+            $checkout->update([
+                "amount" => $totalAmount,
+                "paid_at" => Carbon::now(),
+                "invoice_id" => $invoice->id,
+                "status" => "COMPLETED",
+            ]);
+
+            $invoice->update([
+                "total_price" => $__total_price,
+                "total_vat" => $__total_vat,
+                "total_price_with_vat" => $__total_price_with_vat,
+            ]);
+
+            if ($checkout->basket) {
+                $checkout->basket->update(["completed_at" => Carbon::now()]);
+                $checkout->basket->delete();
+            }
+        }
+
+        event(new CheckoutConfirmed($checkout));
+        $deferred = config('queue.checkout_deferred_connection', 'database');
+        $nestpayNotify = new InvoiceCheckoutConfirmedNotification($invoice);
+        $nestpayNotify->onConnection($deferred);
+        $checkout->user->notify($nestpayNotify);
+        \App\Services\NotificationTemplateService::send('invoice_paid', $checkout->user, [
+            'fatura_no' => $invoice->invoice_number ?? $invoice->id,
+            'tutar' => number_format($invoice->total_price_with_vat ?? 0, 2, ',', '.'),
+            'fatura_url' => url('/invoices/' . $invoice->id),
+        ]);
+
+        DB::commit();
+
+        if ($publicToken) {
+            return redirect($redirectUrl)->with('payment_status', 'success')->with('payment_message', 'Ödemeniz başarıyla alındı.');
+        }
+        return redirect($redirectUrl)->with('payment_result_status', 'success')->with('payment_result_message', 'Ödemenizi aldık.');
+    } catch (\Exception $e) {
+        DB::rollback();
+        Log::error("CALLBACK_NESTPAY_TRANSACTION_FAILED", [
+            "checkout_id" => $checkout->id,
+            "error" => $e->getMessage(),
+        ]);
+        $checkout->update(["status" => "FAILED"]);
+        if ($publicToken) {
+            return redirect($redirectUrl)->with('payment_status', 'error')->with('payment_message', 'Ödeme işlenirken hata oluştu.');
+        }
+        return redirect($redirectUrl)->with('payment_result_status', 'error')->with('payment_result_message', 'Ödeme işlenirken hata oluştu.');
+    }
+});
+
 Route::get('/kvkk-aydinlatma-metni', function () {
 })->name('web.gdpr');
 
+
+Route::get('/invoice', [\App\Http\Controllers\PublicInvoiceController::class, 'show'])->name('public.invoice.show');
+Route::post('/invoice/checkout', [\App\Http\Controllers\PublicInvoiceController::class, 'checkout'])->name('public.invoice.checkout');
+Route::post('/invoice/nestpay-checkout', [\App\Http\Controllers\PublicInvoiceController::class, 'nestpayCheckout'])->name('public.invoice.nestpayCheckout');
+Route::get('/invoice/eft-iframe', [\App\Http\Controllers\PublicInvoiceController::class, 'eftIframe'])->name('public.invoice.eftIframe');
+Route::any('/invoice/payment-result', [\App\Http\Controllers\PublicInvoiceController::class, 'paymentResult'])->name('public.invoice.paymentResult');
 
 Route::get('/verify-email-otp/{email}/{code}', [\App\Http\Controllers\Portal\AuthController::class, 'verifyEmailOTP'])->name('auth.verify_email_otp');
 

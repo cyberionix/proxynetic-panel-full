@@ -23,20 +23,25 @@ class ParasutService
 
     public function __construct()
     {
-        $clientID = 'p8GMAPJNC0M6RUWEJh2Iay7W6x5xtQGm-3OliFbOD1M';
-        $clientSecret = '0en34LAj-cq2yV4DD0KU-oLOXQOnSMcGJA-liLZlbT0';
-        $callbackUrl = 'urn:ietf:wg:oauth:2.0:oob';
-        $companyID = '656302';
-        $email = 'ufukhcopoglu@gmail.com';
-        $password = '852456asd123';
-        $isStage = false;
+        $clientID = config('parasut.connection.client_id');
+        $clientSecret = config('parasut.connection.client_secret');
+        $callbackUrl = config('parasut.connection.redirect_uri', 'urn:ietf:wg:oauth:2.0:oob');
+        $companyID = config('parasut.connection.company_id');
+        $email = config('parasut.connection.username');
+        $password = config('parasut.connection.password');
+        $isStage = (bool) config('parasut.connection.is_stage', false);
+
+        if (!$clientID || !$clientSecret || !$companyID || !$email || !$password) {
+            Logger::error('PARASUT_CONFIG_MISSING');
+            return;
+        }
 
         $this->client = new Client($clientID, $clientSecret, $callbackUrl, $email, $password, $companyID, $isStage);
         try {
             $this->client->login();
             $this->logged_in = true;
         } catch (\Exception $exception) {
-            Logger::error('PARASUT_LOGIN_ERROR');
+            Logger::error('PARASUT_LOGIN_ERROR', ['message' => $exception->getMessage()]);
         }
     }
 
@@ -331,7 +336,7 @@ class ParasutService
                 $e_invoice_data = [
                     'attributes'    => [
                         'note'                      => '',
-                        'vat_exemption_reason_code' => 335,
+                        'vat_exemption_reason_code' => config('parasut.vat_exemption_code', '335'),
                         'scenario'                  => 'basic',
                         'to'                        => $invoice_type['address']
                     ],
@@ -501,7 +506,7 @@ class ParasutService
             "type"       => "payments",
             "attributes" => [
                 "description" => "Netpus tarafından otomatik oluşturuldu.",
-                "account_id"  => 1000230432,
+                "account_id"  => config('parasut.account_id', 1000230432),
                 "date"        => date('Y-m-d'),
                 "amount"      => $amount
             ]

@@ -27,14 +27,13 @@ class PaytrService
         $installment_count,
         $token;
 
-    public function __construct()
+    public function __construct($okUrl = null, $failUrl = null)
     {
-
         $this->merchant_id = env("MERCENT_ID");
         $this->merchant_key = env("MERCENT_KEY");
         $this->merchant_salt = env("MERCENT_SALT");
-        $this->merchant_ok_url = route('portal.paytr.paymentResult');
-        $this->merchant_fail_url = route('portal.paytr.paymentResult');
+        $this->merchant_ok_url = $okUrl ?? route('portal.paytr.paymentResult');
+        $this->merchant_fail_url = $failUrl ?? route('portal.paytr.paymentResult');
         $this->test_mode = 0;
         $this->non_3d = 0;
         $this->non3d_test_failed = 0;
@@ -107,5 +106,45 @@ class PaytrService
         } else {
             throw new \Exception("failed to send request: " . $response->status());
         }
+    }
+
+    public function getEftIframeToken($merchantOid, $email, $paymentAmount, $userName = null, $userPhone = null)
+    {
+        $userIp = request()->ip();
+        $paymentType = 'eft';
+        $testMode = (string)$this->test_mode;
+
+        $hashStr = $this->merchant_id . $userIp . $merchantOid . $email . $paymentAmount . $paymentType . $testMode;
+        $paytrToken = base64_encode(hash_hmac('sha256', $hashStr . $this->merchant_salt, $this->merchant_key, true));
+
+        $postVals = [
+            'merchant_id' => $this->merchant_id,
+            'user_ip' => $userIp,
+            'merchant_oid' => $merchantOid,
+            'email' => $email,
+            'payment_amount' => $paymentAmount,
+            'payment_type' => $paymentType,
+            'paytr_token' => $paytrToken,
+            'debug_on' => $this->debug,
+            'timeout_limit' => 30,
+            'test_mode' => $this->test_mode,
+        ];
+
+        if ($userName) $postVals['user_name'] = $userName;
+        if ($userPhone) $postVals['user_phone'] = $userPhone;
+
+        $response = Http::asForm()->post('https://www.paytr.com/odeme/api/get-token', $postVals);
+
+        if (!$response->successful()) {
+            throw new \Exception('PayTR EFT API bağlantı hatası: ' . $response->status());
+        }
+
+        $result = $response->json();
+
+        if ($result['status'] !== 'success') {
+            throw new \Exception('PayTR EFT token hatası: ' . ($result['reason'] ?? 'Bilinmeyen hata'));
+        }
+
+        return $result['token'];
     }
 }

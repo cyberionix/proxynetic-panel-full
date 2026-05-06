@@ -221,6 +221,8 @@
                                 @if(!empty($tp['socks_port']))
                                     <span class="badge badge-light-success np-tp-proto-badge-socks d-none">SOCKS5</span>
                                 @endif
+                                <button type="button" class="btn btn-sm btn-light-primary flex-grow-1 flex-sm-grow-0 np-tp-test-btn" data-np-tp-test="{{ $tpIdx }}"><i class="fa fa-plug me-1"></i>Proxy Test Et</button>
+                                <span class="badge badge-light-secondary align-self-center np-tp-status-badge" data-np-tp-status="{{ $tpIdx }}"></span>
                             </div>
                             <div class="table-responsive rounded border border-gray-300 bg-body p-4">
                                 <table class="table table-row-bordered align-middle fs-6 gy-3 mb-0">
@@ -297,7 +299,7 @@
                                         @endif
                                         <th>Kullanıcı</th>
                                         <th>Şifre</th>
-                                        <th class="text-end pe-4">Kopyala</th>
+                                        <th class="text-end pe-4">İşlem</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -320,6 +322,7 @@
                                                     data-http="{{ $tpHttpLine }}"
                                                     data-socks="{{ $tpSocksLine }}"
                                                     title="Kopyala"><i class="fa fa-copy"></i></button>
+                                            <button type="button" class="btn btn-sm btn-icon btn-light-primary np-tp-test-btn" data-np-tp-test="{{ $tpIdx }}" title="Proxy Test"><i class="fa fa-plug"></i></button>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -330,6 +333,10 @@
                 </div>
             @else
                 <div class="alert alert-light-warning mb-8">Proxy bilgisi henüz oluşmadı veya teslim edilmemiş.</div>
+            @endif
+
+            @if(count($tpList) > 0)
+            <pre class="rounded bg-gray-900 text-gray-400 p-4 font-monospace fs-7 mb-8 np-tp-terminal" style="min-height: 100px;">Test sonuçlarınız burada görüntülenecek...</pre>
             @endif
 
             @if(!empty($tpInfo['three_proxy_expire']))
@@ -514,6 +521,89 @@
                 });
             }
             @endif
+
+            var npTpCheckUrl = @json(route($ltPrefix . 'proxyCheck', ['order' => $order->id]));
+            var npTpCsrf = @json(csrf_token());
+            var npTpTermEl = document.querySelector('.np-tp-terminal');
+
+            function npTpTermLog(line) {
+                if (!npTpTermEl) return;
+                var ts = new Date().toLocaleTimeString();
+                var cur = npTpTermEl.textContent.trim();
+                if (cur.indexOf('burada görüntülenecek') !== -1 && cur.length < 90) {
+                    npTpTermEl.textContent = '[' + ts + '] ' + line;
+                } else {
+                    npTpTermEl.textContent += '\n[' + ts + '] ' + line;
+                }
+                npTpTermEl.scrollTop = npTpTermEl.scrollHeight;
+            }
+
+            document.querySelectorAll('.np-tp-test-btn').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var idx = parseInt(this.getAttribute('data-np-tp-test'), 10);
+                    var thisBtn = this;
+                    thisBtn.disabled = true;
+                    npTpTermLog('Proxy #' + (idx + 1) + ' test ediliyor…');
+                    $.ajax({
+                        type: 'POST',
+                        url: npTpCheckUrl,
+                        dataType: 'json',
+                        data: { _token: npTpCsrf, proxy_index: idx },
+                        complete: function(xhr) {
+                            thisBtn.disabled = false;
+                            var res = xhr.responseJSON;
+                            var statusBadge = document.querySelector('[data-np-tp-status="' + idx + '"]');
+                            if (res && res.success === true) {
+                                var ip = (res.origin_ip || res.data?.origin_ip || '');
+                                var ms = (res.response_time || res.data?.response_time || '');
+                                npTpTermLog('Proxy #' + (idx + 1) + ' ✓ Çalışıyor — Çıkış IP: ' + ip + (ms ? ' (' + ms + ' ms)' : ''));
+                                thisBtn.classList.remove('btn-light-primary', 'btn-light-danger');
+                                thisBtn.classList.add('btn-light-success');
+                                if (statusBadge) {
+                                    statusBadge.className = 'badge badge-light-success align-self-center np-tp-status-badge';
+                                    statusBadge.textContent = 'Aktif';
+                                }
+                                var tableRow = thisBtn.closest('tr');
+                                if (tableRow) {
+                                    var firstTd = tableRow.querySelector('td:first-child');
+                                    if (firstTd && !firstTd.querySelector('.np-tp-row-status')) {
+                                        var dot = document.createElement('span');
+                                        dot.className = 'badge badge-sm badge-circle badge-success ms-1 np-tp-row-status';
+                                        dot.title = 'Aktif';
+                                        firstTd.appendChild(dot);
+                                    } else if (firstTd) {
+                                        var existing = firstTd.querySelector('.np-tp-row-status');
+                                        if (existing) { existing.className = 'badge badge-sm badge-circle badge-success ms-1 np-tp-row-status'; existing.title = 'Aktif'; }
+                                    }
+                                }
+                            } else {
+                                var errMsg = (res && res.message) ? res.message : 'Bağlantı hatası';
+                                npTpTermLog('Proxy #' + (idx + 1) + ' ✗ ' + errMsg);
+                                thisBtn.classList.remove('btn-light-primary', 'btn-light-success');
+                                thisBtn.classList.add('btn-light-danger');
+                                if (statusBadge) {
+                                    statusBadge.className = 'badge badge-light-danger align-self-center np-tp-status-badge';
+                                    statusBadge.textContent = 'Bağlantı Hatası';
+                                }
+                                var tableRow = thisBtn.closest('tr');
+                                if (tableRow) {
+                                    var firstTd = tableRow.querySelector('td:first-child');
+                                    if (firstTd && !firstTd.querySelector('.np-tp-row-status')) {
+                                        var dot = document.createElement('span');
+                                        dot.className = 'badge badge-sm badge-circle badge-danger ms-1 np-tp-row-status';
+                                        dot.title = 'Bağlantı Hatası';
+                                        firstTd.appendChild(dot);
+                                    } else if (firstTd) {
+                                        var existing = firstTd.querySelector('.np-tp-row-status');
+                                        if (existing) { existing.className = 'badge badge-sm badge-circle badge-danger ms-1 np-tp-row-status'; existing.title = 'Bağlantı Hatası'; }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
+            });
         })();
         </script>
     @endif
@@ -3502,17 +3592,23 @@
                     document.body.removeChild(ta);
                 }
             }
-            function npLtv4Term(idx, line) {
+            function npLtv4FindTerminal(idx) {
                 var el = document.querySelector('[data-np-ltv4-terminal="' + idx + '"]');
                 if (!el) el = document.querySelector('[data-np-ltv4-terminal="0"]');
+                if (!el) el = document.querySelector('.np-ltv4-terminal');
+                return el;
+            }
+            function npLtv4Term(idx, line, isHtml) {
+                var el = npLtv4FindTerminal(idx);
                 if (!el) return;
                 var ts = new Date().toLocaleTimeString();
-                var cur = el.textContent.trim();
+                var cur = el.innerHTML.trim();
                 if (cur.indexOf('burada görüntülenecek') !== -1 && cur.length < 90) {
-                    el.textContent = '';
+                    el.innerHTML = '';
                     cur = '';
                 }
-                el.textContent += (cur ? '\n' : '') + '[' + ts + '] ' + line;
+                var entry = '[' + ts + '] ' + (isHtml ? line : line.replace(/</g,'&lt;').replace(/>/g,'&gt;'));
+                el.innerHTML += (cur ? '\n' : '') + entry;
                 el.scrollTop = el.scrollHeight;
             }
             $(document).on('click', '[data-np-ltv4-copy-bulk]', function () {
@@ -3563,37 +3659,43 @@
             $(document).on('click', '[data-np-ltv4-copy]', function () {
                 npLtv4Copy($(this).attr('data-np-ltv4-copy'));
             });
-            function npLtv4RunConnectivity(idx, action, tunnelId, $btn) {
-                var tidLabel = tunnelId ? ' [#' + tunnelId + ']' : '';
-                if ($btn) {
-                    $btn.removeClass('btn-light-primary btn-light-success btn-light-danger').addClass('btn-light-warning');
-                    $btn.find('i').removeClass('fa-plug fa-check fa-times').addClass('fa-spinner fa-spin');
-                }
-                npLtv4Term(idx, 'Sunucu üzerinden test çalışıyor…' + tidLabel);
+            function npLtv4RunConnectivity(idx, action, tunnelId, triggerBtn) {
+                var proxyNum = parseInt(idx, 10) + 1;
+                var label = '<span style="color:#a1a5b7;font-weight:600;">#' + proxyNum + '</span> ';
+                npLtv4Term(idx, label + 'Sunucu üzerinden test çalışıyor…', true);
                 var pdata = { _token: v4Csrf, action: action };
                 if (tunnelId) {
                     pdata.tunnel_id = tunnelId;
                 }
+                if (triggerBtn) triggerBtn.prop('disabled', true);
                 $.ajax({
                     type: 'POST',
                     url: v4ConnectivityUrl,
                     dataType: 'json',
                     data: pdata,
                     complete: function (xhr) {
+                        if (triggerBtn) triggerBtn.prop('disabled', false);
                         var res = xhr.responseJSON;
                         if (!res || res.success !== true) {
-                            npLtv4Term(idx, '❌ FAIL' + tidLabel + ': ' + (res && res.message ? res.message : 'İstek başarısız'));
-                            if ($btn) { $btn.removeClass('btn-light-warning btn-light-success btn-light-primary').addClass('btn-light-danger'); $btn.find('i').removeClass('fa-spinner fa-spin fa-plug fa-check').addClass('fa-times'); }
+                            npLtv4Term(idx, label + '<span style="color:#f1416c;font-weight:600;">✗ Hata:</span> ' + ((res && res.message ? res.message : 'İstek başarısız').replace(/</g,'&lt;').replace(/>/g,'&gt;')), true);
+                            if (triggerBtn) {
+                                triggerBtn.removeClass('btn-light-primary btn-light-success').addClass('btn-light-danger');
+                            }
                             return;
                         }
-                        var line = res.line || res.message || 'Tamamlandı.';
-                        if (res.ok === false) {
-                            npLtv4Term(idx, '❌ FAIL' + tidLabel + ': ' + line);
-                            if ($btn) { $btn.removeClass('btn-light-warning btn-light-success btn-light-primary').addClass('btn-light-danger'); $btn.find('i').removeClass('fa-spinner fa-spin fa-plug fa-check').addClass('fa-times'); }
+                        var line = (res.line || res.message || 'Tamamlandı.').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                        var isOk = res.ok !== false;
+                        if (isOk) {
+                            npLtv4Term(idx, label + '<span style="color:#50cd89;font-weight:600;">✓ Aktif</span> — ' + line, true);
                         } else {
-                            var ms = res.ms ? ' (' + res.ms + 'ms)' : '';
-                            npLtv4Term(idx, '✅ SUCCESS' + tidLabel + ': ' + line + ms);
-                            if ($btn) { $btn.removeClass('btn-light-warning btn-light-danger btn-light-primary').addClass('btn-light-success'); $btn.find('i').removeClass('fa-spinner fa-spin fa-plug fa-times').addClass('fa-check'); }
+                            npLtv4Term(idx, label + '<span style="color:#ffc700;font-weight:600;">⚠ UYARI:</span> ' + line, true);
+                        }
+                        if (triggerBtn) {
+                            if (isOk) {
+                                triggerBtn.removeClass('btn-light-primary btn-light-danger').addClass('btn-light-success');
+                            } else {
+                                triggerBtn.removeClass('btn-light-primary btn-light-success').addClass('btn-light-danger');
+                            }
                         }
                     }
                 });

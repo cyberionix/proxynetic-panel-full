@@ -30,7 +30,7 @@
                 <div class="card-body pt-0">
                     <div class="separator border-1 border-gray mt-3"></div>
                     <div class="row mt-5 gap-5">
-                        <div class="col-12">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
                             <span class="fw-bold">{{__("customer")}}:</span>
                             <span>
                                 @if($order->user)
@@ -39,36 +39,38 @@
                                 @endif
                             </span>
                         </div>
-                        <div class="col-12">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
                             <span class="fw-bold">Sipariş Tarihi:</span>
-                            <span
-                                class="badge badge-sm badge-secondary">{{$order->created_at?->format(defaultDateTimeFormat()) ?? '-'}}</span>
+                            <span class="badge badge-sm badge-secondary">{{$order->created_at?->format(defaultDateTimeFormat()) ?? '-'}}</span>
                         </div>
-                        <div class="col-12">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
                             <span class="fw-bold">{{__("service_group")}}:</span>
-                            <span class="fw-semibold">{{@$order->product_data["category"]["name"]}}</span>
+                            <span class="fw-semibold text-end">{{@$order->product_data["category"]["name"]}}</span>
                         </div>
-                        <div class="col-12">
-                            <span class="fw-bold">{{__("service_name")}}:</span>
-                            <span class="fw-semibold">{{@$order->product_data["name"]}}</span>
+                        <div class="col-12 d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-nowrap me-3">{{__("service_name")}}:</span>
+                            <span class="fw-semibold text-end">{{@$order->product_data["name"]}}</span>
                         </div>
-                        <div class="col-12">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
                             <span class="fw-bold">{{__("payment_period")}}:</span>
                             <span class="fw-semibold">{{$order->getPaymentPeriod()}}</span>
                         </div>
-                        <div class="col-12">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
                             <span class="fw-bold">{{__("start_date")}}:</span>
-                            <span
-                                class="badge badge-sm badge-secondary">{{$order->start_date?->format(defaultDateFormat()) ?? '-'}}</span>
+                            <span class="badge badge-sm badge-secondary">{{$order->start_date?->format(defaultDateFormat()) ?? '-'}}</span>
                         </div>
-                        <div class="col-12">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
                             <span class="fw-bold">{{__("end_date")}}:</span>
-                            <span
-                                class="badge badge-sm badge-secondary">{{$order->end_date?->format(defaultDateFormat()) ?? '-'}}</span>
+                            <span class="badge badge-sm badge-secondary">{{$order->end_date?->format(defaultDateFormat()) ?? '-'}}</span>
                         </div>
-                        <div class="col-12 fs-3">
-                            <div class="fw-bold">{{__("total_amount")}}:</div>
-                            <div class="fw-semibold">{{showBalance($order->getTotalAmount() ?? 0, true)}}</div>
+                        <div class="col-12 d-flex justify-content-between align-items-center fs-3">
+                            <span class="fw-bold">{{__("total_amount")}}:</span>
+                            <span class="fw-semibold">{{showBalance($order->getTotalAmount() ?? 0, true)}}</span>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <button type="button" class="btn btn-primary btn-sm w-100" id="createRenewalInvoiceBtn">
+                                <i class="fa fa-file-invoice me-2"></i>Faturalandır
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1424,6 +1426,54 @@
                     }
                 })
             })
+
+            $(document).on('click', '#createRenewalInvoiceBtn', function() {
+                var btn = $(this);
+                Swal.fire({
+                    title: 'Faturalandır',
+                    text: 'Bu sipariş için yenileme faturası oluşturmak istediğinize emin misiniz?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, oluştur',
+                    cancelButtonText: 'Vazgeç'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            type: 'POST',
+                            url: '{{ route("admin.orders.createRenewalInvoice", ["order" => $order->id]) }}',
+                            dataType: 'json',
+                            data: { _token: '{{ csrf_token() }}' },
+                            beforeSend: function() {
+                                propSubmitButton(btn, 1);
+                                alerts.wait.fire();
+                            },
+                            complete: function(data) {
+                                propSubmitButton(btn, 0);
+                                var res = data.responseJSON;
+                                if (res && res.success === true) {
+                                    Swal.fire({
+                                        title: '{{ __("success") }}',
+                                        text: res.message || '',
+                                        icon: 'success',
+                                        confirmButtonText: 'Faturaya Git',
+                                        showCancelButton: true,
+                                        cancelButtonText: 'Kapat'
+                                    }).then(function(r) {
+                                        if (r.isConfirmed && res.redirectUrl) {
+                                            window.location.href = res.redirectUrl;
+                                        }
+                                    });
+                                } else {
+                                    alerts.error.fire({
+                                        title: '{{ __("error") }}',
+                                        text: res?.message ?? ''
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
 
             @if($order->isPProxyUDelivery())
             $('#ppuEditToggleBtn').on('click', function(){
