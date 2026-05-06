@@ -464,6 +464,7 @@ Route::any('/callback-nestpay', function (Illuminate\Http\Request $request) {
 });
 
 Route::get('/kvkk-aydinlatma-metni', function () {
+    return view('web.kvkk-aydinlatma-metni');
 })->name('web.gdpr');
 
 
