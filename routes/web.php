@@ -72,15 +72,41 @@ Route::post('/callback-paytr/64a3e520cf', function (Illuminate\Http\Request $req
             exit();
         }
 
-        $hash = base64_encode(hash_hmac('sha256', $request->merchant_oid . env("MERCENT_SALT") . $request->status . $request->total_amount, env("MERCENT_KEY"), true));
-        if ($hash != $request->hash) {
+        if (!(new \App\Services\PaytrService())->verifyCallback($request->all())) {
             Logger::error("CALLBACK_PAYTR_BAD_HASH", ["post_request" => $request->all()]);
             exit();
         }
 
+
         if (in_array($checkout->status, ['COMPLETED', 'CANCELLED', 'FAILED'])) {
             echo "OK";
             exit();
+        }
+
+        // PAYTR_IDEMPOTENT_LOG_OK
+        try {
+            \App\Models\PaytrTransaction::create([
+                'reference_uuid' => (string) \Illuminate\Support\Str::uuid(),
+                'checkout_id'    => $checkout->id,
+                'invoice_id'     => $checkout->invoice_id,
+                'user_id'        => $checkout->user_id,
+                'merchant_oid'   => $request->merchant_oid,
+                'type'           => 'callback',
+                'status'         => $request->status,
+                'amount'         => ($request->total_amount ?? 0) / 100,
+                'currency'       => $request->currency ?? 'TL',
+                'test_mode'      => (bool) ($checkout->test_mode ?? config('paytr.options.test_mode', true)),
+                'paytr_status'           => $request->status,
+                'paytr_total_amount'     => ($request->total_amount ?? 0) / 100,
+                'paytr_payment_type'     => $request->payment_type ?? null,
+                'paytr_installment'      => (int) ($request->installment_count ?? 0),
+                'paytr_failed_reason_code' => $request->failed_reason_code ?? null,
+                'paytr_failed_reason_msg'  => $request->failed_reason_msg ?? null,
+                'callback_payload'       => $request->all(),
+                'callback_received_at'   => now(),
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('CALLBACK_PAYTR_TX_LOG_FAIL', ['error' => $e->getMessage()]);
         }
 
         if ($request->status == 'success') {

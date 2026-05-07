@@ -58,7 +58,9 @@ Route::middleware(["logRequest", "updateLastSeen"])->group(function () {
         Route::post('/save-bank-transfer-notification', [CheckoutController::class, 'saveBankTransferNotification'])->name('save_bank_transfer_notification');
         Route::post('/eft-iframe-token', [CheckoutController::class, 'eftIframeToken'])->name('eftIframeToken');
         Route::post('/payment-with-balance', [CheckoutController::class, 'paymentWithBalance'])->name('paymentWithBalance');
-        Route::any("/paytr-payment-result", [CheckoutController::class, 'paymentResult'])->name("paytr.paymentResult");
+        Route::any("/paytr-payment-result", [\App\Http\Controllers\Portal\PaytrController::class, 'paymentResult'])->name("paytr.paymentResult");
+        Route::post("/paytr/initiate", [\App\Http\Controllers\Portal\PaytrController::class, 'initiate'])->name("paytr.initiate");
+        Route::get("/paytr/iframe/{checkout}", [\App\Http\Controllers\Portal\PaytrController::class, 'iframe'])->name("paytr.iframe");
 
         Route::group(['prefix' => 'auth', 'as' => 'auth.'], function () {
             Route::post('/change-password', [AuthController::class, 'changePassword'])->name('changePassword');

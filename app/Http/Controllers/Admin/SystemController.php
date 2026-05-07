@@ -1447,4 +1447,57 @@ class SystemController extends Controller
             return response()->json(['success' => false, 'message' => 'Hata: ' . $e->getMessage()], 500);
         }
     }
+
+    public function savePaytrSettings(Request $request)
+    {
+        try {
+            $envPath = base_path('.env');
+            $envContent = file_get_contents($envPath);
+
+            $vars = [
+                'PAYTR_ENABLED'       => $request->has('paytr_enabled') ? 'true' : 'false',
+                'PAYTR_MERCHANT_ID'   => $request->input('paytr_merchant_id', ''),
+                'PAYTR_MERCHANT_KEY'  => $request->input('paytr_merchant_key', ''),
+                'PAYTR_MERCHANT_SALT' => $request->input('paytr_merchant_salt', ''),
+                'PAYTR_TEST_MODE'     => $request->has('paytr_test_mode') ? 'true' : 'false',
+                'PAYTR_SUCCESS_URL'   => $request->input('paytr_success_url', ''),
+                'PAYTR_FAIL_URL'      => $request->input('paytr_fail_url', ''),
+                'PAYTR_CALLBACK_URL'  => $request->input('paytr_callback_url', ''),
+            ];
+
+            foreach ($vars as $key => $value) {
+                $escaped = str_contains((string) $value, ' ') ? '"' . $value . '"' : $value;
+                if (preg_match("/^{$key}=.*/m", $envContent)) {
+                    $envContent = preg_replace("/^{$key}=.*/m", "{$key}={$escaped}", $envContent);
+                } else {
+                    $envContent .= "\n{$key}={$escaped}";
+                }
+            }
+
+            file_put_contents($envPath, $envContent);
+
+            \Illuminate\Support\Facades\Artisan::call('config:clear');
+            \Illuminate\Support\Facades\Artisan::call('config:cache');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'PayTR ayarları kaydedildi.' . ($request->has('paytr_test_mode') ? ' (TEST MODU AKTİF)' : ''),
+                'test_mode' => $request->has('paytr_test_mode'),
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('PAYTR_SETTINGS_SAVE_FAIL', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Hata: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function testPaytrConnection(Request $request)
+    {
+        try {
+            $service = new \App\Services\PaytrService();
+            $result = $service->testConnection();
+            return response()->json($result);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'reason' => 'Hata: ' . $e->getMessage()], 500);
+        }
+    }
 }
