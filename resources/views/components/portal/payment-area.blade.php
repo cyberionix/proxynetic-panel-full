@@ -245,7 +245,7 @@
                 @endif
                 <form method="POST" id="paytrInitiateForm" action="{{ route('portal.paytr.initiate') }}">
                     @csrf
-                    <input type="hidden" name="invoice_id" value="{{ $invoice_id ?? '' }}"/>
+                    <input type="hidden" name="invoice_id" value="{{ $invoice ? $invoice->id : '' }}"/>
                     <div class="d-flex flex-column mb-7 fv-row">
                         <label class="d-flex align-items-center fs-6 fw-bold form-label mb-2">
                             <span class="required">Fatura Adresi</span>
