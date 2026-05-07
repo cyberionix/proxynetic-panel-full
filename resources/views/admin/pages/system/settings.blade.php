@@ -1818,82 +1818,6 @@
                     </form>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!--begin::Modals-->
-    <div class="modal fade" id="primaryGroupModal" tabindex="-1" aria-hidden="true">
-        <!--begin::Modal dialog-->
-        <div class="modal-dialog modal-dialog-centered">
-            <!--begin::Modal content-->
-            <div class="modal-content">
-                <!--begin::Modal header-->
-                <div class="modal-header">
-                    <!--begin::Modal title-->
-                    <h2>{{__("create")}}</h2>
-                    <!--end::Modal title-->
-                    <!--begin::Close-->
-                    <div class="btn btn-sm btn-icon btn-active-color-primary" data-bs-dismiss="modal">
-                        <i class="ki-duotone ki-cross fs-1">
-                            <span class="path1"></span>
-                            <span class="path2"></span>
-                        </i>
-                    </div>
-                    <!--end::Close-->
-                </div>
-                <!--end::Modal header-->
-                <!--begin::Modal body-->
-                <div class="modal-body py-lg-10 px-lg-15">
-                    <form id="tokenPoolForm">
-                        @csrf
-                        <input type="hidden" name="url">
-                        <input type="hidden" name="id">
-                        <div class="fv-row mb-7">
-                            <!--begin::Label-->
-                            <label class="required form-label mb-3">{{__("title")}}</label>
-                            <!--end::Label-->
-                            <!--begin::Input-->
-                            <input type="text" name="name" class="form-control form-control-lg " required>
-                            <!--end::Input-->
-                        </div>
-
-                        <div class="fv-row">
-                            <!--begin::Label-->
-                            <label class="required form-label mb-3">Auth Token Seçimi</label>
-                            <!--end::Label-->
-                            <!--begin::Input-->
-                            <!--begin::Input-->
-                            <x-admin.form-elements.auth-token-select
-                                name="auth_tokens[]"
-                                customAttr="multiple"
-                                customClass="mw-100"/>
-                            <!--end::Input-->
-                            <!--end::Input-->
-                        </div>
-                        <!--begin::Actions-->
-                        <div class="d-flex flex-center flex-row-fluid pt-12">
-                            <button type="reset" class="btn btn-light me-3" data-bs-dismiss="modal">{{__("cancel")}}</button>
-                            <button type="submit" class="btn btn-primary" id="user_group_submit_btn">
-                                <!--begin::Indicator label-->
-                                <span class="indicator-label">{{__("save")}}</span>
-                                <!--end::Indicator label-->
-                                <!--begin::Indicator progress-->
-                                <span class="indicator-progress">{{__("please_wait")}}...
-								<span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
-                                <!--end::Indicator progress-->
-                            </button>
-                        </div>
-                        <!--end::Actions-->
-                    </form>
-                </div>
-                <!--end::Modal body-->
-            </div>
-            <!--end::Modal content-->
-        </div>
-        <!--end::Modal dialog-->
-    </div>
-    <!--end::Modals-->
-
                 <div class="tab-pane fade" id="system_settings_paytr_tab" role="tabpanel">
                     <form id="paytrSettingsForm">
                         @csrf
@@ -2034,6 +1958,83 @@
                         </div>
                     </form>
                 </div>
+
+        </div>
+    </div>
+
+    <!--begin::Modals-->
+    <div class="modal fade" id="primaryGroupModal" tabindex="-1" aria-hidden="true">
+        <!--begin::Modal dialog-->
+        <div class="modal-dialog modal-dialog-centered">
+            <!--begin::Modal content-->
+            <div class="modal-content">
+                <!--begin::Modal header-->
+                <div class="modal-header">
+                    <!--begin::Modal title-->
+                    <h2>{{__("create")}}</h2>
+                    <!--end::Modal title-->
+                    <!--begin::Close-->
+                    <div class="btn btn-sm btn-icon btn-active-color-primary" data-bs-dismiss="modal">
+                        <i class="ki-duotone ki-cross fs-1">
+                            <span class="path1"></span>
+                            <span class="path2"></span>
+                        </i>
+                    </div>
+                    <!--end::Close-->
+                </div>
+                <!--end::Modal header-->
+                <!--begin::Modal body-->
+                <div class="modal-body py-lg-10 px-lg-15">
+                    <form id="tokenPoolForm">
+                        @csrf
+                        <input type="hidden" name="url">
+                        <input type="hidden" name="id">
+                        <div class="fv-row mb-7">
+                            <!--begin::Label-->
+                            <label class="required form-label mb-3">{{__("title")}}</label>
+                            <!--end::Label-->
+                            <!--begin::Input-->
+                            <input type="text" name="name" class="form-control form-control-lg " required>
+                            <!--end::Input-->
+                        </div>
+
+                        <div class="fv-row">
+                            <!--begin::Label-->
+                            <label class="required form-label mb-3">Auth Token Seçimi</label>
+                            <!--end::Label-->
+                            <!--begin::Input-->
+                            <!--begin::Input-->
+                            <x-admin.form-elements.auth-token-select
+                                name="auth_tokens[]"
+                                customAttr="multiple"
+                                customClass="mw-100"/>
+                            <!--end::Input-->
+                            <!--end::Input-->
+                        </div>
+                        <!--begin::Actions-->
+                        <div class="d-flex flex-center flex-row-fluid pt-12">
+                            <button type="reset" class="btn btn-light me-3" data-bs-dismiss="modal">{{__("cancel")}}</button>
+                            <button type="submit" class="btn btn-primary" id="user_group_submit_btn">
+                                <!--begin::Indicator label-->
+                                <span class="indicator-label">{{__("save")}}</span>
+                                <!--end::Indicator label-->
+                                <!--begin::Indicator progress-->
+                                <span class="indicator-progress">{{__("please_wait")}}...
+								<span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                                <!--end::Indicator progress-->
+                            </button>
+                        </div>
+                        <!--end::Actions-->
+                    </form>
+                </div>
+                <!--end::Modal body-->
+            </div>
+            <!--end::Modal content-->
+        </div>
+        <!--end::Modal dialog-->
+    </div>
+    <!--end::Modals-->
+
 
         @endsection
 @section("js")
