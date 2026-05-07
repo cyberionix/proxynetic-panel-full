@@ -161,11 +161,21 @@ class PaytrController extends Controller
                 $checkout->update(['status' => 'FAILED']);
                 DB::commit();
                 Log::error('PAYTR_TOKEN_FAIL', ['oid' => $merchantOid, 'reason' => $tokenResult['reason']]);
+                if (!$request->wantsJson() && !$request->ajax()) {
+                    return redirect()->route('portal.dashboard')
+                        ->with('payment_result_status', 'error')
+                        ->with('payment_result_message', 'Ödeme başlatılamadı: ' . $tokenResult['reason']);
+                }
                 return $this->errorResponse('Ödeme başlatılamadı: ' . $tokenResult['reason']);
             }
 
             $checkout->update(['paytr_token' => $tokenResult['token']]);
             DB::commit();
+
+            // Non-AJAX form submit: redirect to iframe page (browser-friendly UX)
+            if (!$request->wantsJson() && !$request->ajax()) {
+                return redirect()->route('portal.paytr.iframe', ['checkout' => $checkout->id]);
+            }
 
             return $this->successResponse('OK', [
                 'iframe_url'  => $tokenResult['iframe_url'],
@@ -177,6 +187,7 @@ class PaytrController extends Controller
                 'test_mode'   => $paytr->isTestMode(),
                 'test_cards'  => $paytr->isTestMode() ? config('paytr.test_cards', []) : [],
                 'checkout_id' => $checkout->id,
+                'redirect_url'=> route('portal.paytr.iframe', ['checkout' => $checkout->id]),
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
