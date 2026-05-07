@@ -1,8 +1,8 @@
 @extends("portal.template")
 
-@section('title', 'Ödeme - PayTR')
+@section("title", "Ödeme - PayTR")
 
-@push('styles')
+@section("css")
 <style>
     .paytr-wrapper { max-width: 900px; margin: 24px auto; padding: 0 16px; }
     .paytr-test-banner {
@@ -34,16 +34,16 @@
     .paytr-test-cards td { padding: 6px 8px; border-bottom: 1px solid #fde68a; font-family: monospace; }
     .paytr-test-cards td:first-child { font-weight: 600; }
 </style>
-@endpush
+@endsection
 
-@section('content')
+@section("master")
 <div class="paytr-wrapper">
 
     @if($testMode)
     <div class="paytr-test-banner">
         <span class="ico">🧪</span>
         <div>
-            <strong>TEST MODU AKTİF</strong> — Bu işlemde gerçek ödeme alınmaz. Test kartlarını aşağıda bulabilirsiniz.
+            <strong>TEST MODU AKTİF</strong> &mdash; Bu işlemde gerçek ödeme alınmaz. Test kartlarını aşağıda bulabilirsiniz.
         </div>
     </div>
     @endif
@@ -78,7 +78,9 @@
     @endif
 
 </div>
+@endsection
 
+@section("js")
 <script src="https://www.paytr.com/js/iframeResizer.min.js"></script>
 <script>
     if (typeof iFrameResize !== 'undefined') {
