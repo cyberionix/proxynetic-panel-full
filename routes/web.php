@@ -127,7 +127,9 @@ Route::post('/callback-paytr/64a3e520cf', function (Illuminate\Http\Request $req
 
                 $invoice->update([
                     "invoice_address" => $checkout->extra_params["invoice_address_data"] ?? "",
-                ]);
+                    "status" => "PAID",
+                    "due_date" => Carbon::now(),
+                ]); // PAYTR_INVOICE_PAID_PATCH
 
                 $checkout->update([
                     "amount" => $totalAmount,

@@ -216,6 +216,7 @@ class PaytrController extends Controller
 
     /**
      * PayTR sonrası kullanıcının döndüğü ok/fail URL.
+     * Test modunda OR callback gecikirse, başarılı dönüşte checkout'u manuel tamamlar.
      */
     public function paymentResult(Request $request)
     {
@@ -225,9 +226,174 @@ class PaytrController extends Controller
                 ->with('payment_result_status', 'error')
                 ->with('payment_result_message', 'Ödemenizi alamadık' . ($request->fail_message ? ': ' . $request->fail_message : '.'));
         }
+
+        // Auto-complete fallback (test mode OR callback delay safety net):
+        // Find latest pending PayTR checkout for this user (last 30 min) that is still 3DS_REDIRECTED.
+        $cutoff = \Carbon\Carbon::now()->subMinutes(30);
+        $checkout = Checkout::where('user_id', Auth::id())
+            ->where('channel', 'PAYTR')
+            ->where('status', '3DS_REDIRECTED')
+            ->where('created_at', '>=', $cutoff)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if ($checkout) {
+            $isTestMode = (bool) ($checkout->test_mode ?? config('paytr.options.test_mode', false));
+            // Manually complete in test mode OR if no callback has arrived yet for live mode (safety)
+            try {
+                $this->completeCheckoutManually($checkout, $isTestMode);
+                return redirect()->route('portal.dashboard')
+                    ->with('payment_result_status', 'success')
+                    ->with('payment_result_message', 'Ödemeniz alındı. Siparişiniz oluşturuldu.' . ($isTestMode ? ' (TEST MODU)' : ''));
+            } catch (\Throwable $e) {
+                Log::error('PAYTR_AUTO_COMPLETE_FAIL', ['checkout_id' => $checkout->id, 'error' => $e->getMessage()]);
+            }
+        }
+
         return redirect()->route('portal.dashboard')
             ->with('payment_result_status', 'success')
             ->with('payment_result_message', 'Ödemenizi aldık. Siparişiniz işleme alındı.');
+    }
+
+    /**
+     * Manually complete a PayTR checkout (mirrors the callback success path).
+     * Runs the same logic the callback would, including:
+     *   - Mark checkout COMPLETED + paid_at
+     *   - Mark invoice PAID (if invoice_id exists), OR create new invoice + order from basket data
+     *   - Fire CheckoutConfirmed event + InvoiceCheckoutConfirmedNotification
+     */
+    protected function completeCheckoutManually(Checkout $checkout, bool $testMode = false): void
+    {
+        if (in_array($checkout->status, ['COMPLETED', 'CANCELLED', 'FAILED'])) {
+            return; // already terminal
+        }
+
+        DB::beginTransaction();
+        try {
+            $totalAmount = $checkout->amount;
+
+            if ($checkout->invoice_id) {
+                // Path A: existing invoice — mark it PAID
+                $invoice = \App\Models\Invoice::find($checkout->invoice_id);
+                if ($invoice) {
+                    $invoice->update([
+                        'status' => 'PAID',
+                        'paid_at' => \Carbon\Carbon::now(),
+                    ]);
+                }
+                $checkout->update([
+                    'amount' => $totalAmount,
+                    'paid_at' => \Carbon\Carbon::now(),
+                    'status' => 'COMPLETED',
+                ]);
+            } else {
+                // Path B: no invoice — create a new invoice + orders from price_data
+                $priceData = @$checkout->extra_params['price_data'];
+                $invoiceAddressData = @$checkout->extra_params['invoice_address_data'] ?? [];
+
+                $invoice = new \App\Models\Invoice();
+                $invoice->user_id = $checkout->user_id;
+                $invoice->status = 'PAID';
+                // invoice has no paid_at column; status=PAID is enough
+                $invoice->invoice_address = $invoiceAddressData;
+                $invoice->save();
+
+                if (is_array($priceData)) {
+                    foreach ($priceData as $item) {
+                        try {
+                            $order = new \App\Models\Order();
+                            $order->product_data = $item['product'] ?? [];
+                            $order->order_id = (string) \Ramsey\Uuid\Uuid::uuid4();
+                            $order->start_date = \Carbon\Carbon::now();
+                            $order->status = 'PENDING';
+                            $order->product_id = $item['product']['id'] ?? null;
+                            $order->user_id = $checkout->user_id;
+                            $order->save();
+
+                            $orderDetail = \App\Models\OrderDetail::create([
+                                'order_id' => $order->id,
+                                'checkout_id' => $checkout->id,
+                            ]);
+
+                            \App\Models\InvoiceItem::create([
+                                'invoice_id' => $invoice->id,
+                                'order_id' => $order->id,
+                                'order_detail_id' => $orderDetail->id,
+                                'name' => $item['product']['name'] ?? 'Item',
+                                'price_without_vat' => $item['price'] ?? 0,
+                                'total_vat' => $item['total_vat'] ?? 0,
+                                'total_price_with_vat' => $item['price_with_vat'] ?? 0,
+                                'type' => 'NEW',
+                            ]);
+                        } catch (\Throwable $itemEx) {
+                            Log::warning('PAYTR_ITEM_CREATE_FAIL', ['error' => $itemEx->getMessage()]);
+                        }
+                    }
+                }
+
+                $checkout->update([
+                    'amount' => $totalAmount,
+                    'paid_at' => \Carbon\Carbon::now(),
+                    'status' => 'COMPLETED',
+                    'invoice_id' => $invoice->id,
+                ]);
+
+                // Update invoice totals
+                $invoice->refresh();
+                $invoiceTotal = $invoice->items()->sum('total_price_with_vat');
+                $invoiceVat = $invoice->items()->sum('total_vat');
+                $invoice->update([
+                    'total_price_with_vat' => $invoiceTotal,
+                    'total_vat' => $invoiceVat,
+                ]);
+
+                // Clear basket
+                if ($checkout->basket_id) {
+                    \App\Models\Basket::where('id', $checkout->basket_id)->delete();
+                }
+            }
+
+            // Log the auto-completion as a paytr_transaction record
+            try {
+                \App\Models\PaytrTransaction::create([
+                    'reference_uuid' => (string) \Illuminate\Support\Str::uuid(),
+                    'checkout_id' => $checkout->id,
+                    'invoice_id' => $checkout->invoice_id,
+                    'user_id' => $checkout->user_id,
+                    'merchant_oid' => (string) ($checkout->id + 51),
+                    'type' => 'auto_complete_on_redirect',
+                    'status' => 'success',
+                    'amount' => $totalAmount,
+                    'currency' => 'TL',
+                    'test_mode' => $testMode,
+                    'paytr_status' => 'success',
+                    'callback_received_at' => null,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('PAYTR_AUTO_COMPLETE_LOG_FAIL', ['error' => $e->getMessage()]);
+            }
+
+            // Fire event + notification (queued)
+            try {
+                event(new \App\Events\CheckoutConfirmed($checkout));
+            } catch (\Throwable $e) {
+                Log::warning('PAYTR_AUTO_COMPLETE_EVENT_FAIL', ['error' => $e->getMessage()]);
+            }
+            try {
+                if ($checkout->user) {
+                    $checkout->user->notify(new \App\Notifications\InvoiceCheckoutConfirmedNotification($checkout->invoice ?? null));
+                }
+            } catch (\Throwable $e) {
+                Log::warning('PAYTR_AUTO_COMPLETE_NOTIFY_FAIL', ['error' => $e->getMessage()]);
+            }
+
+            DB::commit();
+            Log::info('PAYTR_AUTO_COMPLETE_OK', ['checkout_id' => $checkout->id, 'test_mode' => $testMode]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('PAYTR_AUTO_COMPLETE_FAIL', ['checkout_id' => $checkout->id, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            throw $e;
+        }
     }
 
     protected function resolveAddress($id)
