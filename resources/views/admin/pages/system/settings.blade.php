@@ -1197,7 +1197,7 @@
                                 <div class="col-md-8">
                                     <div class="form-check form-switch form-check-custom form-check-solid">
                                         <input class="form-check-input" type="checkbox" name="paytr_enabled" value="1" id="paytrEnabled"
-                                               {{ filter_var(env('PAYTR_ENABLED'), FILTER_VALIDATE_BOOLEAN) ? 'checked' : '' }}>
+                                               {{ config('paytr.enabled') ? 'checked' : '' }}>
                                         <label class="form-check-label" for="paytrEnabled">Aktif</label>
                                     </div>
                                 </div>
