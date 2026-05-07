@@ -197,7 +197,8 @@
                         </div>
                     </div>
 
-                    <div id="cardPaymentArea">
+                    @if(config('nestpay.enabled'))
+<div id="cardPaymentArea">
                         <form method="POST" action="{{ route('public.invoice.nestpayCheckout') }}" id="publicCheckoutForm">
                             @csrf
                             <input type="hidden" name="token" value="{{ $invoice->share_token }}">
@@ -261,6 +262,7 @@
                             </button>
                         </form>
                     </div>
+@endif
 
                     <div id="eftPaymentArea" style="display:none;">
                         <div class="text-center py-3" id="eftLoading">

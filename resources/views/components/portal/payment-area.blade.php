@@ -83,17 +83,32 @@
         <!--begin::Radio group-->
         <div class="btn-group w-100 mb-10" data-kt-buttons="true"
              data-kt-buttons-target="[data-kt-button]">
-        @if(Auth::user()->security->is_limit_payment_methods == 0 || (Auth::user()->security->is_limit_payment_methods == 1 && in_array("CREDIT_CARD", Auth::user()->security->payment_methods)))
+        @if(config('nestpay.enabled') && (Auth::user()->security->is_limit_payment_methods == 0 || (Auth::user()->security->is_limit_payment_methods == 1 && in_array("CREDIT_CARD", Auth::user()->security->payment_methods))))
             <!--begin::Radio-->
                 <label
                     class="btn btn-outline btn-color-muted btn-active-primary"
                     data-kt-button="true">
                     <!--begin::Input-->
                     <input class="btn-check" type="radio" name="payment_method"
-                           checked="checked"
+                           {{ config('nestpay.enabled') ? 'checked="checked"' : '' }}
                            value="CREDIT_CARD"/>
                     <!--end::Input-->
                     <i class="fa fa-university me-1"></i>İş Bankası Kredi Kartı
+                </label>
+                <!--end::Radio-->
+        @endif
+
+        @if(config('paytr.enabled') && (Auth::user()->security->is_limit_payment_methods == 0 || (Auth::user()->security->is_limit_payment_methods == 1 && in_array("CREDIT_CARD", Auth::user()->security->payment_methods))))
+            <!--begin::Radio-->
+                <label
+                    class="btn btn-outline btn-color-muted btn-active-primary"
+                    data-kt-button="true">
+                    <!--begin::Input-->
+                    <input class="btn-check" type="radio" name="payment_method"
+                           {{ !config('nestpay.enabled') ? 'checked="checked"' : '' }}
+                           value="PAYTR"/>
+                    <!--end::Input-->
+                    <i class="fa fa-credit-card me-1 text-success"></i>PayTR @if(config('paytr.options.test_mode'))<span class="badge badge-warning ms-2 fs-9">TEST</span>@endif
                 </label>
                 <!--end::Radio-->
         @endif
@@ -125,7 +140,7 @@
             @endif
         </div>
         <!--end::Radio group-->
-        @if(Auth::user()->security->is_limit_payment_methods == 0 || (Auth::user()->security->is_limit_payment_methods == 1 && in_array("CREDIT_CARD", Auth::user()->security->payment_methods)))
+        @if(config('nestpay.enabled') && (Auth::user()->security->is_limit_payment_methods == 0 || (Auth::user()->security->is_limit_payment_methods == 1 && in_array("CREDIT_CARD", Auth::user()->security->payment_methods))))
             <div class="credit-card-option-form-area" style="display: none">
                 <form method="POST" id="checkoutForm" action="{{route('portal.nestpayCheckout')}}">
                 @csrf
@@ -216,6 +231,40 @@
                 </form>
             </div>
         @endif
+
+        @if(config('paytr.enabled') && (Auth::user()->security->is_limit_payment_methods == 0 || (Auth::user()->security->is_limit_payment_methods == 1 && in_array("CREDIT_CARD", Auth::user()->security->payment_methods))))
+            <div class="paytr-option-form-area" style="display: none">
+                @if(config('paytr.options.test_mode'))
+                <div class="alert alert-warning d-flex align-items-center mb-5">
+                    <i class="fa fa-flask fs-3 me-3"></i>
+                    <div>
+                        <strong>PayTR TEST MODU</strong> &mdash; Bu işlemde gerçek ödeme alınmaz.<br>
+                        <small>Test kartı: <code>4355084355084358</code> &middot; SKT: <code>12/30</code> &middot; CVV: <code>000</code> &middot; OTP: <code>123456</code></small>
+                    </div>
+                </div>
+                @endif
+                <form method="POST" id="paytrInitiateForm" action="{{ route('portal.paytr.initiate') }}">
+                    @csrf
+                    <input type="hidden" name="invoice_id" value="{{ $invoice_id ?? '' }}"/>
+                    <div class="d-flex flex-column mb-7 fv-row">
+                        <label class="d-flex align-items-center fs-6 fw-bold form-label mb-2">
+                            <span class="required">Fatura Adresi</span>
+                        </label>
+                        <select name="invoice_address_id" class="form-select form-select-solid" required>
+                            @foreach(auth()->user()->addresses ?? [] as $addr)
+                                <option value="{{ $addr->id }}">{{ $addr->title ?? $addr->address }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="text-center pt-5">
+                        <button type="submit" id="paytrPaySubmitBtn" class="btn btn-success">
+                            <span class="indicator-label"><i class="fa fa-credit-card me-2"></i>PayTR ile Öde</span>
+                            <span class="indicator-progress">Yönlendiriliyor... <span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        @endif
     @if(Auth::user()->security->is_limit_payment_methods == 0 || (Auth::user()->security->is_limit_payment_methods == 1 && in_array("TRANSFER", Auth::user()->security->payment_methods)))
         <div class="transfer-eft-option-form-area" style="display: none">
             <div class="text-center" id="eftStartArea">
@@ -286,16 +335,21 @@
             $(document).on('click', 'input[name="payment_method"]', function () {
                 var val = $('input[name="payment_method"]:checked').attr('value');
                 $('.credit-card-option-form-area').hide(300);
+                $('.paytr-option-form-area').hide(300);
                 $('.transfer-eft-option-form-area').hide(300);
                 $('.wallet-option-form-area').hide(300);
                 if (val === 'CREDIT_CARD') {
                     $('.credit-card-option-form-area').fadeIn();
+                } else if (val === 'PAYTR') {
+                    $('.paytr-option-form-area').fadeIn();
                 } else if (val === 'TRANSFER') {
                     $('.transfer-eft-option-form-area').fadeIn();
                 } else if (val === 'WALLET') {
                     $('.wallet-option-form-area').fadeIn();
                 }
             })
+            // Trigger initial click to show selected form
+            $('input[name="payment_method"]:checked').trigger('click');
             $('.copy-text').click(function () {
                 // data-text özelliğine sahip metni al
                 var textToCopy = $(this).data('text');
