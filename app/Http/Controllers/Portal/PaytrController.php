@@ -523,7 +523,7 @@ class PaytrController extends Controller
                     unset($productData['created_at']);
                     unset($productData['updated_at']);
 
-                    $order = new Order();
+                    $order = new \App\Models\Order();
                     $order->product_data = $productData;
                     $order->order_id = \Ramsey\Uuid\Uuid::uuid4()->toString();
                     $order->start_date = \Carbon\Carbon::now();
