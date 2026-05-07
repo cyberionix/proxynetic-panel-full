@@ -1817,7 +1817,6 @@
                         </div>
                     </form>
                 </div>
-            </div>
                 <div class="tab-pane fade" id="system_settings_paytr_tab" role="tabpanel">
                     <form id="paytrSettingsForm">
                         @csrf
@@ -1958,6 +1957,7 @@
                         </div>
                     </form>
                 </div>
+            </div>
 
         </div>
     </div>
