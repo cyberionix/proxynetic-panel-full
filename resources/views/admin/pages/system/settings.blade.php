@@ -1168,6 +1168,141 @@
                         </table>
                     </div>
                 </div>
+                <div class="tab-pane fade" id="system_settings_paytr_tab" role="tabpanel">
+                    <form id="paytrSettingsForm">
+                        @csrf
+                        <div class="w-75 mx-auto">
+                            <div class="d-flex align-items-center mb-6">
+                                <i class="fa fa-credit-card fs-2 text-success me-3"></i>
+                                <div>
+                                    <h3 class="fw-bold mb-0">PayTR Ayarları</h3>
+                                    <span class="text-muted fs-7">PayTR sanal POS / iframe ödeme entegrasyon ayarlarını buradan yönetin</span>
+                                </div>
+                            </div>
+
+                            @if(config('paytr.options.test_mode'))
+                            <div class="alert alert-warning d-flex align-items-center mb-5">
+                                <i class="fa fa-flask me-3 fs-3"></i>
+                                <div><strong>TEST MODU AKTİF</strong> &mdash; PayTR şu anda test modunda. Gerçek ödeme alınmaz, sadece test kartları çalışır.</div>
+                            </div>
+                            @endif
+
+                            <div class="separator my-5"></div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">PayTR Aktif</label>
+                                    <div class="text-muted fs-8 mb-1">Müşterilerin PayTR ile ödeme yapabilmesi için aktif edin</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="form-check form-switch form-check-custom form-check-solid">
+                                        <input class="form-check-input" type="checkbox" name="paytr_enabled" value="1" id="paytrEnabled"
+                                               {{ filter_var(env('PAYTR_ENABLED'), FILTER_VALIDATE_BOOLEAN) ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="paytrEnabled">Aktif</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Test Modu</label>
+                                    <div class="text-muted fs-8 mb-1">İşlemler test ortamında alınır, gerçek tahsilat olmaz</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="form-check form-switch form-check-custom form-check-solid form-check-warning">
+                                        <input class="form-check-input" type="checkbox" name="paytr_test_mode" value="1" id="paytrTestMode"
+                                               {{ config('paytr.options.test_mode') ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="paytrTestMode">Test Modu Aktif</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold required">Merchant ID</label>
+                                    <div class="text-muted fs-8 mb-1">PayTR mağaza numarası</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="text" name="paytr_merchant_id" class="form-control form-control-solid"
+                                           value="{{ config('paytr.credentials.merchant_id') }}" placeholder="123456" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold required">Merchant Key</label>
+                                    <div class="text-muted fs-8 mb-1">PayTR API anahtarı</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="password" name="paytr_merchant_key" class="form-control form-control-solid"
+                                           value="{{ config('paytr.credentials.merchant_key') }}" placeholder="********" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold required">Merchant Salt</label>
+                                    <div class="text-muted fs-8 mb-1">PayTR güvenlik tuzu</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="password" name="paytr_merchant_salt" class="form-control form-control-solid"
+                                           value="{{ config('paytr.credentials.merchant_salt') }}" placeholder="********" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="separator my-5"></div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Başarılı Ödeme URL</label>
+                                    <div class="text-muted fs-8 mb-1">Boş bırakılırsa default kullanılır</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="url" name="paytr_success_url" class="form-control form-control-solid"
+                                           value="{{ config('paytr.options.success_url') }}"
+                                           placeholder="https://my.oyunproxy.com/portal/paytr-payment-result?result=success">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Başarısız Ödeme URL</label>
+                                    <div class="text-muted fs-8 mb-1">Boş bırakılırsa default kullanılır</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="url" name="paytr_fail_url" class="form-control form-control-solid"
+                                           value="{{ config('paytr.options.fail_url') }}"
+                                           placeholder="https://my.oyunproxy.com/portal/paytr-payment-result?result=fail">
+                                </div>
+                            </div>
+
+                            <div class="row mb-5">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Bildirim (Callback) URL</label>
+                                    <div class="text-muted fs-8 mb-1">PayTR panelinde tanımlanmalı (S2S bildirim)</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="url" name="paytr_callback_url" class="form-control form-control-solid"
+                                           value="{{ config('paytr.options.callback_url') ?: url('/callback-paytr/64a3e520cf') }}"
+                                           placeholder="https://my.oyunproxy.com/callback-paytr/64a3e520cf">
+                                    <div class="text-muted fs-8 mt-1">PayTR yönetim panelindeki <strong>Bildirim URL</strong> alanına bu adresi giriniz.</div>
+                                </div>
+                            </div>
+
+                            <div class="separator my-5"></div>
+
+                            <div class="d-flex justify-content-between mt-8">
+                                <button type="button" id="paytrTestBtn" class="btn btn-light-info">
+                                    <i class="fa fa-plug me-2"></i>Bağlantıyı Test Et
+                                </button>
+                                <button type="button" id="paytrSaveBtn" class="btn btn-success">
+                                    <span class="indicator-label"><i class="fa fa-save me-2"></i>Kaydet</span>
+                                    <span class="indicator-progress">Kaydediliyor... <span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
             <!--end::Tab content-->
 
@@ -1817,148 +1952,7 @@
                         </div>
                     </form>
                 </div>
-                <div class="tab-pane fade" id="system_settings_paytr_tab" role="tabpanel">
-                    <form id="paytrSettingsForm">
-                        @csrf
-                        <div class="w-75 mx-auto">
-                            <div class="d-flex align-items-center mb-6">
-                                <i class="fa fa-credit-card fs-2 text-success me-3"></i>
-                                <div>
-                                    <h3 class="fw-bold mb-0">PayTR Ayarları</h3>
-                                    <span class="text-muted fs-7">PayTR sanal POS / iframe ödeme entegrasyon ayarlarını buradan yönetin</span>
-                                </div>
-                            </div>
-
-                            @if(config('paytr.options.test_mode'))
-                            <div class="alert alert-warning d-flex align-items-center mb-5">
-                                <i class="fa fa-flask me-3 fs-3"></i>
-                                <div>
-                                    <strong>TEST MODU AKTİF</strong> &mdash; PayTR şu anda test modunda. Gerçek ödeme alınmaz, sadece test kartları çalışır.
-                                </div>
-                            </div>
-                            @endif
-
-                            <div class="separator my-5"></div>
-
-                            <div class="row mb-5">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold">PayTR Aktif</label>
-                                    <div class="text-muted fs-8 mb-1">Müşterilerin PayTR ile ödeme yapabilmesi için aktif edin</div>
-                                </div>
-                                <div class="col-md-8">
-                                    <div class="form-check form-switch form-check-custom form-check-solid">
-                                        <input class="form-check-input" type="checkbox" name="paytr_enabled" value="1" id="paytrEnabled"
-                                               {{ filter_var(env('PAYTR_ENABLED'), FILTER_VALIDATE_BOOLEAN) ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="paytrEnabled">Aktif</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row mb-5">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold">Test Modu</label>
-                                    <div class="text-muted fs-8 mb-1">İşlemler test ortamında alınır, gerçek tahsilat olmaz</div>
-                                </div>
-                                <div class="col-md-8">
-                                    <div class="form-check form-switch form-check-custom form-check-solid form-check-warning">
-                                        <input class="form-check-input" type="checkbox" name="paytr_test_mode" value="1" id="paytrTestMode"
-                                               {{ config('paytr.options.test_mode') ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="paytrTestMode">Test Modu Aktif</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row mb-5">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold required">Merchant ID</label>
-                                    <div class="text-muted fs-8 mb-1">PayTR mağaza numarası</div>
-                                </div>
-                                <div class="col-md-8">
-                                    <input type="text" name="paytr_merchant_id" class="form-control form-control-solid"
-                                           value="{{ config('paytr.credentials.merchant_id') }}"
-                                           placeholder="123456" autocomplete="off">
-                                </div>
-                            </div>
-
-                            <div class="row mb-5">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold required">Merchant Key</label>
-                                    <div class="text-muted fs-8 mb-1">PayTR API anahtarı</div>
-                                </div>
-                                <div class="col-md-8">
-                                    <input type="password" name="paytr_merchant_key" class="form-control form-control-solid"
-                                           value="{{ config('paytr.credentials.merchant_key') }}"
-                                           placeholder="********" autocomplete="off">
-                                </div>
-                            </div>
-
-                            <div class="row mb-5">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold required">Merchant Salt</label>
-                                    <div class="text-muted fs-8 mb-1">PayTR güvenlik tuzu</div>
-                                </div>
-                                <div class="col-md-8">
-                                    <input type="password" name="paytr_merchant_salt" class="form-control form-control-solid"
-                                           value="{{ config('paytr.credentials.merchant_salt') }}"
-                                           placeholder="********" autocomplete="off">
-                                </div>
-                            </div>
-
-                            <div class="separator my-5"></div>
-
-                            <div class="row mb-5">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold">Başarılı Ödeme URL</label>
-                                    <div class="text-muted fs-8 mb-1">Boş bırakılırsa default kullanılır</div>
-                                </div>
-                                <div class="col-md-8">
-                                    <input type="url" name="paytr_success_url" class="form-control form-control-solid"
-                                           value="{{ config('paytr.options.success_url') }}"
-                                           placeholder="https://my.oyunproxy.com/portal/paytr-payment-result?result=success">
-                                </div>
-                            </div>
-
-                            <div class="row mb-5">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold">Başarısız Ödeme URL</label>
-                                    <div class="text-muted fs-8 mb-1">Boş bırakılırsa default kullanılır</div>
-                                </div>
-                                <div class="col-md-8">
-                                    <input type="url" name="paytr_fail_url" class="form-control form-control-solid"
-                                           value="{{ config('paytr.options.fail_url') }}"
-                                           placeholder="https://my.oyunproxy.com/portal/paytr-payment-result?result=fail">
-                                </div>
-                            </div>
-
-                            <div class="row mb-5">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold">Bildirim (Callback) URL</label>
-                                    <div class="text-muted fs-8 mb-1">PayTR panelinde tanımlanmalı (S2S bildirim)</div>
-                                </div>
-                                <div class="col-md-8">
-                                    <input type="url" name="paytr_callback_url" class="form-control form-control-solid"
-                                           value="{{ config('paytr.options.callback_url') ?: url('/callback-paytr/64a3e520cf') }}"
-                                           placeholder="https://my.oyunproxy.com/callback-paytr/64a3e520cf">
-                                    <div class="text-muted fs-8 mt-1">PayTR yönetim panelindeki <strong>Bildirim URL</strong> alanına bu adresi giriniz.</div>
-                                </div>
-                            </div>
-
-                            <div class="separator my-5"></div>
-
-                            <div class="d-flex justify-content-between mt-8">
-                                <button type="button" id="paytrTestBtn" class="btn btn-light-info">
-                                    <i class="fa fa-plug me-2"></i>Bağlantıyı Test Et
-                                </button>
-                                <button type="button" id="paytrSaveBtn" class="btn btn-success" data-kt-indicator-text="Kaydediliyor...">
-                                    <span class="indicator-label"><i class="fa fa-save me-2"></i>Kaydet</span>
-                                    <span class="indicator-progress">Kaydediliyor... <span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
             </div>
-
         </div>
     </div>
 
@@ -2034,9 +2028,7 @@
         <!--end::Modal dialog-->
     </div>
     <!--end::Modals-->
-
-
-        @endsection
+@endsection
 @section("js")
     <script src="{{ assetAdmin('plugins/custom/tinymce/tinymce.bundle.js') }}"></script>
     <script>
@@ -3079,7 +3071,6 @@
             });
         });
     </script>
-
 <script>
 $(document).ready(function () {
     $('#paytrSaveBtn').on('click', function () {
@@ -3095,24 +3086,20 @@ $(document).ready(function () {
                 btn.removeAttribute('data-kt-indicator');
                 btn.disabled = false;
                 if (res.success) {
-                    if (typeof toastr !== 'undefined') toastr.success(res.message);
-                    else alert(res.message);
+                    if (typeof toastr !== 'undefined') toastr.success(res.message); else alert(res.message);
                     setTimeout(function () { location.reload(); }, 1200);
                 } else {
-                    if (typeof toastr !== 'undefined') toastr.error(res.message);
-                    else alert(res.message);
+                    if (typeof toastr !== 'undefined') toastr.error(res.message); else alert(res.message);
                 }
             },
             error: function (xhr) {
                 btn.removeAttribute('data-kt-indicator');
                 btn.disabled = false;
                 var msg = (xhr.responseJSON && xhr.responseJSON.message) || ('Hata: ' + xhr.status);
-                if (typeof toastr !== 'undefined') toastr.error(msg);
-                else alert(msg);
+                if (typeof toastr !== 'undefined') toastr.error(msg); else alert(msg);
             }
         });
     });
-
     $('#paytrTestBtn').on('click', function () {
         var btn = $(this);
         btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Test ediliyor...');
@@ -3122,23 +3109,17 @@ $(document).ready(function () {
             headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'},
             success: function (res) {
                 btn.prop('disabled', false).html('<i class="fa fa-plug me-2"></i>Bağlantıyı Test Et');
-                if (res.success) {
-                    if (typeof toastr !== 'undefined') toastr.success(res.reason || 'Bağlantı başarılı.');
-                    else alert(res.reason || 'Bağlantı başarılı.');
-                } else {
-                    if (typeof toastr !== 'undefined') toastr.error(res.reason || 'Bağlantı başarısız.');
-                    else alert(res.reason || 'Bağlantı başarısız.');
-                }
+                if (typeof toastr !== 'undefined') {
+                    res.success ? toastr.success(res.reason || 'Bağlantı başarılı.') : toastr.error(res.reason || 'Bağlantı başarısız.');
+                } else { alert(res.reason); }
             },
             error: function (xhr) {
                 btn.prop('disabled', false).html('<i class="fa fa-plug me-2"></i>Bağlantıyı Test Et');
                 var msg = (xhr.responseJSON && xhr.responseJSON.reason) || ('Hata: ' + xhr.status);
-                if (typeof toastr !== 'undefined') toastr.error(msg);
-                else alert(msg);
+                if (typeof toastr !== 'undefined') toastr.error(msg); else alert(msg);
             }
         });
     });
 });
 </script>
-
 @endsection
