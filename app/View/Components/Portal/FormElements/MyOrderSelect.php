@@ -11,7 +11,7 @@ class MyOrderSelect extends Component
 {
     public function __construct(public $options = [])
     {
-        $options = Auth::user()->orders->map(function ($item) {
+        $options = (Auth::check() ? Auth::user()->orders : collect())->map(function ($item) {
             return [
                 'value' => $item->id,
                 'label' => @$item->product_data["name"] . " (#" . $item->id . ")",

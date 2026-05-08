@@ -78,6 +78,7 @@ class AuthController extends Controller
                 return $this->successResponse(__('login_successful').' '.__('redirecting'), ["redirectUrl" => $intendedUrl]);
             }else{
                 if (Auth::attempt(['email' => $user->email, 'password' => $request->password])) {
+                $this->mergeGuestBasket();
                     $request->session()->regenerate();
                     return $this->successResponse(__('login_successful').' '.__('redirecting'), ["redirectUrl" => $intendedUrl]);
                 }
@@ -305,5 +306,21 @@ class AuthController extends Controller
             return $this->errorResponse("Parola kayıt sırasında bir sorun oluştu.");
         }
         return $this->errorResponse("Parola sıfırlama süreniz doldu. Tekrar kod almalısınız.");
+    }
+
+    /**
+     * After successful login, merge any guest session basket items into the user's basket.
+     */
+    protected function mergeGuestBasket(): void
+    {
+        $sid = session()->getId();
+        $guestBasket = \App\Models\Basket::where("session_id", $sid)->whereNull("user_id")->first();
+        if (!$guestBasket) return;
+        $userBasket = \App\Models\Basket::firstOrCreate(["user_id" => \Illuminate\Support\Facades\Auth::id()]);
+        foreach ($guestBasket->items as $item) {
+            $item->basket_id = $userBasket->id;
+            $item->save();
+        }
+        $guestBasket->delete();
     }
 }

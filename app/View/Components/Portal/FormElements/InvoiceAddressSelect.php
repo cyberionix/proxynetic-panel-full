@@ -11,7 +11,7 @@ class InvoiceAddressSelect extends Component
 {
     public function __construct(public $options = [])
     {
-        $options = Auth::user()->addresses->map(function ($item) {
+        $options = (Auth::check() ? Auth::user()->addresses : collect())->map(function ($item) {
             return [
                 'value' => $item->id,
                 'label' => $item->title . " (" . $item?->city?->title . "/" . $item?->district?->title . ")",

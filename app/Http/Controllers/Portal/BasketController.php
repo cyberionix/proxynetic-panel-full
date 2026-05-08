@@ -19,17 +19,40 @@ use Illuminate\Support\Facades\DB;
 class BasketController extends Controller
 {
     use AjaxResponses, SoftDeletes;
+    /**
+     * Returns the current basket for the user (if authenticated) or session-based guest basket.
+     * Auto-creates if none exists.
+     */
+    protected function currentBasket(bool $autoCreate = false): ?Basket
+    {
+        if (Auth::check()) {
+            $basket = Basket::firstOrNew(['user_id' => Auth::id()]);
+            if (!$basket->exists && $autoCreate) {
+                $basket->save();
+            }
+            return $basket->exists ? $basket : null;
+        }
+        $sid = session()->getId();
+        $basket = Basket::firstOrNew(['session_id' => $sid, 'user_id' => null]);
+        if (!$basket->exists && $autoCreate) {
+            $basket->session_id = $sid;
+            $basket->save();
+        }
+        return $basket->exists ? $basket : null;
+    }
+
+
 
     public function index()
     {
-        $basket = Auth::user()->basket;
+        $basket = $this->currentBasket();
         if ($basket) { $basket->items()->whereDoesntHave("product")->delete(); }
         return view("portal.pages.basket.index", compact("basket"));
     }
 
     public function applyCoupon(Request $request)
     {
-        $basket = Auth::user()->basket;
+        $basket = $this->currentBasket();
         if (!$basket)
             return $this->errorResponse('Sepetiniz boş.');
 
@@ -49,8 +72,8 @@ class BasketController extends Controller
 //        if (Invoice::where('coupon_code_id', $code->id)->where('user_id',Auth::id())->exists())
 //            return $this->errorResponse('Bu kuponu daha önce kullandınız.');
 
-        if ($code->only_new_users == 1){
-            if (Invoice::whereStatus('PAID')->where('user_id',Auth::id())->exists()){
+        if ($code->only_new_users == 1 && Auth::check()) {
+            if (Invoice::whereStatus('PAID')->where('user_id',Auth::id())->exists()) {
                 return $this->errorResponse('Bu kupon yeni üyelere özeldir.');
 
             }
@@ -83,7 +106,7 @@ class BasketController extends Controller
 
     public function removeCoupon(Request $request)
     {
-        $basket = Auth::user()->basket;
+        $basket = $this->currentBasket();
 
         if ($basket){
             $basket->coupon_code_text = null;
@@ -109,7 +132,7 @@ class BasketController extends Controller
             if (!$test_products->contains('id', $test_product->id)) {
                 return $this->errorResponse('Daha önce ücretsiz test ürününden faydalandınız.');
             }
-            $basket = Auth::user()->basket;
+            $basket = $this->currentBasket();
             if ($basket) {
                 $basket_available = true;
 
@@ -130,7 +153,7 @@ class BasketController extends Controller
                 return $this->errorResponse('Geçersiz istek.');
                 DB::rollBack();
             }
-            $basket = Auth::user()->basket;
+            $basket = $this->currentBasket();
             if (!$basket) {
                 $basket = Basket::create([
                     "user_id" => Auth::id()
@@ -168,21 +191,21 @@ class BasketController extends Controller
     public function removeBasketItem(BasketItem $basketItem)
     {
         if ($basketItem->delete()) {
-            $basket = Auth::user()->basket;
+            $basket = $this->currentBasket();
             $basket->coupon_code_id = null;
             $basket->coupon_code_text = null;
             $basket->save();
-            return $this->successResponse("", ["basket_summary" => Auth::user()->basket->basketSummary()]);
+            return $this->successResponse("", ["basket_summary" => $this->currentBasket()?->basketSummary()]);
         }
         return $this->errorResponse();
     }
 
     public function payment()
     {
-        if (!Auth::user()->basket || Auth::user()->basket->items->count() == 0) {
+        $basket = $this->currentBasket();
+        if (!$basket || $basket->items->count() == 0) {
             return redirect()->route("portal.dashboard");
         }
-        $basket = Auth::user()->basket;
         return view("portal.pages.basket.payment.index", compact("basket"));
     }
 

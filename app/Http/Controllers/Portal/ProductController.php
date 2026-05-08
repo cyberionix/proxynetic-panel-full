@@ -22,7 +22,7 @@ class ProductController extends Controller
 
     public function testProduct()
     {
-        if (Auth::user()->block_test_producs) return redirect()->route('portal.dashboard');
+        if (Auth::check() && Auth::user()->block_test_producs) return redirect()->route('portal.dashboard');
 
         $products = Product::testProducts();
         return view("portal.pages.products.testProduct", compact("products"));

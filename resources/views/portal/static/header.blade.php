@@ -31,6 +31,7 @@
             <!--end::Page title-->
             <!--begin::Action-->
             <div class="row gap-3">
+                @auth
                 <!--begin::Notifications-->
                 <div id="header-notifications-area" class="col d-flex align-items-center"
                      data-url="{{route("portal.users.notifications.list")}}" data-token="{{csrf_token()}}">
@@ -115,6 +116,8 @@
                     </div>
                 </div>
                 <!--end::Notifications-->
+                @endauth
+                @auth
                 <!--begin::Balance-->
                 <a href="{{route("portal.balance.index")}}"
                    class="col position-relative d-flex flex-center gap-2 bg-hover-light-primary w-100px h-30px h-md-40px rounded-1">
@@ -122,6 +125,21 @@
                     <span class="text-muted fw-semibold" data-np-balance="amount">{{showBalance(auth()->user()->balance, true)}}</span>
                 </a>
                 <!--end::Balance-->
+                @endauth
+                @guest
+                <!--begin::Login/Register-->
+                <a href="{{route("portal.auth.login")}}"
+                   class="col position-relative d-flex flex-center gap-2 bg-hover-light-primary w-100px h-30px h-md-40px rounded-1">
+                    <i class="fa fa-sign-in-alt fs-3"></i>
+                    <span class="text-muted fw-semibold">{{__("login")}}</span>
+                </a>
+                <a href="{{route("portal.auth.register")}}"
+                   class="col position-relative d-flex flex-center gap-2 bg-hover-light-primary w-100px h-30px h-md-40px rounded-1">
+                    <i class="fa fa-user-plus fs-3"></i>
+                    <span class="text-muted fw-semibold">{{__("register")}}</span>
+                </a>
+                <!--end::Login/Register-->
+                @endguest
                 <!--begin::Basket-->
                 <a href="{{route("portal.basket.index")}}"
                    class="col position-relative d-flex flex-center gap-2 bg-hover-light-primary w-100px h-30px h-md-40px rounded-1">
@@ -130,7 +148,7 @@
 
                     <span class="position-absolute top-0 translate-middle  badge badge-sm badge-circle badge-success"
                           data-np-basket-summary="count"
-                          style="right: -10px; height: 19px;">{{@Auth::user()->basket?->itemsCount() ?? 0}}</span>
+                          style="right: -10px; height: 19px;">{{ Auth::check() ? (Auth::user()->basket?->itemsCount() ?? 0) : (\App\Models\Basket::where("session_id", session()->getId())->whereNull("user_id")->first()?->itemsCount() ?? 0) }}</span>
                 </a>
                 <!--end::Basket-->
                 <!--begin::Theme mode-->

@@ -14,6 +14,7 @@ class CheckProxyVpn
 {
     public function handle(Request $request, Closure $next): Response
     {
+        if (!\Illuminate\Support\Facades\Auth::check()) { return $next($request); }
         if (App::environment('local')) {
             return $next($request);
         }

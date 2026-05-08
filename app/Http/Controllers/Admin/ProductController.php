@@ -122,6 +122,7 @@ class ProductController extends Controller
 
     public function store(StoreRequest $request)
     {
+        $request->merge(["product" => array_merge($request->input("product", []), ["is_link_only" => $request->input("product.is_link_only") ? 1 : 0])]);
         DB::beginTransaction();
         try {
             $productData = $request->only(["product.name", "product.properties", "product.category_id", "product.delivery_type"]);
@@ -367,6 +368,7 @@ class ProductController extends Controller
 
     public function update(UpdateRequest $request, Product $product)
     {
+        $request->merge(["product" => array_merge($request->input("product", []), ["is_link_only" => $request->input("product.is_link_only") ? 1 : 0])]);
         DB::beginTransaction();
         try {
             $productData = $request->only(["product.name", "product.properties", "product.category_id", "product.delivery_type"]);

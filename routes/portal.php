@@ -46,6 +46,24 @@ Route::middleware(["logRequest", "updateLastSeen"])->group(function () {
         Route::post('/update-email', [AuthController::class, 'updateEmail'])->name('portal.auth.update_email');
         Route::post('/update-phone', [AuthController::class, 'updatePhone'])->name('portal.auth.update_phone');
     });
+    // PUBLIC GUEST GROUP - product browsing + basket (no auth required)
+    Route::name("portal.")->group(function () {
+        Route::group(['prefix' => 'products', 'as' => 'products.'], function () {
+            Route::get('/category/{productCategory}', [ProductController::class, 'index'])->name("index");
+            Route::get('/test-product', [ProductController::class, 'testProduct'])->name("testProduct");
+        });
+
+        Route::group(['prefix' => 'basket', 'as' => 'basket.'], function () {
+            Route::get('/', [BasketController::class, 'index'])->name("index");
+            Route::post('/apply-coupon', [BasketController::class, 'applyCoupon'])->name("applyCoupon");
+            Route::post('/remove-coupon', [BasketController::class, 'removeCoupon'])->name("removeCoupon");
+            Route::post('/add-to-basket/{price}', [BasketController::class, 'addToBasket'])->name("addToBasket");
+            Route::post('/remove-basket-item/{basketItem}', [BasketController::class, 'removeBasketItem'])->name("removeBasketItem");
+            Route::post('/copy-item-add-to-basket/{basketItem}', [BasketController::class, 'copyItemAddToBasket'])->name("copyItemAddToBasket");
+            Route::post('/change-period-to-basket/{basketItem}', [BasketController::class, 'changePeriodToBasket'])->name("changePeriodToBasket");
+        });
+    });
+
     Route::middleware(['auth', 'check.verified_email', 'check.identity', 'check.kyc', 'check.ban', 'check.verified_phone'])->name("portal.")->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard_');
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -86,18 +104,10 @@ Route::middleware(["logRequest", "updateLastSeen"])->group(function () {
             });
         });
 
+        // Basket payment requires authentication
         Route::group(['prefix' => 'basket', 'as' => 'basket.'], function () {
-            Route::get('/', [BasketController::class, 'index'])->name("index");
-            Route::post('/apply-coupon', [BasketController::class, 'applyCoupon'])->name("applyCoupon");
-            Route::post('/remove-coupon', [BasketController::class, 'removeCoupon'])->name("removeCoupon");
-            Route::post('/add-to-basket/{price}', [BasketController::class, 'addToBasket'])->name("addToBasket");
-            Route::post('/remove-basket-item/{basketItem}', [BasketController::class, 'removeBasketItem'])->name("removeBasketItem");
-            Route::post('/copy-item-add-to-basket/{basketItem}', [BasketController::class, 'copyItemAddToBasket'])->name("copyItemAddToBasket");
-            Route::post('/change-period-to-basket/{basketItem}', [BasketController::class, 'changePeriodToBasket'])->name("changePeriodToBasket");
-
             Route::get('/payment', [BasketController::class, 'payment'])->name("payment.index");
             Route::post('/payment', [BasketController::class, 'paymentPost'])->name("payment.post");
-
         });
 
         Route::group(['prefix' => 'my-products', 'as' => 'orders.'], function () {
@@ -169,10 +179,7 @@ Route::middleware(["logRequest", "updateLastSeen"])->group(function () {
             Route::post('/typing/{support}', [SupportController::class, 'typing'])->name('typing');
             Route::get('/poll/{support}', [SupportController::class, 'pollMessages'])->name('poll');
         });
-        Route::group(['prefix' => 'products', 'as' => 'products.'], function () {
-            Route::get('/category/{productCategory}', [ProductController::class, 'index'])->name("index");
-            Route::get('/test-product', [ProductController::class, 'testProduct'])->name("testProduct");
-        });
+// products moved to public group
 
         Route::group(['prefix' => 'balance', 'as' => 'balance.'], function () {
             Route::get('/', [BalanceController::class, 'index'])->name("index");

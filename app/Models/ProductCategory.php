@@ -32,6 +32,6 @@ class ProductCategory extends Model
 
     public function products(): HasMany
     {
-        return $this->hasMany(Product::class, "category_id", "id")->with("prices")->where(["is_active" => 1])->orderBy("sort_order")->orderBy("id");
+        return $this->hasMany(Product::class, "category_id", "id")->with("prices")->where(["is_active" => 1, "is_link_only" => 0])->orderBy("sort_order")->orderBy("id");
     }
 }

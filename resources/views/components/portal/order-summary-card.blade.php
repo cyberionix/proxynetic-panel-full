@@ -1,5 +1,5 @@
 @props([
-    "basket" => auth()->user()->basket
+    "basket" => auth()->user()?->basket ?? \App\Models\Basket::where("session_id", session()->getId())->whereNull("user_id")->first()
 ])
 <div class="card">
     <div class="card-header bg-light-primary">

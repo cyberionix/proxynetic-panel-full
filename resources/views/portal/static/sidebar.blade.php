@@ -12,6 +12,7 @@
                 </a>
             </div>
             <div class="d-flex flex-column justify-content-center">
+                @auth
                 <!--begin::User info-->
                 <div class="d-flex">
                     <div class="symbol symbol-50px me-3">
@@ -26,6 +27,19 @@
                     <!--end::Username-->
                 </div>
                 <!--end::User info-->
+                @endauth
+                @guest
+                <!--begin::Guest CTA-->
+                <div class="d-flex flex-column">
+                    <a href="{{route("portal.auth.login")}}" class="btn btn-sm btn-light-primary mb-2">
+                        <i class="fa fa-sign-in-alt me-2"></i>{{__("login")}}
+                    </a>
+                    <a href="{{route("portal.auth.register")}}" class="btn btn-sm btn-light-success">
+                        <i class="fa fa-user-plus me-2"></i>{{__("register")}}
+                    </a>
+                </div>
+                <!--end::Guest CTA-->
+                @endguest
             </div>
         </div>
         <!--end::Logo-->
@@ -59,7 +73,7 @@
                 <div class="separator"></div>
 
                 <!--begin::Menu Item-->
-                @if(!auth()->user()->block_test_products && \App\Models\Product::testProducts()->count() > 0)
+                @if(\App\Models\Product::testProducts()->count() > 0 && (!Auth::check() || !auth()->user()->block_test_products))
                     <div class="menu-item {{Route::is(["portal.products.testProduct"]) ? "hover" : ""}}">
                         <!--begin::Menu link-->
                         <a class="menu-link" href="{{route("portal.products.testProduct")}}">

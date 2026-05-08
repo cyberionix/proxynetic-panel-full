@@ -17,6 +17,7 @@ class UpdateLastSeen
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if (!\Illuminate\Support\Facades\Auth::check()) { return $next($request); }
         $ignoreRoute = [
             "portal.invoices.ajax",
             "portal.users.addresses.find",

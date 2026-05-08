@@ -168,7 +168,9 @@ License: For each use you must have a valid license purchased only from above li
     </div>
     <!--end::Modal dialog-->
 </div>
+@auth
 <x-portal.modals.create-support-modal/>
+@endauth
 <!--end::Modals-->
 <!--begin::Javascript-->
 <script>

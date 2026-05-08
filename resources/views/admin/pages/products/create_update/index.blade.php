@@ -53,6 +53,23 @@
                         </div>
                         <!--end::Status-->
 
+                        <!--begin::Link Only-->
+                        <div class="card card-flush py-4 mt-3">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <h2>{{__("Erişim")}}</h2>
+                                </div>
+                            </div>
+                            <div class="card-body pt-0">
+                                <div class="form-check form-switch form-check-custom form-check-solid">
+                                    <input class="form-check-input" type="checkbox" name="product[is_link_only]" value="1" id="product_is_link_only" {{ (isset($product) && $product->is_link_only) ? "checked" : "" }}>
+                                    <label class="form-check-label fw-semibold ms-3" for="product_is_link_only">{{__("Sadece linkle erişilebilir")}}</label>
+                                </div>
+                                <div class="text-muted fs-7 mt-2">{{__("Açık olduğunda ürün kategori listesinde gözükmez, yalnızca direkt URL ile açılabilir.")}}</div>
+                            </div>
+                        </div>
+                        <!--end::Link Only-->
+
                         <!--begin::Category & tags-->
                         <div class="card card-flush py-4">
                             <!--begin::Card header-->
