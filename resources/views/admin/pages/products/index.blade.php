@@ -124,19 +124,19 @@
                     var tbody = document.querySelector('#dataTable tbody');
                     if (!tbody || tbody.dataset.sortableAttached) return;
                     tbody.dataset.sortableAttached = '1';
-                    // Make rows look draggable
-                    tbody.querySelectorAll('tr').forEach(function(tr){
-                        tr.style.cursor = 'move';
-                    });
                     Sortable.create(tbody, {
                         animation: 150,
+                        handle: '.product-row-handle',
                         ghostClass: 'sortable-ghost',
                         chosenClass: 'sortable-chosen',
                         onEnd: function(){
                             var ids = [];
-                            tbody.querySelectorAll('tr').forEach(function(tr){
+                            tbody.querySelectorAll('tr').forEach(function(tr, i){
                                 var span = tr.querySelector('td:first-child span[data-id]');
-                                if (span) ids.push(span.getAttribute('data-id'));
+                                if (span) {
+                                    ids.push(span.getAttribute('data-id'));
+                                    span.textContent = (i + 1); // refresh visible position
+                                }
                             });
                             if (!ids.length) return;
                             $.ajax({

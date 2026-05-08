@@ -82,7 +82,7 @@ class ProductController extends Controller
             }
 
             $data[] = [
-                "<span data-id='" . $item->id . "'>" . $item->id . "</span>",
+                "<div class='d-flex align-items-center'><span class='product-row-handle me-3' style='cursor:grab; user-select:none; font-size:18px; color:#a1a5b7;' title='Sürüklemek için tutun'>&#9776;</span><span data-id='" . $item->id . "' class='product-pos fw-semibold'>" . ($item->sort_order ?: $item->id) . "</span></div>",
                 $item->name,
                 $test_html,
                 '<a href="#" class="btn btn-sm btn-light btn-flex btn-center btn-active-light-primary" data-kt-menu-trigger="click" data-kt-menu-placement="bottom-end">' . __("actions") . '
