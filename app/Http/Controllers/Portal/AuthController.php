@@ -48,7 +48,9 @@ class AuthController extends Controller
         if ($connect){
             $user = $this->googleAuthService->getUser();
             if ($user instanceof User) {
+                $guestSid = session()->getId();
                 Auth::login($user);
+                $this->mergeGuestBasket($guestSid);
                 return redirect()->route("portal.dashboard");
             }
 
@@ -72,13 +74,15 @@ class AuthController extends Controller
             if ($user->is_banned) return $this->errorResponse("Giriş yapılamıyor. Hesabınız yasaklanmıştır.");
 
             $intendedUrl = redirect()->intended(route("portal.dashboard"))->getTargetUrl();
+            $guestSid = session()->getId();
 
             if (Auth::attempt($request->only('email', 'password'))) {
+                $this->mergeGuestBasket($guestSid);
                 $request->session()->regenerate();
                 return $this->successResponse(__('login_successful').' '.__('redirecting'), ["redirectUrl" => $intendedUrl]);
             }else{
                 if (Auth::attempt(['email' => $user->email, 'password' => $request->password])) {
-                $this->mergeGuestBasket();
+                    $this->mergeGuestBasket($guestSid);
                     $request->session()->regenerate();
                     return $this->successResponse(__('login_successful').' '.__('redirecting'), ["redirectUrl" => $intendedUrl]);
                 }
@@ -105,7 +109,9 @@ class AuthController extends Controller
 
             $save = $user->save();
             if ($save) {
+                $guestSid = session()->getId();
                 Auth::login($user);
+                $this->mergeGuestBasket($guestSid);
                 \App\Services\NotificationTemplateService::send('welcome', $user);
                 return $this->successResponse(__('your_account_has_been_successfully_created'),['redirectUrl' => route('portal.dashboard')]);
             }
@@ -142,7 +148,9 @@ class AuthController extends Controller
 
         $verify = $user->verifyEmailOTP($code);
         if ($verify){
+            $guestSid = session()->getId();
             Auth::login($user);
+            $this->mergeGuestBasket($guestSid);
             return redirect()->route("portal.dashboard")->with("success", "Merhaba ". $user->full_name . ", e-posta hesabınız doğrulandı.");
         }
 
@@ -300,7 +308,9 @@ class AuthController extends Controller
         if ($verify){
             $user->password = $request->new_password;
             if ($user->save()){
+                $guestSid = session()->getId();
                 Auth::login($user);
+                $this->mergeGuestBasket($guestSid);
                 return $this->successResponse("Parola başarıyla sıfırlandı.", ["redirectUrl" => route("portal.dashboard")]);
             }
             return $this->errorResponse("Parola kayıt sırasında bir sorun oluştu.");
@@ -309,11 +319,12 @@ class AuthController extends Controller
     }
 
     /**
-     * After successful login, merge any guest session basket items into the user's basket.
+     * After successful login/register, merge any guest session basket items into the user's basket.
+     * Pass oldSessionId if session was already regenerated.
      */
-    protected function mergeGuestBasket(): void
+    protected function mergeGuestBasket(?string $oldSessionId = null): void
     {
-        $sid = session()->getId();
+        $sid = $oldSessionId ?? session()->getId();
         $guestBasket = \App\Models\Basket::where("session_id", $sid)->whereNull("user_id")->first();
         if (!$guestBasket) return;
         $userBasket = \App\Models\Basket::firstOrCreate(["user_id" => \Illuminate\Support\Facades\Auth::id()]);
