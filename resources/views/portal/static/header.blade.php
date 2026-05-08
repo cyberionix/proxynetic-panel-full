@@ -30,7 +30,7 @@
             </div>
             <!--end::Page title-->
             <!--begin::Action-->
-            <div class="row gap-3">
+            <div class="row gap-3 flex-nowrap">
                 @auth
                 <!--begin::Notifications-->
                 <div id="header-notifications-area" class="col d-flex align-items-center"
@@ -128,15 +128,13 @@
                 @endauth
                 @guest
                 <!--begin::Login/Register-->
-                <a href="{{route("portal.auth.login")}}"
-                   class="position-relative d-flex flex-center gap-2 h-30px h-md-40px np-guest-login">
-                    <i class="fa fa-sign-in-alt"></i>
-                    <span class="text-nowrap d-none d-md-inline">{{__("login")}}</span>
+                <a href="{{route("portal.auth.login")}}" class="np-guest-login d-flex align-items-center gap-2 h-30px h-md-40px px-3 rounded fw-semibold text-nowrap">
+                    <i class="fa fa-sign-in-alt fs-6"></i>
+                    <span class="d-none d-md-inline">{{__("login")}}</span>
                 </a>
-                <a href="{{route("portal.auth.register")}}"
-                   class="position-relative d-flex flex-center gap-2 h-30px h-md-40px np-guest-register">
-                    <i class="fa fa-user-plus"></i>
-                    <span class="text-nowrap d-none d-md-inline">{{__("register")}}</span>
+                <a href="{{route("portal.auth.register")}}" class="np-guest-register d-flex align-items-center gap-2 h-30px h-md-40px px-3 rounded fw-semibold text-nowrap">
+                    <i class="fa fa-user-plus fs-6"></i>
+                    <span class="d-none d-md-inline">{{__("register")}}</span>
                 </a>
                 <!--end::Login/Register-->
                 @endguest
@@ -245,18 +243,13 @@
 <style>
     .np-guest-login,
     .np-guest-register {
-        min-width: 130px;
-        padding: 0 16px;
-        border-radius: 8px;
         font-size: 13px;
-        font-weight: 600;
         text-decoration: none !important;
         white-space: nowrap;
-        transition: all 0.18s ease;
         cursor: pointer;
+        transition: all 0.18s ease;
         line-height: 1;
     }
-    /* Login = solid white outline button */
     .np-guest-login {
         background: #ffffff;
         color: #009ef7 !important;
@@ -265,30 +258,25 @@
     .np-guest-login:hover {
         background: #009ef7;
         color: #ffffff !important;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 14px rgba(0, 158, 247, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 158, 247, 0.28);
     }
-    /* Register = solid green CTA */
     .np-guest-register {
         background: linear-gradient(135deg, #50cd89 0%, #47be7d 100%);
         color: #ffffff !important;
         border: 2px solid transparent;
-        box-shadow: 0 3px 10px rgba(80, 205, 137, 0.28);
+        box-shadow: 0 2px 8px rgba(80, 205, 137, 0.25);
     }
     .np-guest-register:hover {
         background: linear-gradient(135deg, #47be7d 0%, #3aaf6d 100%);
         color: #ffffff !important;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(80, 205, 137, 0.45);
+        box-shadow: 0 5px 14px rgba(80, 205, 137, 0.4);
     }
-    .np-guest-login i, .np-guest-register i { font-size: 14px; }
     @media (max-width: 768px) {
         .np-guest-login, .np-guest-register {
-            min-width: 38px;
-            width: 38px !important;
-            padding: 0;
+            padding: 0 8px !important;
+            font-size: 11px;
         }
-        .np-guest-login i, .np-guest-register i { font-size: 16px; }
+        .np-guest-login span, .np-guest-register span { display: none !important; }
     }
 </style>
 @endpush
