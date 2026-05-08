@@ -112,6 +112,56 @@
                 t.search(e.target.value).draw();
             }));
 
+            $(document).on("click", ".cloneBtn", function () {
+                let id = $(this).closest("tr").find("td:first span").data("id");
+                let url = `{{ route('admin.products.clone', ['product' => '__pid__']) }}`.replace('__pid__', id);
+                Swal.fire({
+                    icon: 'question',
+                    title: 'Ürünü Klonla',
+                    text: 'Bu ürünün bir kopyası oluşturulacak ve düzenleme sayfasına yönlendirileceksiniz. Devam edilsin mi?',
+                    showConfirmButton: 1,
+                    showCancelButton: 1,
+                    cancelButtonText: "{{__('close')}}",
+                    confirmButtonText: 'Evet, klonla',
+                }).then((result) => {
+                    if (result.isConfirmed === true) {
+                        $.ajax({
+                            type: "POST",
+                            url: url,
+                            dataType: "json",
+                            data: { _token: "{{csrf_token()}}" },
+                            success: function (res) {
+                                if (res && res.success === true) {
+                                    Swal.fire({
+                                        title: "{{__('success')}}",
+                                        text: 'Ürün klonlandı. Düzenleme sayfasına yönlendiriliyorsunuz...',
+                                        icon: 'success',
+                                        timer: 1500,
+                                        showConfirmButton: false,
+                                    }).then(() => {
+                                        if (res.data && res.data.redirect) {
+                                            window.location.href = res.data.redirect;
+                                        } else {
+                                            t.draw();
+                                        }
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        title: "{{__('error')}}",
+                                        text: res.message || "{{__('form_has_errors')}}",
+                                        icon: 'error',
+                                    });
+                                }
+                            },
+                            error: function (xhr) {
+                                let msg = (xhr.responseJSON && xhr.responseJSON.message) || ('Hata: ' + xhr.status);
+                                Swal.fire({ title: "{{__('error')}}", text: msg, icon: 'error' });
+                            }
+                        });
+                    }
+                });
+            });
+
             $(document).on("click", ".deleteBtn", function () {
                 let id = $(this).closest("tr").find("td:first span").data("id");
                 let url = `{{ route('admin.products.destroy', ['product' => '__book_placeholder__']) }}`;

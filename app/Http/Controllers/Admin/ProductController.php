@@ -92,6 +92,9 @@ class ProductController extends Controller
                                             <a href="' . route('admin.products.edit', ['product' => $item->id]) . '" class="menu-link px-3 editBtn">' . __("edit") . '</a>
                                         </div>
                                         <div class="menu-item px-3">
+                                            <a href="javascript:void(0);" class="menu-link px-3 cloneBtn">Klonla</a>
+                                        </div>
+                                        <div class="menu-item px-3">
                                             <a href="javascript:void(0);" class="menu-link px-3 deleteBtn">' . __("delete") . '</a>
                                         </div>
                                     </div>
@@ -835,6 +838,36 @@ class ProductController extends Controller
                 'pproxyu_days' => $days,
             ],
         ];
+    }
+
+
+    public function clone(Product $product)
+    {
+        DB::beginTransaction();
+        try {
+            // Replicate the product (all attributes except id, timestamps)
+            $newProduct = $product->replicate();
+            $newProduct->name = $product->name . ' (Kopya)';
+            $newProduct->is_active = 0; // start as inactive so admin can edit before publishing
+            $newProduct->push();
+
+            // Replicate prices
+            foreach ($product->prices as $price) {
+                $np = $price->replicate();
+                $np->product_id = $newProduct->id;
+                $np->push();
+            }
+
+            DB::commit();
+            return $this->successResponse(__("success"), [
+                "id" => $newProduct->id,
+                "redirect" => route("admin.products.edit", ["product" => $newProduct->id]),
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \Illuminate\Support\Facades\Log::error("PRODUCT_CLONE_FAIL", ["error" => $e->getMessage(), "product_id" => $product->id]);
+            return $this->errorResponse("Klonlama başarısız: " . $e->getMessage());
+        }
     }
 
     public function destroy(Product $product)
