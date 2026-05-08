@@ -44,8 +44,8 @@
                                         </button>
                                     </td>
                                     <td>
-                                        <div class="fw-bold fs-5 text-gray-900">{!! $item->is_test_product ? '<i class="fa fa-star text-warning fs-2"></i>' : '' !!}{{$item->product->name}}</div>
-                                        <div class="badge badge-primary">{{$item->product->category->name}}</div>
+                                        <div class="fw-bold fs-5 text-gray-900">{!! $item->is_test_product ? '<i class="fa fa-star text-warning fs-2"></i>' : '' !!}{{$item->product?->name ?? "(silinmiş ürün)"}}</div>
+                                        <div class="badge badge-primary">{{$item->product?->category?->name ?? "-"}}</div>
                                         @if($item->additional_services)
                                             <div class="mt-7 fs-6 ms-1">
                                                 @foreach($item->additional_services as $name => $value)

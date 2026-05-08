@@ -23,6 +23,7 @@ class BasketController extends Controller
     public function index()
     {
         $basket = Auth::user()->basket;
+        if ($basket) { $basket->items()->whereDoesntHave("product")->delete(); }
         return view("portal.pages.basket.index", compact("basket"));
     }
 
@@ -96,6 +97,7 @@ class BasketController extends Controller
     public function addToBasket(Price $price, Request $request)
     {
         $price->load("product");
+        if (!$price->product) { return $this->errorResponse("Bu ürün artık mevcut değil."); }
 
         $test_products = Product::testProducts();
         $test_products = $test_products->filter(function ($item) {
