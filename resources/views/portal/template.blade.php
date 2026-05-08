@@ -45,6 +45,46 @@ License: For each use you must have a valid license purchased only from above li
             background-color: #187ff8 !important
         }
     </style>
+    <!-- Guest CTA buttons CSS -->
+    <style>
+        .np-guest-login,
+        .np-guest-register {
+            font-size: 13px;
+            text-decoration: none !important;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            line-height: 1;
+        }
+        .np-guest-login {
+            background: #ffffff;
+            color: #009ef7 !important;
+            border: 2px solid #009ef7;
+        }
+        .np-guest-login:hover {
+            background: #009ef7;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(0, 158, 247, 0.28);
+        }
+        .np-guest-register {
+            background: linear-gradient(135deg, #50cd89 0%, #47be7d 100%);
+            color: #ffffff !important;
+            border: 2px solid transparent;
+            box-shadow: 0 2px 8px rgba(80, 205, 137, 0.25);
+        }
+        .np-guest-register:hover {
+            background: linear-gradient(135deg, #47be7d 0%, #3aaf6d 100%);
+            color: #ffffff !important;
+            box-shadow: 0 5px 14px rgba(80, 205, 137, 0.4);
+        }
+        @media (max-width: 768px) {
+            .np-guest-login, .np-guest-register {
+                padding: 0 8px !important;
+                font-size: 11px;
+            }
+            .np-guest-login span, .np-guest-register span { display: none !important; }
+        }
+    </style>
     @yield("css")
     @stack('css')
 
