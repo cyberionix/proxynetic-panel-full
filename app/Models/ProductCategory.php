@@ -15,10 +15,10 @@ class ProductCategory extends Model
 
     protected $guarded = [];
 
-//    public function parent(): HasOne
-//    {
-//        return $this->hasOne(ProductCategory::class, "id", "parent_id");
-//    }
+    public function parent(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(ProductCategory::class, "parent_id", "id");
+    }
 
     protected static function booted()
     {

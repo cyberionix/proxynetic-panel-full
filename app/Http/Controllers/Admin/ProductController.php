@@ -63,7 +63,7 @@ class ProductController extends Controller
         $start = $request->start ?? 0;
         $length = $request->length == -1 ? 10 : $request->length;
 
-        $query = Product::select('products.*')->leftJoin('product_categories', 'products.category_id', '=', 'product_categories.id')->with('category')
+        $query = Product::select('products.*')->leftJoin('product_categories', 'products.category_id', '=', 'product_categories.id')->with('category.parent')
             ->whereRaw($whereSearch)
             ->orderByRaw($orderBy);
         $countFilteredRecords = $query->count();
@@ -85,7 +85,7 @@ class ProductController extends Controller
             $data[] = [
                 "<div class='d-flex align-items-center'><span class='product-row-handle me-3' style='cursor:grab; user-select:none; font-size:18px; color:#a1a5b7;' title='Sürüklemek için tutun'>&#9776;</span><span data-id='" . $item->id . "' class='product-pos fw-semibold'>" . ($item->sort_order ?: $item->id) . "</span></div>",
                 $item->name,
-                "<span class='product-category-name badge badge-light-primary'>" . ($item->category ? e($item->category->name) : '-') . "</span>",
+                "<div class='d-flex flex-column gap-1'>". ($item->category && $item->category->parent ? "<span class='badge badge-light-info'>" . e($item->category->parent->name) . "</span>" : ""). "<span class='product-category-name badge badge-light-primary'>" . ($item->category ? e($item->category->name) : '-') . "</span>". "</div>",
                 $test_html,
                 '<a href="#" class="btn btn-sm btn-light btn-flex btn-center btn-active-light-primary" data-kt-menu-trigger="click" data-kt-menu-placement="bottom-end">' . __("actions") . '
                                         <i class="ki-duotone ki-down fs-5 ms-1"></i></a>
