@@ -113,6 +113,11 @@ class AuthController extends Controller
                 Auth::login($user);
                 $this->mergeGuestBasket($guestSid);
                 \App\Services\NotificationTemplateService::send('welcome', $user);
+                // First-checkout flow: redirect to payment if basket has items
+                $basket = \App\Models\Basket::where('user_id', $user->id)->first();
+                if ($basket && $basket->items()->count() > 0) {
+                    return $this->successResponse(__('your_account_has_been_successfully_created'),['redirectUrl' => route('portal.basket.payment.index')]);
+                }
                 return $this->successResponse(__('your_account_has_been_successfully_created'),['redirectUrl' => route('portal.dashboard')]);
             }
         } catch (\Exception $exception) {

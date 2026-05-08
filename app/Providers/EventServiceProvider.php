@@ -40,6 +40,7 @@ class EventServiceProvider extends ServiceProvider
 
         ],
         CheckoutConfirmed::class => [
+            \App\Listeners\TriggerVerificationOnFirstCheckout::class,
             ProcessInvoiceItemsWhenCheckout::class,
         ],
         MessageSent::class => [
