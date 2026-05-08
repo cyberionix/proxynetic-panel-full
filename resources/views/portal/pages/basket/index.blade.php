@@ -7,9 +7,6 @@
             pointer-events: none;
         }
     </style>
-@guest
-<x-portal.modals.guest-checkout-modal/>
-@endguest
 @endsection
 @section("breadcrumb")
     <x-portal.bread-crumb :data="__('my_basket')"/>
@@ -125,6 +122,9 @@
             @endif
         </div>
     </div>
+@guest
+<x-portal.modals.guest-checkout-modal/>
+@endguest
 @endsection
 @section("js")
     <script>
