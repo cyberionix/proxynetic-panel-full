@@ -12,7 +12,23 @@
     <x-portal.bread-crumb :data="__('my_basket')"/>
 @endsection
 @section("master")
-    <div class="row">
+    {{-- Loading overlay --}}
+    <div id="checkoutLoader" style="display:none; position:fixed; inset:0; background:rgba(255,255,255,0.92); z-index:9999; align-items:center; justify-content:center;">
+        <div class="text-center">
+            <div class="spinner-border text-primary" style="width:4rem; height:4rem;" role="status"></div>
+            <h3 class="mt-4 fw-bold">{{__("Sipariş Tamamlanıyor")}}</h3>
+            <p class="text-muted">{{__("Lütfen bekleyin")}}...</p>
+        </div>
+    </div>
+
+    {{-- Inline register/login section (hidden by default for guests) --}}
+    @guest
+    <div id="checkoutAuthSection" style="display:none;">
+        <x-portal.modals.guest-checkout-modal/>
+    </div>
+    @endguest
+
+    <div id="cartView" class="row">
         <div class="col-xl-8">
             <div class="card">
                 <div class="card-header bg-light-primary">
@@ -117,14 +133,11 @@
                 <a href="{{route("portal.basket.payment.index")}}" class="btn btn-primary w-100 mt-6">{{__("confirm_basket")}} <i class="fa fa-chevron-right fs-4"></i></a>
                 @endauth
                 @guest
-                <button type="button" class="btn btn-primary w-100 mt-6" data-bs-toggle="modal" data-bs-target="#guestCheckoutModal">{{__("confirm_basket")}} <i class="fa fa-chevron-right fs-4"></i></button>
+                <button type="button" id="confirmBasketBtn" class="btn btn-primary w-100 mt-6">{{__("confirm_basket")}} <i class="fa fa-chevron-right fs-4"></i></button>
                 @endguest
             @endif
         </div>
     </div>
-@guest
-<x-portal.modals.guest-checkout-modal/>
-@endguest
 @endsection
 @section("js")
     <script>

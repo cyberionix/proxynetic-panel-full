@@ -1,12 +1,14 @@
-<!--begin::Guest Checkout Modal-->
-<div class="modal fade" id="guestCheckoutModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable mw-500px">
-        <div class="modal-content rounded-4">
-            <div class="modal-header border-0 py-4">
+<!--begin::Inline Checkout Auth Card-->
+<div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-8 col-xl-6">
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-header border-0 pt-6 pb-2 d-flex justify-content-between align-items-center">
                 <h2 class="fw-bold m-0">{{__("Siparişi Tamamla")}}</h2>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" id="cancelCheckoutBtn" class="btn btn-sm btn-light fw-semibold">
+                    <i class="fa fa-arrow-left me-2"></i>{{__("Sepete Dön")}}
+                </button>
             </div>
-            <div class="modal-body pt-0">
+            <div class="card-body pt-2">
                 <p class="text-muted fs-6 mb-5">{{__("Devam etmek için kayıt olun veya giriş yapın. E-posta ve telefon doğrulama ödeme sonrasında istenecektir.")}}</p>
 
                 <ul class="nav nav-tabs nav-line-tabs nav-line-tabs-2x mb-5 fs-6" id="guestCheckoutTabs">
@@ -91,7 +93,7 @@
         </div>
     </div>
 </div>
-<!--end::Guest Checkout Modal-->
+<!--end::Inline Checkout Auth Card-->
 
 @push('js')
 <script>
@@ -108,7 +110,6 @@
         var btn = document.getElementById(btnId);
         if (!form || !btn) return;
         var fd = new FormData(form);
-        // Disable button
         btn.disabled = true;
         var label = btn.querySelector('.indicator-label');
         var progress = btn.querySelector('.indicator-progress');
@@ -119,19 +120,20 @@
             method: 'POST',
             body: fd,
             credentials: 'same-origin',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            headers: {'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}
         })
-        .then(function(r) { return r.json().then(function(d) { return {status: r.status, body: d}; }); })
+        .then(function(r) { return r.json().then(function(d) { return {status:r.status, body:d}; }); })
         .then(function(o) {
             var d = o.body;
             if (d && d.success) {
-                window.location.href = d.redirectUrl || FALLBACK_REDIRECT;
+                // Show loader, then redirect
+                var loader = document.getElementById('checkoutLoader');
+                if (loader) loader.style.display = 'flex';
+                setTimeout(function() {
+                    window.location.href = d.redirectUrl || FALLBACK_REDIRECT;
+                }, 600);
                 return;
             }
-            // Re-enable button on error
             btn.disabled = false;
             if (label) label.style.display = '';
             if (progress) progress.style.display = 'none';
@@ -151,12 +153,45 @@
         });
     }
 
+    function showCheckoutAuth() {
+        var loader = document.getElementById('checkoutLoader');
+        var cart = document.getElementById('cartView');
+        var auth = document.getElementById('checkoutAuthSection');
+        if (loader) loader.style.display = 'flex';
+        setTimeout(function() {
+            if (cart) cart.style.display = 'none';
+            if (auth) auth.style.display = 'block';
+            if (loader) loader.style.display = 'none';
+            // Scroll to top of auth
+            if (auth) auth.scrollIntoView({behavior:'smooth', block:'start'});
+        }, 800);
+    }
+
+    function showCart() {
+        var cart = document.getElementById('cartView');
+        var auth = document.getElementById('checkoutAuthSection');
+        if (auth) auth.style.display = 'none';
+        if (cart) cart.style.display = '';
+    }
+
     function attachWhenReady() {
+        var confirmBtn = document.getElementById('confirmBasketBtn');
+        if (confirmBtn) confirmBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            showCheckoutAuth();
+        });
+
+        var cancelBtn = document.getElementById('cancelCheckoutBtn');
+        if (cancelBtn) cancelBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            showCart();
+        });
+
         var rb = document.getElementById('guestRegisterSubmit');
         var lb = document.getElementById('guestLoginSubmit');
         if (rb) rb.addEventListener('click', function(e) { e.preventDefault(); gcSubmit('guestRegisterForm', 'guestRegisterSubmit'); });
         if (lb) lb.addEventListener('click', function(e) { e.preventDefault(); gcSubmit('guestLoginForm', 'guestLoginSubmit'); });
-        // Also support Enter key inside form
+
         ['guestRegisterForm','guestLoginForm'].forEach(function(fid) {
             var f = document.getElementById(fid);
             if (f) f.addEventListener('submit', function(e) {
