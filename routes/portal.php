@@ -51,6 +51,7 @@ Route::middleware(["logRequest", "updateLastSeen"])->group(function () {
         Route::group(['prefix' => 'products', 'as' => 'products.'], function () {
             Route::get('/category/{productCategory}', [ProductController::class, 'index'])->name("index");
             Route::get('/test-product', [ProductController::class, 'testProduct'])->name("testProduct");
+            Route::get('/{product}', [ProductController::class, 'show'])->name("show");
         });
 
         Route::group(['prefix' => 'basket', 'as' => 'basket.'], function () {
