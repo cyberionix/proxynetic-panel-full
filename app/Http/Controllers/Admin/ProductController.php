@@ -630,6 +630,7 @@ class ProductController extends Controller
             $pendingOrders = Order::whereStatus("PENDING")->get();
             foreach ($pendingOrders as $order){
                 if ($order?->activeDetail?->checkout?->status != "COMPLETED") continue;
+                if (!$order->product) continue; // skip orders referencing deleted products
 
                 $localtonetFamily = ['LOCALTONET', 'LOCALTONETV4'];
                 $allSpecialTypes = ['LOCALTONET', 'LOCALTONETV4', 'THREEPROXY', 'LOCALTONET_ROTATING', 'PPROXY', 'PPROXYU'];
