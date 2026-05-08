@@ -52,6 +52,7 @@
                             <tr class="text-start text-gray-500 fw-bold fs-6 gs-0">
                                 <th class="min-w-70px">#</th>
                                 <th class="min-w-125px">{{__("product")}}</th>
+                                <th class="min-w-125px product-category-th">{{__("category")}}</th>
                                 <th class="min-w-125px">{{__("Test Ürünü")}}</th>
                                 <th class="min-w-70px"></th>
                             </tr>
@@ -89,10 +90,13 @@
                         orderable: !0, targets: 1
                     },
                     {
-                        orderable: !1, targets: 2
+                        orderable: !0, targets: 2
                     },
                     {
                         orderable: !1, targets: 3
+                    },
+                    {
+                        orderable: !1, targets: 4
                     }
                 ],
                 "processing": true,
