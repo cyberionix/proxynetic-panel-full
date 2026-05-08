@@ -153,12 +153,7 @@ class BasketController extends Controller
                 return $this->errorResponse('Geçersiz istek.');
                 DB::rollBack();
             }
-            $basket = $this->currentBasket();
-            if (!$basket) {
-                $basket = Basket::create([
-                    "user_id" => Auth::id()
-                ]);
-            }
+            $basket = $this->currentBasket(true);
 
             /* start::SERVICE VALIDATE*/
             $serviceNames = collect($price->product->attrs)->pluck("name")->toArray();

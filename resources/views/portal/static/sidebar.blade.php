@@ -53,6 +53,7 @@
              data-kt-scroll-wrappers="#kt_app_sidebar_navs" data-kt-scroll-offset="5px">
             <!--begin::Projects-->
             <div class="menu menu-rounded menu-column">
+                @auth
                 <!--begin::Menu Item-->
                 <div class="menu-item {{Route::is("portal.dashboard") ? "hover" : ""}}">
                     <!--begin::Menu link-->
@@ -69,6 +70,7 @@
                     <!--end::Menu link-->
                 </div>
                 <!--end::Menu Item-->
+                @endauth
                 <!-- start::CATEGORIES -->
                 <div class="separator"></div>
 
@@ -120,6 +122,7 @@
                         @endforeach
                     </div><!--end:Menu sub--></div>
                 <!-- end::CATEGORIES -->
+                @auth
                 <!--begin::Menu Item-->
                 <div class="menu-item {{Route::is(["portal.orders.index"]) ? "hover" : ""}}">
                     <!--begin::Menu link-->
@@ -136,6 +139,8 @@
                     <!--end::Menu link-->
                 </div>
                 <!--end::Menu Item-->
+                @endauth
+                @auth
                 <!--begin::Menu Item-->
                 <div class="menu-item {{Route::is(["portal.invoices.index","portal.invoices.show"]) ? "hover" : ""}}">
                     <!--begin::Menu link-->
@@ -152,6 +157,8 @@
                     <!--end::Menu link-->
                 </div>
                 <!--end::Menu Item-->
+                @endauth
+                @auth
                 <!--begin::Menu Item-->
                 <div class="menu-item {{Route::is(["portal.supports.index"]) ? "hover" : ""}}">
                     <!--begin::Menu link-->
@@ -168,6 +175,8 @@
                     <!--end::Menu link-->
                 </div>
                 <!--end::Menu Item-->
+                @endauth
+                @auth
                 <!--begin::Menu Item-->
                 <div class="menu-item">
                     <!--begin::Menu link-->
@@ -184,6 +193,8 @@
                     <!--end::Menu link-->
                 </div>
                 <!--end::Menu Item-->
+                @endauth
+                @auth
                 <div class="separator"></div>
                 <!--begin::Heading-->
                 <div class="menu-item">
@@ -222,6 +233,7 @@
                     <!--end::Menu link-->
                 </div>
                 <!--end::Menu Item-->
+                @endauth
             </div>
             <!--end::Projects-->
         </div>
