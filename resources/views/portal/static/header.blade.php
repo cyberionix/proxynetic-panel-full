@@ -30,7 +30,7 @@
             </div>
             <!--end::Page title-->
             <!--begin::Action-->
-            <div class="row gap-3 flex-nowrap">
+            <div class="d-flex align-items-center gap-2">
                 @auth
                 <!--begin::Notifications-->
                 <div id="header-notifications-area" class="col d-flex align-items-center"

@@ -49,7 +49,15 @@ License: For each use you must have a valid license purchased only from above li
     <style>
         .np-guest-login,
         .np-guest-register {
-            font-size: 13px;
+            display: inline-flex !important;
+            align-items: center;
+            gap: 6px;
+            flex: 0 0 auto !important;
+            height: 32px;
+            padding: 0 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
             text-decoration: none !important;
             white-space: nowrap;
             cursor: pointer;
@@ -57,32 +65,42 @@ License: For each use you must have a valid license purchased only from above li
             line-height: 1;
         }
         .np-guest-login {
-            background: #ffffff;
-            color: #009ef7 !important;
-            border: 2px solid #009ef7;
+            background: transparent;
+            color: #5e6278 !important;
+            border: 1px solid #e1e3ea;
         }
         .np-guest-login:hover {
-            background: #009ef7;
-            color: #ffffff !important;
-            box-shadow: 0 4px 12px rgba(0, 158, 247, 0.28);
+            background: #f5f8fa;
+            color: #009ef7 !important;
+            border-color: #009ef7;
         }
         .np-guest-register {
-            background: linear-gradient(135deg, #50cd89 0%, #47be7d 100%);
+            background: #50cd89;
             color: #ffffff !important;
-            border: 2px solid transparent;
-            box-shadow: 0 2px 8px rgba(80, 205, 137, 0.25);
+            border: 1px solid #50cd89;
         }
         .np-guest-register:hover {
-            background: linear-gradient(135deg, #47be7d 0%, #3aaf6d 100%);
+            background: #47be7d;
             color: #ffffff !important;
-            box-shadow: 0 5px 14px rgba(80, 205, 137, 0.4);
+            border-color: #47be7d;
         }
-        @media (max-width: 768px) {
+        .np-guest-login i, .np-guest-register i {
+            font-size: 13px;
+        }
+        @media (min-width: 992px) {
             .np-guest-login, .np-guest-register {
-                padding: 0 8px !important;
-                font-size: 11px;
+                height: 36px;
+                padding: 0 16px;
+                font-size: 13px;
             }
+        }
+        @media (max-width: 575px) {
             .np-guest-login span, .np-guest-register span { display: none !important; }
+            .np-guest-login, .np-guest-register {
+                padding: 0 10px;
+                width: 32px;
+                justify-content: center;
+            }
         }
     </style>
     @yield("css")
