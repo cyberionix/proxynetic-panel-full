@@ -24,27 +24,66 @@ class PublicProxyController extends Controller
         $duration = (int)$request->input("duration_days", 30);
 
         $result = $svc->findOrCreateForOrder($type, $qty, $duration);
+
+        // Browser-mode (no JSON requested): redirect to product page on error/success
+        $expectsJson = $request->expectsJson() || $request->input("format") === "json";
+
         if (isset($result["error"])) {
-            return $this->errorResponse($result["error"]);
+            if ($expectsJson) return $this->errorResponse($result["error"]);
+            // For browser flow, redirect to the dashboard/home with error flash
+            return redirect()->route("portal.auth.login")->with("error", $result["error"]);
         }
 
         $product = $result["product"];
         $price = $result["price"];
 
-        // Add to current basket via BasketController#addToBasket logic — simplest is redirect to addToBasket route
-        $addUrl = route("portal.basket.addToBasket", ["price" => $price->id]);
+        if ($expectsJson) {
+            return $this->successResponse(__("success"), [
+                "redirect_url" => route("portal.products.show", ["product" => $product->id]),
+                "add_to_basket_url" => route("portal.basket.addToBasket", ["price" => $price->id]),
+                "product_id" => $product->id,
+                "price_id" => $price->id,
+                "total" => $result["total"],
+                "tier" => [
+                    "min" => $result["tier"]->min_quantity,
+                    "max" => $result["tier"]->max_quantity,
+                    "per_unit" => (float)$result["tier"]->price_per_unit,
+                ],
+            ]);
+        }
 
-        return $this->successResponse(__("success"), [
-            "redirect_url" => route("portal.products.show", ["product" => $product->id]),
-            "add_to_basket_url" => $addUrl,
-            "product_id" => $product->id,
+        // Browser mode: add to basket directly via service, then redirect
+        try {
+            $this->addItemToBasket($price);
+        } catch (\Throwable $e) {
+            \Log::warning("AUTO_PURCHASE_BASKET_ADD_FAIL", ["err" => $e->getMessage()]);
+        }
+
+        return redirect()->route("portal.basket.index");
+    }
+
+    /**
+     * Add an item to the current basket (auth user or guest session).
+     */
+    protected function addItemToBasket(\App\Models\Price $price): void
+    {
+        $sid = session()->getId();
+        if (\Illuminate\Support\Facades\Auth::check()) {
+            $basket = \App\Models\Basket::firstOrCreate(["user_id" => \Illuminate\Support\Facades\Auth::id()]);
+        } else {
+            $basket = \App\Models\Basket::firstOrCreate([
+                "session_id" => $sid,
+                "user_id" => null,
+            ]);
+        }
+        // Avoid duplicate
+        $exists = $basket->items()->where("price_id", $price->id)->exists();
+        if ($exists) return;
+        \App\Models\BasketItem::create([
+            "basket_id" => $basket->id,
+            "product_id" => $price->product_id,
             "price_id" => $price->id,
-            "total" => $result["total"],
-            "tier" => [
-                "min" => $result["tier"]->min_quantity,
-                "max" => $result["tier"]->max_quantity,
-                "per_unit" => (float)$result["tier"]->price_per_unit,
-            ],
+            "is_test_product" => 0,
         ]);
     }
 
