@@ -10,6 +10,7 @@ use App\Http\Controllers\Portal\SupportController;
 use App\Http\Controllers\Portal\OrderController;
 use App\Http\Controllers\Portal\BasketController;
 use App\Http\Controllers\Portal\ProductController;
+use App\Http\Controllers\Portal\PublicProxyController;
 use App\Http\Controllers\Portal\CheckoutController;
 use App\Http\Controllers\Portal\OrderLocaltonetController;
 use App\Http\Controllers\Portal\BalanceController;
@@ -52,6 +53,12 @@ Route::middleware(["logRequest", "updateLastSeen"])->group(function () {
             Route::get('/category/{productCategory}', [ProductController::class, 'index'])->name("index");
             Route::get('/test-product', [ProductController::class, 'testProduct'])->name("testProduct");
             Route::get('/{product}', [ProductController::class, 'show'])->name("show");
+        });
+
+        // Auto-product purchase (from marketing site)
+        Route::group(['prefix' => 'proxy', 'as' => 'proxy.'], function () {
+            Route::any('/auto-purchase', [PublicProxyController::class, 'autoPurchase'])->name("autoPurchase");
+            Route::any('/price-quote', [PublicProxyController::class, 'priceQuote'])->name("priceQuote");
         });
 
         Route::group(['prefix' => 'basket', 'as' => 'basket.'], function () {

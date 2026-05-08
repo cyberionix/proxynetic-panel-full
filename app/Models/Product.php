@@ -18,7 +18,9 @@ class Product extends Model
     protected $guarded = [];
     protected $casts = [
         "attrs"          => "json",
-        'delivery_items' => 'json'
+        'delivery_items' => 'json',
+        'auto_meta' => 'json',
+        'is_auto_generated' => 'boolean',
     ];
     protected $appends = ['price'];
 

@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ProductCategoryController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\ProxyTypeController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SmsLogController;
 use App\Http\Controllers\Admin\SupportController;
@@ -287,6 +288,11 @@ dd($data->is_proxy || $data->is_vpn);
                 Route::post('/update/{threeProxyPool}', [ThreeProxyPoolController::class, 'update'])->name('update');
                 Route::post('/delete/{threeProxyPool}', [ThreeProxyPoolController::class, 'delete'])->name('delete');
             });
+        });
+        Route::group(['prefix' => '/proxy-types', 'as' => 'proxyTypes.'], function () {
+            Route::get('/', [ProxyTypeController::class, 'index'])->name('index');
+            Route::post('/{type}/update', [ProxyTypeController::class, 'update'])->name('update');
+            Route::get('/auto-products', [ProxyTypeController::class, 'autoProductsList'])->name('autoProducts');
         });
         Route::group(['prefix' => 'checkouts', 'as' => 'checkouts.'], function () {
             Route::get('/', [CheckoutController::class, "index"])->name("index");
