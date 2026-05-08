@@ -128,15 +128,59 @@
                 @endauth
                 @guest
                 <!--begin::Login/Register-->
-                <a href="{{route("portal.auth.login")}}"
-                   class="col position-relative d-flex flex-center gap-2 bg-hover-light-primary w-100px h-30px h-md-40px rounded-1">
-                    <i class="fa fa-sign-in-alt fs-3"></i>
-                    <span class="text-muted fw-semibold">{{__("login")}}</span>
+                <style>
+                    .np-guest-btn {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 8px 18px;
+                        font-weight: 600;
+                        font-size: 14px;
+                        border-radius: 8px;
+                        text-decoration: none;
+                        transition: all 0.2s ease;
+                        white-space: nowrap;
+                        border: none;
+                        cursor: pointer;
+                    }
+                    .np-guest-btn-login {
+                        background: linear-gradient(135deg, #f1faff 0%, #e1f0ff 100%);
+                        color: #009ef7;
+                        border: 1px solid #cfe9ff;
+                    }
+                    .np-guest-btn-login:hover {
+                        background: linear-gradient(135deg, #009ef7 0%, #0084d6 100%);
+                        color: #fff;
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 12px rgba(0, 158, 247, 0.25);
+                        text-decoration: none;
+                    }
+                    .np-guest-btn-register {
+                        background: linear-gradient(135deg, #50cd89 0%, #47be7d 100%);
+                        color: #fff;
+                        box-shadow: 0 2px 8px rgba(80, 205, 137, 0.25);
+                    }
+                    .np-guest-btn-register:hover {
+                        background: linear-gradient(135deg, #47be7d 0%, #3aaf6d 100%);
+                        color: #fff;
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 14px rgba(80, 205, 137, 0.35);
+                        text-decoration: none;
+                    }
+                    .np-guest-btn i { font-size: 14px; }
+                    @media (max-width: 768px) {
+                        .np-guest-btn { padding: 6px 12px; font-size: 12px; }
+                        .np-guest-btn span { display: none; }
+                        .np-guest-btn i { font-size: 16px; }
+                    }
+                </style>
+                <a href="{{route("portal.auth.login")}}" class="np-guest-btn np-guest-btn-login me-2">
+                    <i class="fa fa-sign-in-alt"></i>
+                    <span>{{__("login")}}</span>
                 </a>
-                <a href="{{route("portal.auth.register")}}"
-                   class="col position-relative d-flex flex-center gap-2 bg-hover-light-primary w-100px h-30px h-md-40px rounded-1">
-                    <i class="fa fa-user-plus fs-3"></i>
-                    <span class="text-muted fw-semibold">{{__("register")}}</span>
+                <a href="{{route("portal.auth.register")}}" class="np-guest-btn np-guest-btn-register">
+                    <i class="fa fa-user-plus"></i>
+                    <span>{{__("register")}}</span>
                 </a>
                 <!--end::Login/Register-->
                 @endguest
