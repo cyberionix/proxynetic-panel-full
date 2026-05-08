@@ -238,6 +238,19 @@
                             <!--end:Menu item-->
                             <!--begin:Menu item-->
                             <div class="menu-item">
+                                <a class="menu-link {{Route::is(["admin.proxyTypes.index"]) ? "active" : ""}}" href="{{route("admin.proxyTypes.index")}}">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">{{__("Proxy Tip Ayarları")}}</span>
+                                </a>
+                            </div>
+                            <div class="menu-item">
+                                <a class="menu-link {{Route::is(["admin.proxyTypes.autoProducts"]) ? "active" : ""}}" href="{{route("admin.proxyTypes.autoProducts")}}">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">{{__("Otomatik Ürünler")}}</span>
+                                </a>
+                            </div>
+                            <!--begin:Menu item-->
+                            <div class="menu-item">
                                 <!--begin:Menu link-->
                                 <a class="menu-link {{Route::is("admin.tokenPools.index") ? "active" : ""}}" href="{{route("admin.tokenPools.index")}}">
 														<span class="menu-bullet">
