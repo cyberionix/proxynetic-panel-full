@@ -43,7 +43,7 @@ class ProductController extends Controller
         if (isset($request->order[0]["column"]) and isset($request->order[0]["dir"])) {
             $orderBy = $searchableColumns[$request->order[0]["column"]] . " " . $request->order[0]["dir"];
         } else {
-            $orderBy = "products.id DESC";
+            $orderBy = "products.sort_order ASC, products.id DESC";
         }
 
         $searchVal = $request->search["value"];
@@ -841,6 +841,27 @@ class ProductController extends Controller
         ];
     }
 
+
+
+    public function reorder(\Illuminate\Http\Request $request)
+    {
+        $items = $request->input("items", []);
+        if (!is_array($items) || empty($items)) {
+            return $this->errorResponse("Gecersiz veri.");
+        }
+        DB::beginTransaction();
+        try {
+            foreach ($items as $idx => $id) {
+                \App\Models\Product::whereKey($id)->update(["sort_order" => (int)$idx + 1]);
+            }
+            DB::commit();
+            return $this->successResponse(__("success"));
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \Illuminate\Support\Facades\Log::error("PRODUCT_REORDER_FAIL", ["error" => $e->getMessage()]);
+            return $this->errorResponse("Siralama kaydedilemedi: " . $e->getMessage());
+        }
+    }
 
     public function clone(Product $product)
     {

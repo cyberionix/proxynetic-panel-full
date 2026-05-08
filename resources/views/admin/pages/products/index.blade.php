@@ -112,6 +112,57 @@
                 t.search(e.target.value).draw();
             }));
 
+                        // SortableJS drag-drop reorder for products
+            (function loadSortable(cb){
+                if (window.Sortable) return cb();
+                var s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js';
+                s.onload = cb;
+                document.head.appendChild(s);
+            })(function(){
+                function attachSortable(){
+                    var tbody = document.querySelector('#dataTable tbody');
+                    if (!tbody || tbody.dataset.sortableAttached) return;
+                    tbody.dataset.sortableAttached = '1';
+                    // Make rows look draggable
+                    tbody.querySelectorAll('tr').forEach(function(tr){
+                        tr.style.cursor = 'move';
+                    });
+                    Sortable.create(tbody, {
+                        animation: 150,
+                        ghostClass: 'sortable-ghost',
+                        chosenClass: 'sortable-chosen',
+                        onEnd: function(){
+                            var ids = [];
+                            tbody.querySelectorAll('tr').forEach(function(tr){
+                                var span = tr.querySelector('td:first-child span[data-id]');
+                                if (span) ids.push(span.getAttribute('data-id'));
+                            });
+                            if (!ids.length) return;
+                            $.ajax({
+                                type: 'POST',
+                                url: '{{ route("admin.products.reorder") }}',
+                                data: { _token: '{{csrf_token()}}', items: ids },
+                                success: function(res){
+                                    if (res && res.success){
+                                        if (window.toastr) toastr.success("{{__('success')}}");
+                                    } else {
+                                        if (window.toastr) toastr.error((res && res.message) || "{{__('form_has_errors')}}");
+                                    }
+                                },
+                                error: function(xhr){
+                                    if (window.toastr) toastr.error('Siralama kaydedilemedi: ' + xhr.status);
+                                }
+                            });
+                        }
+                    });
+                }
+                if (typeof t !== 'undefined' && t && t.on){
+                    t.on('draw', function(){ delete document.querySelector('#dataTable tbody').dataset.sortableAttached; attachSortable(); });
+                }
+                setTimeout(attachSortable, 500);
+            });
+
             $(document).on("click", ".cloneBtn", function () {
                 let id = $(this).closest("tr").find("td:first span").data("id");
                 let url = `{{ route('admin.products.clone', ['product' => '__pid__']) }}`.replace('__pid__', id);

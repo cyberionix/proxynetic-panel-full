@@ -255,6 +255,7 @@ dd($data->is_proxy || $data->is_vpn);
             Route::get('/find/{product}', [ProductController::class, "find"])->name("find");
             Route::get('/{product}', [ProductController::class, "edit"])->whereNumber('product')->name("edit");
             Route::post('/update/{product}', [ProductController::class, "update"])->name("update");
+            Route::post('/reorder', [ProductController::class, "reorder"])->name("reorder");
             Route::post('/clone/{product}', [ProductController::class, "clone"])->name("clone");
             Route::post('/destroy/{product}', [ProductController::class, "destroy"])->name("destroy");
 
