@@ -113,7 +113,7 @@
         <div class="col-xl-4">
             <x-portal.order-summary-card :basket="$basket"/>
             @if(isset($basket))
-                <a href="{{route("portal.basket.payment.index")}}"
+                <a href="{{ Auth::check() ? route("portal.basket.payment.index") : route("portal.auth.register") }}"
                    class="btn btn-primary w-100 mt-6">{{__("confirm_basket")}} <i class="fa fa-chevron-right fs-4"></i>
                 </a>
             @endif

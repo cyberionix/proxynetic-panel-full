@@ -20,6 +20,11 @@ class Authenticate extends Middleware
             return route('admin.auth.login');
         }
 
+        // Guest checkout flow: redirect first-time buyer to register page when going to payment
+        if ($request->is('portal/basket/payment') || $request->is('portal/basket/payment/*') || $request->is('portal/checkout*') || $request->is('portal/paytr/*')) {
+            return route('portal.auth.register');
+        }
+
         return route('portal.auth.login');
     }
 }
