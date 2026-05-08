@@ -129,14 +129,14 @@
                 @guest
                 <!--begin::Login/Register-->
                 <a href="{{route("portal.auth.login")}}"
-                   class="col position-relative d-flex flex-center gap-2 w-100px h-30px h-md-40px rounded-1 np-guest-login fw-semibold">
-                    <i class="fa fa-sign-in-alt fs-3"></i>
-                    <span class="d-none d-md-inline">{{__("login")}}</span>
+                   class="position-relative d-flex flex-center gap-2 h-30px h-md-40px np-guest-login">
+                    <i class="fa fa-sign-in-alt"></i>
+                    <span class="text-nowrap d-none d-md-inline">{{__("login")}}</span>
                 </a>
                 <a href="{{route("portal.auth.register")}}"
-                   class="col position-relative d-flex flex-center gap-2 w-100px h-30px h-md-40px rounded-1 np-guest-register fw-semibold">
-                    <i class="fa fa-user-plus fs-3"></i>
-                    <span class="d-none d-md-inline">{{__("register")}}</span>
+                   class="position-relative d-flex flex-center gap-2 h-30px h-md-40px np-guest-register">
+                    <i class="fa fa-user-plus"></i>
+                    <span class="text-nowrap d-none d-md-inline">{{__("register")}}</span>
                 </a>
                 <!--end::Login/Register-->
                 @endguest
@@ -245,32 +245,50 @@
 <style>
     .np-guest-login,
     .np-guest-register {
-        transition: all 0.2s ease;
+        min-width: 130px;
+        padding: 0 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
         text-decoration: none !important;
-        font-size: 12px;
+        white-space: nowrap;
+        transition: all 0.18s ease;
         cursor: pointer;
+        line-height: 1;
     }
+    /* Login = solid white outline button */
     .np-guest-login {
-        background: rgba(0, 158, 247, 0.1);
+        background: #ffffff;
         color: #009ef7 !important;
-        border: 1px solid rgba(0, 158, 247, 0.2);
+        border: 2px solid #009ef7;
     }
     .np-guest-login:hover {
         background: #009ef7;
-        color: #fff !important;
-        border-color: #009ef7;
-        box-shadow: 0 2px 8px rgba(0, 158, 247, 0.25);
+        color: #ffffff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px rgba(0, 158, 247, 0.3);
     }
+    /* Register = solid green CTA */
     .np-guest-register {
         background: linear-gradient(135deg, #50cd89 0%, #47be7d 100%);
-        color: #fff !important;
-        border: 1px solid #47be7d;
+        color: #ffffff !important;
+        border: 2px solid transparent;
+        box-shadow: 0 3px 10px rgba(80, 205, 137, 0.28);
     }
     .np-guest-register:hover {
         background: linear-gradient(135deg, #47be7d 0%, #3aaf6d 100%);
-        color: #fff !important;
-        box-shadow: 0 2px 8px rgba(80, 205, 137, 0.35);
+        color: #ffffff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(80, 205, 137, 0.45);
     }
-    .np-guest-login i, .np-guest-register i { font-size: 16px; }
+    .np-guest-login i, .np-guest-register i { font-size: 14px; }
+    @media (max-width: 768px) {
+        .np-guest-login, .np-guest-register {
+            min-width: 38px;
+            width: 38px !important;
+            padding: 0;
+        }
+        .np-guest-login i, .np-guest-register i { font-size: 16px; }
+    }
 </style>
 @endpush
