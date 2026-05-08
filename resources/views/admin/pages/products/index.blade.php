@@ -164,7 +164,7 @@
             });
 
             $(document).on("click", ".cloneBtn", function () {
-                let id = $(this).closest("tr").find("td:first span").data("id");
+                let id = $(this).closest("tr").find("td:first span[data-id]").data("id");
                 let url = `{{ route('admin.products.clone', ['product' => '__pid__']) }}`.replace('__pid__', id);
                 Swal.fire({
                     icon: 'question',
@@ -214,7 +214,7 @@
             });
 
             $(document).on("click", ".deleteBtn", function () {
-                let id = $(this).closest("tr").find("td:first span").data("id");
+                let id = $(this).closest("tr").find("td:first span[data-id]").data("id");
                 let url = `{{ route('admin.products.destroy', ['product' => '__book_placeholder__']) }}`;
                 url = url.replace('__book_placeholder__', id);
 
