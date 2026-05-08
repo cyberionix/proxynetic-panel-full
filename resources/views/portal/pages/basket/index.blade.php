@@ -7,6 +7,9 @@
             pointer-events: none;
         }
     </style>
+@guest
+<x-portal.modals.guest-checkout-modal/>
+@endguest
 @endsection
 @section("breadcrumb")
     <x-portal.bread-crumb :data="__('my_basket')"/>
@@ -113,9 +116,12 @@
         <div class="col-xl-4">
             <x-portal.order-summary-card :basket="$basket"/>
             @if(isset($basket))
-                <a href="{{ Auth::check() ? route("portal.basket.payment.index") : route("portal.auth.register") }}"
-                   class="btn btn-primary w-100 mt-6">{{__("confirm_basket")}} <i class="fa fa-chevron-right fs-4"></i>
-                </a>
+                @auth
+                <a href="{{route("portal.basket.payment.index")}}" class="btn btn-primary w-100 mt-6">{{__("confirm_basket")}} <i class="fa fa-chevron-right fs-4"></i></a>
+                @endauth
+                @guest
+                <button type="button" class="btn btn-primary w-100 mt-6" data-bs-toggle="modal" data-bs-target="#guestCheckoutModal">{{__("confirm_basket")}} <i class="fa fa-chevron-right fs-4"></i></button>
+                @endguest
             @endif
         </div>
     </div>
